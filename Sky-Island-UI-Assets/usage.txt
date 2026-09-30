@@ -1,0 +1,39 @@
+SKY ISLAND MARKET — ICON PACK V1
+
+16 individual PNG images with transparent backgrounds.
+Created using the built-in image generation tool with the Sky Island Market concept as a style reference.
+These are newly rendered matching assets, not exact crops or official Minecraft/Hypixel item textures.
+
+FILES
+10 interface icons: brand emerald, Bazaar crate, auction gavel, watchlist chest,
+favorite heart, gold coin, deal crown, hot-deal flame, favorite star, price-alert bell.
+6 item illustrations: summoning eye, enchanted diamond block, golden cookie,
+enchanted sword, enchanted handle, enchanted book.
+
+PREVIEW
+Open /assets/sky-island-v1/index.html in the running development app.
+Use the light/dark toggle and size controls to check your target size.
+
+USAGE
+Use the PNG files directly as image sources. Keep the original aspect ratio.
+The icons include transparent padding; adjust the image element size to match the visual size you need.
+Use approximately 24–48px boxes for navigation and 80–160px for item illustrations.
+For the coin, flame, and star, inspect them at your chosen size before using them in dense text.
+Do not add a rectangular image background.
+Let the surrounding UI draw card borders, rarity badges, and selection effects.
+
+HTML
+<link rel="stylesheet" href="/assets/sky-island-v1/icons.css">
+<img class="sky-icon" src="/assets/sky-island-v1/ui-auction-gavel.png" alt="" aria-hidden="true">
+<img class="sky-item" src="/assets/sky-island-v1/item-summoning-eye.png" alt="Summoning Eye">
+
+REACT
+<img className="sky-icon" src="/assets/sky-island-v1/ui-watchlist-chest.png" alt="" aria-hidden="true" />
+
+ACCESSIBILITY
+Use empty alt text for decorative icons beside an existing label.
+Use a meaningful alt or button aria-label for icon-only controls.
+Retain text labels for rarity, price changes, and other meanings expressed with color.
+
+Use manifest.json for a machine-readable list and prompts.txt to create more matching artwork.
+

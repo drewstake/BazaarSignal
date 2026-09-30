@@ -1,0 +1,60 @@
+Implement the attached Price Alerts design in the existing BazaarSignal app.
+
+The current app is close to the Sky Island Market style, but the Price Alerts page still needs to match the supplied design. Make the changes in the actual app, not a separate demo.
+
+REFERENCE PACK
+- Folder: ./Price-Alerts-UI/
+- Main target: ./Price-Alerts-UI/price-alerts-reference.png
+- Overall style: ./Price-Alerts-UI/sky-island-style-reference.png
+- Icon overview: ./Price-Alerts-UI/icon-overview.png
+- Individual transparent artwork: ./Price-Alerts-UI/icons/
+
+Open and inspect those images before editing. Treat the screenshot as the visual target and the existing app as the source of truth for behavior, data, and supported features. The numbers, account details, statuses, and timestamps in the mockup are illustrative.
+
+START WITH THE EXISTING IMPLEMENTATION
+Inspect src/Root.tsx, src/App.tsx, src/MyAlerts.tsx, src/alerts.ts, shared/price-alert.ts, shared/model.ts, and the existing market components and styles in src/companion/.
+The market's Price alerts navigation currently links to #alerts=1, which Root sends to App. Existing item links use #item=<id>&alert=1. Preserve both entry points and existing disable-alert links.
+Reuse or extract the working creation form from App and the existing alert service functions. Keep the current authentication, authorization, backend, local/demo modes, validation, request IDs, revision handling, and email delivery flow.
+
+LAYOUT AND VISUAL STYLE
+Match the reference closely: cream parchment surfaces, warm oak structure, leafy green and sky-blue controls, gold pixel-art accents, and a narrow floating-island skyline behind the header. Reuse the current market shell and artwork wherever practical. Keep decoration around the edges and readable working space below.
+
+Use the title "Price Alerts" beside the supplied gold bell, with "Your target price. Your next good deal." underneath. Show Price Alerts as the selected navigation tab. Use pixel typography selectively for branding and headings, and readable typography for prices and form fields.
+
+On desktop, use approximately two-thirds width for the alert board and one-third for the pinned-paper Create alert panel:
+1. Alert board: Active, Completed, and Disabled filters with counts from real saved alerts; search by item name; stacked horizontal alert cards.
+2. Creation panel: item selector with artwork, Buy below / Sell above controls, target price in coins per item, quantity, relevant sale-tax control, a plain-language trigger preview, email delivery information, and a green Create alert button.
+3. Recent triggers: a compact section below the list only when actual trigger events are available. Otherwise show a useful empty/unavailable state. Do not invent notification history.
+
+Each alert card should show the correct item artwork and name, actual status, buy/sell condition, current estimated price if available, target, quantity, tax context for sells, and Edit target for active alerts.
+Derive rarity labels from valid item metadata rather than guessing from the mockup.
+Match card spacing, image scale, borders, controls, and selected states. Keep the chest illustration at the foot of the right panel as a small decorative detail.
+
+USE THE PROVIDED ICONS
+Use ui-alert-bell.png for alerts, ui-emerald.png for the brand, ui-bazaar-crate.png for Bazaar, ui-auction-gavel.png for Auctions, ui-watchlist-chest.png for saved items, ui-favorite-heart.png for Watchlist, and ui-gold-coin.png for currency.
+Use the supplied item illustrations only for their intended items; keep accurate existing artwork for other products.
+
+The same artwork already exists under public/assets/sky-island-v1/, with optimized variants in its web/ directory. Inspect and reuse the existing SkyIcon component and item-art mapping before adding another system. Browser URLs should use /assets/sky-island-v1/... rather than filesystem paths.
+Preserve transparency and aspect ratio with object-fit: contain. Account for transparent padding when sizing. Do not use emoji or unrelated generic icons where a matching asset exists.
+Implement the interface as real accessible React components and CSS, not one screenshot used as the page.
+
+PRESERVE ALERT SEMANTICS
+Buy alerts compare the estimated instant-buy cost per item against an at-or-below target. Sell alerts compare estimated instant-sell proceeds per item after the configured tax against an at-or-above target.
+Use the existing order-book estimate logic for the entire requested quantity. Do not substitute a top-of-book spot quote when quantity-aware pricing is required. Show unavailable, insufficient depth, or stale states clearly; never fabricate a live current price.
+Keep the backend's one-time target notification behavior, confirmation-email behavior, quantity constraints, active-alert limits, and edit restrictions.
+Keep revision-aware updates so editing an alert does not overwrite a concurrent change. Refresh saved alerts after successful creation using the existing authenticated account flow.
+Reuse the authenticated email delivery path. Do not add arbitrary recipient fields or nonfunctional channel options.
+Show "Checking prices" or a live indicator only when supported by actual freshness/status information. Do not carry the mockup's "Example prices" label into live mode.
+
+INTERACTION AND RESPONSIVENESS
+Wire up every visible control. Avoid decorative overflow menus or View history buttons unless implemented with real supported actions.
+Include sign-in, loading, fetch-error/retry, empty-list, no-search-results, disabled/completed, validation, saving, success, and stale-price states. Show active-only edit controls consistently.
+On smaller screens, stack the alert board and creation panel, provide an easy way to reach Create alert, and let card details wrap without horizontal scrolling. Use comfortable touch targets, keyboard navigation, visible focus, associated labels, and appropriate image alt text.
+Scope styling so the Bazaar, Auctions, item details, and order book pages continue to work and retain their existing design.
+
+VERIFY AND DELIVER
+Run the relevant existing alert tests and npm run build. Add focused coverage only for new behavior that needs it, such as status filtering or creation from the alerts route.
+Verify #alerts=1 and item-specific alert entry points in the browser, including desktop and mobile widths. Check real asset loading, create/edit flows, loading and failure states, and preservation of authentication.
+Capture screenshots and compare them directly against price-alerts-reference.png; correct visible mismatches in spacing, typography, icons, and panel proportions.
+Do not change deployment, billing, credentials, or notification infrastructure for this visual work.
+Finish with a concise account of what changed, validation performed, and any remaining limitations. Implement the page rather than stopping at a plan.

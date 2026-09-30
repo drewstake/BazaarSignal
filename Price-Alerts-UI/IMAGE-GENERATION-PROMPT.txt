@@ -1,0 +1,48 @@
+Generation mode: Built-in image generation.
+Reference images: sky-island-market-reference.png and icon-overview.png in this folder.
+
+Use case: ui-mockup.
+Create a finished, high-fidelity desktop website UI mockup for the BazaarSignal PRICE ALERTS page. Output one crisp, front-on screenshot, wide landscape approximately 1600 x 1100. No browser chrome, device frame, perspective, or mockup surroundings.
+
+REFERENCE INPUTS: Image 1 is the approved Sky Island Market home page. Carry its unmistakable Minecraft pixel-art market personality into a NEW alerts page. Image 2 is the supplied asset contact sheet; reuse the visual designs of its gold alert bell, emerald, Bazaar crate, auction gavel, chest, heart, purple summoning eye, cyan diamond block, golden cookie, and enchanted book. Do not reproduce the asset gallery itself.
+
+ART DIRECTION: Bright, adventurous Minecraft SkyBlock merchant noticeboard. Cream parchment working surfaces, warm brown oak strips and tiny square brass fittings, leafy green, blue sky and golden coins. Pixel-art ornament with crisp stepped silhouettes; neat modern readable typography for controls and prices, chunky pixel typography reserved for logo and primary headline. A narrow illustrated floating-island skyline only behind the top header; subtle leaves at far edges. Header and decoration take up no more than 17% of image. This is a daily trading tool with comfortable spacing and substantial usable UI, charming to teenage Minecraft players, not a corporate SaaS dashboard, not an RPG screenshot. Oak construction should feel light and crafted; do not bury every control under enormous frames or textures. Body parchment is very light ivory so text is clear.
+
+HEADER: Small emerald emblem beside the wooden BazaarSignal sign at upper left. Horizontal hanging-tab navigation: Bazaar, Auctions, My Flips, Watchlist, Price Alerts. Price Alerts selected with a vivid sky-blue face and small gold pixel bell. Small player avatar at far right. Keep navigation fully readable and aligned.
+
+PAGE TITLE ROW just below header: expressive supplied gold bell around 58px beside headline "Price Alerts". Under it: "Your target price. Your next good deal." At the right of this row show a small calm green dot and "Checking prices" plus secondary "Example prices". No oversize hero.
+
+MAIN LAYOUT: Asymmetric market noticeboard, 63% left and 34% right with a generous gutter. Left is a clean cream parchment alert board, right is a pinned note containing a fully usable creation form, all visible within the screenshot. Align their top edges.
+LEFT:
+Small section heading "My alerts". Along its top, compact paper tabs "Active 3" selected in leafy green, "Completed 1", "Disabled 1". Search field "Find an alert..." below.
+Three spacious horizontal alert cards stacked vertically. Each has a framed item illustration at left, readable item name and discreet rarity ribbon, tiny green "Active" pill at right, a clear full-width trigger sentence, aligned current and target values, quantity, email delivery, and a small "Edit target" action. Highlight target price with a subtle pastel green or blue background. No giant art filling the working rows.
+Card 1, summoning eye artwork:
+"Summoning Eye", small purple "EPIC" ribbon, "Active".
+"Instant buy at or below 2,400,000 coins"
+"Current  2,480,000" / "Target  2,400,000"
+"Quantity: 8" / "Email notification" / "Edit target".
+Card 2, cyan diamond block:
+"Enchanted Diamond Block", blue "RARE" ribbon, "Active".
+"Instant sell at or above 200,000 coins"
+"Current  194,500" / "Target  200,000"
+"Quantity: 64" / "After 1.25% tax" / "Edit target".
+Card 3, golden cookie artwork:
+"Booster Cookie", gold "LEGENDARY" ribbon, "Active".
+"Instant buy at or below 12,000,000 coins"
+"Current  12,450,000" / "Target  12,000,000"
+"Quantity: 1" / "Email notification" / "Edit target".
+Below the three cards, a small neat "Recently triggered" strip with a tiny enchanted book icon, green checkmark, "Enchanted Book", "Target reached", and "12 min ago". Compact, not a fourth big card.
+
+RIGHT PINNED PAPER:
+One small brass pin at the top, a tiny gold bell and clear heading "Create alert".
+Item selector label "Item", selected row with Summoning Eye thumbnail and "Summoning Eye", dropdown chevron.
+Two equal-width segmented controls "Buy below" selected sky blue, "Sell above" neutral parchment.
+Label "Target price", input "2,400,000" with small gold coin at right, helper "coins per item".
+Label "Quantity", input "8".
+Below inputs, a small cream-green inset preview titled "When it happens" and exact readable text "Email me when the instant-buy price for 8 Summoning Eyes is at or below 2,400,000 coins each."
+Quiet delivery row with small envelope and "Email notification".
+Strong green full-width button with little bell and "Create alert".
+Small helper line beneath: "One email when your target is reached."
+At bottom of this right column, a tiny oak shelf with the supplied closed chest, one spare gold coin and folded paper; keep it subtle and visually charming, not an oversized illustration.
+
+IMPORTANT: Make this look like an exceptionally crafted real website screenshot ready for frontend implementation. Maintain consistent typography, alignment, sensible control sizing, spacing, crisp readable text and coherent field hierarchy. All prices are illustrative mock data. Keep the same recognizable icon art and color palette as the reference. No invented official affiliation logo. No generic thin-line-icon grid, no glassmorphism, no dark sci-fi UI, no excessive glow, no washed-out body text, no marketing hero, no huge scenery, no duplicated panels, no watermark.

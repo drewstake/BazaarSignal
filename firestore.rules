@@ -1,0 +1,57 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function owner() {
+      return request.auth != null && request.auth.token.email_verified == true
+        && request.auth.uid == get(/databases/$(database)/documents/config/access).data.ownerUid;
+    }
+    match /owners/{uid}/{document=**} {
+      allow read: if owner() && request.auth.uid == uid;
+      allow write: if false;
+    }
+    // Only the sanitized status projection is client-readable. Private ledgers,
+    // recipient addresses, disable hashes and all writes remain server-only.
+    match /users/{uid}/status/main {
+      allow read: if request.auth != null
+        && request.auth.uid == uid
+        && request.auth.token.email_verified == true
+        && request.auth.token.firebase.sign_in_provider == 'google.com';
+      allow write: if false;
+    }
+    match /market/{document} { allow read: if owner(); allow write: if false; }
+    function ownUser(uid) {
+      return request.auth != null && request.auth.uid == uid
+        && request.auth.token.email_verified == true
+        && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+    match /users/{uid}/watchlist/{key} {
+      allow read, delete: if ownUser(uid);
+      allow create, update: if ownUser(uid)
+        && request.resource.data.keys().hasOnly(['key','kind','itemId','name','savedAt'])
+        && request.resource.data.key == key
+        && request.resource.data.kind in ['bazaar','auction']
+        && request.resource.data.itemId is string
+        && request.resource.data.itemId.matches('^[A-Za-z0-9_:-]{1,100}$')
+        && key == request.resource.data.kind + '_' + request.resource.data.itemId
+        && request.resource.data.name is string && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 140
+        && request.resource.data.savedAt is int && request.resource.data.savedAt > 0
+        && request.resource.data.savedAt <= request.time.toMillis() + 60000;
+    }
+    match /users/{uid}/filters/{marketName} {
+      allow read, delete: if ownUser(uid) && marketName in ['bazaar','auctions'];
+      allow create, update: if ownUser(uid) && marketName in ['bazaar','auctions']
+        && request.resource.data.keys().hasOnly(['json','updatedAt'])
+        && request.resource.data.json is string && request.resource.data.json.size() <= 8192
+        && request.resource.data.updatedAt is int && request.resource.data.updatedAt > 0
+        && request.resource.data.updatedAt <= request.time.toMillis() + 60000;
+    }
+    // Shared collector state is written only with server credentials. The public
+    // HTTP cache exposes sanitized pages; raw sale participant records stay private.
+    match /itemVariants/{id} { allow read, write: if false; }
+    match /completedSales/{id} { allow read, write: if false; }
+    match /comparablePrices/{id} { allow read, write: if false; }
+    match /collectorStatus/{id} { allow read, write: if false; }
+    match /{document=**} { allow read, write: if false; }
+  }
+}

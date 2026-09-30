@@ -1,0 +1,53 @@
+{
+  "name": "bazaar-watch",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "functions"
+  ],
+  "overrides": {
+    "gaxios": {
+      "uuid": "^11.1.1"
+    }
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build && npm run build:backend",
+    "test": "vitest run",
+    "collector": "node scripts/build-collector.mjs && node .local/collector-runner.mjs",
+    "build:collector": "tsc --noEmit -p collector/tsconfig.json && node scripts/build-collector.mjs",
+    "test:companion": "playwright test --config playwright.companion.config.ts",
+    "test:private-browser": "firebase emulators:exec --only auth,firestore --project demo-bazaar-watch \"playwright test --config playwright.private.config.ts\"",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-bazaar-watch \"vitest run --config vitest.rules.config.ts\"",
+    "test:browser": "playwright test",
+    "preview": "vite preview --host 127.0.0.1",
+    "deploy:preview": "npm run build && firebase hosting:channel:deploy review",
+    "deploy:hosting": "npm run build && firebase deploy --only hosting",
+    "deploy": "npm run build && firebase deploy --only hosting,firestore",
+    "build:backend": "tsc --noEmit --project apps-script/tsconfig.json && node scripts/build-apps-script.mjs",
+    "test:public-browser": "playwright test --config playwright.public.config.ts",
+    "test:ui-kits": "playwright test --config playwright.ui-kits.config.ts"
+  },
+  "dependencies": {
+    "firebase": "^12.19.0",
+    "lucide-react": "^0.577.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.0",
+    "@google/clasp": "^3.4.1",
+    "@playwright/test": "^1.58.2",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^6.0.0",
+    "esbuild": "^0.28.2",
+    "firebase-tools": "^15.0.0",
+    "prettier": "^3.9.9",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.0",
+    "vitest": "^4.0.0"
+  }
+}

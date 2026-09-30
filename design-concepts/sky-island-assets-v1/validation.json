@@ -1,0 +1,130 @@
+[
+  {
+    "File": "item-diamond-block.png",
+    "Width": 1254,
+    "Height": 1254,
+    "TransparentSamples": 1999,
+    "SolidSamples": 1904,
+    "Bytes": 913168
+  },
+  {
+    "File": "item-enchanted-book.png",
+    "Width": 1254,
+    "Height": 1254,
+    "TransparentSamples": 2113,
+    "SolidSamples": 1808,
+    "Bytes": 1189132
+  },
+  {
+    "File": "item-enchanted-sword.png",
+    "Width": 1254,
+    "Height": 1254,
+    "TransparentSamples": 2835,
+    "SolidSamples": 1028,
+    "Bytes": 619263
+  },
+  {
+    "File": "item-golden-cookie.png",
+    "Width": 1374,
+    "Height": 1145,
+    "TransparentSamples": 2312,
+    "SolidSamples": 1651,
+    "Bytes": 782520
+  },
+  {
+    "File": "item-necrons-handle.png",
+    "Width": 1254,
+    "Height": 1254,
+    "TransparentSamples": 3167,
+    "SolidSamples": 753,
+    "Bytes": 630024
+  },
+  {
+    "File": "item-summoning-eye.png",
+    "Width": 1254,
+    "Height": 1254,
+    "TransparentSamples": 2325,
+    "SolidSamples": 1564,
+    "Bytes": 927385
+  },
+  {
+    "File": "ui-alert-bell.png",
+    "Width": 1290,
+    "Height": 1219,
+    "TransparentSamples": 2546,
+    "SolidSamples": 1381,
+    "Bytes": 642814
+  },
+  {
+    "File": "ui-auction-gavel.png",
+    "Width": 1402,
+    "Height": 1122,
+    "TransparentSamples": 3176,
+    "SolidSamples": 825,
+    "Bytes": 554842
+  },
+  {
+    "File": "ui-bazaar-crate.png",
+    "Width": 1254,
+    "Height": 1254,
+    "TransparentSamples": 2196,
+    "SolidSamples": 1739,
+    "Bytes": 1027395
+  },
+  {
+    "File": "ui-deal-crown.png",
+    "Width": 1254,
+    "Height": 1254,
+    "TransparentSamples": 2368,
+    "SolidSamples": 1549,
+    "Bytes": 602428
+  },
+  {
+    "File": "ui-emerald.png",
+    "Width": 1254,
+    "Height": 1254,
+    "TransparentSamples": 2499,
+    "SolidSamples": 1435,
+    "Bytes": 689799
+  },
+  {
+    "File": "ui-favorite-heart.png",
+    "Width": 1380,
+    "Height": 1140,
+    "TransparentSamples": 2280,
+    "SolidSamples": 1603,
+    "Bytes": 602629
+  },
+  {
+    "File": "ui-favorite-star.png",
+    "Width": 1254,
+    "Height": 1254,
+    "TransparentSamples": 2496,
+    "SolidSamples": 1417,
+    "Bytes": 582650
+  },
+  {
+    "File": "ui-gold-coin.png",
+    "Width": 1312,
+    "Height": 1199,
+    "TransparentSamples": 2387,
+    "SolidSamples": 1533,
+    "Bytes": 633701
+  },
+  {
+    "File": "ui-hot-flame.png",
+    "Width": 1254,
+    "Height": 1254,
+    "TransparentSamples": 2770,
+    "SolidSamples": 1150,
+    "Bytes": 479449
+  },
+  {
+    "File": "ui-watchlist-chest.png",
+    "Width": 1390,
+    "Height": 1132,
+    "TransparentSamples": 2196,
+    "SolidSamples": 1763,
+    "Bytes": 913714
+  }
+]

@@ -1,0 +1,67 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "completedSales",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "fingerprint", "order": "ASCENDING" },
+        { "fieldPath": "soldAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "completedSales",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "itemId", "order": "ASCENDING" },
+        { "fieldPath": "soldAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": [
+    { "collectionGroup": "market", "fieldPath": "items", "indexes": [] },
+    { "collectionGroup": "market", "fieldPath": "products", "indexes": [] },
+    { "collectionGroup": "market", "fieldPath": "books", "indexes": [] },
+    { "collectionGroup": "events", "fieldPath": "message", "indexes": [] },
+    {
+      "collectionGroup": "completedSales",
+      "fieldPath": "variant",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "completedSales",
+      "fieldPath": "seller",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "completedSales",
+      "fieldPath": "buyer",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "itemVariants",
+      "fieldPath": "modifiers",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "itemVariants",
+      "fieldPath": "enchantments",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "comparablePrices",
+      "fieldPath": "sales",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "comparablePrices",
+      "fieldPath": "reasons",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "collectorStatus",
+      "fieldPath": "gaps",
+      "indexes": []
+    },
+    { "collectionGroup": "filters", "fieldPath": "json", "indexes": [] }
+  ]
+}

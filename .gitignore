@@ -1,0 +1,17 @@
+node_modules/
+dist/
+functions/lib/
+.env*
+!.env.example
+!functions/.env.example
+.secret.local
+.local/
+.firebase/
+*-debug.log
+test-results/
+playwright-report/
+.firebaserc
+
+apps-script/build/
+.clasp.json
+.clasprc.json

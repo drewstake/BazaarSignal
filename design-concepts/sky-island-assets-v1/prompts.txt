@@ -1,0 +1,62 @@
+Sky Island Market — transparent icon pack v1
+Generated with the built-in image generation tool.
+Reference: design-concepts/sky-island-market-v1.png
+These are newly rendered assets matched to the concept, not exact pixel extractions or official item textures.
+
+COMMON PROMPT
+
+Use case: stylized-concept.
+Asset type: one production-ready transparent PNG icon for the BazaarSignal Sky Island Market web UI.
+Reference image: the provided Sky Island Market screenshot is a STYLE AND OBJECT reference, not an edit target. Match its delightful detailed Minecraft-inspired voxel/pixel artwork, crisp square pixel clusters, stepped silhouette, subtle dark edge shading, warm upper-left light, saturated jewel tones, and tactile block-built construction. It should belong to the SAME icon family as that screenshot.
+Generate exactly ONE standalone isolated icon of the requested subject. Do not generate the website, a screenshot, a sprite sheet, multiple variations, or a scene. The silhouette must be easily recognizable at small UI sizes, with simple strong volume and controlled detail. Orthographic/front three-quarter view, consistent upper-left lighting, clean crisp pixel steps. Center the full object with generous transparent padding; the object occupies approximately 72–78% of a square canvas. Nothing may touch or be clipped by the canvas edges.
+The background must be genuinely transparent (alpha), including all space around and inside openings. No checkerboard drawn into the pixels, no white or colored backing, no rectangular panel, no border, no caption, no letters or numbers, no floor, no pedestal, no cast shadow underneath, no scenery, no surrounding inventory slot. A few close-in square glints are okay for enchanted items, but no large fuzzy glow that harms compositing on cream parchment. Preserve the playful polished pixel-art aesthetic; no vector line icon, flat emoji, generic rounded mobile-game art, or photorealistic surface.
+
+SUBJECTS (one generation per subject)
+
+ui-emerald.png — Brand emerald
+A brilliant upright faceted green emerald, matching the emerald immediately left of the BazaarSignal logo in the reference. Rich emerald green, lime highlight facets, deep green square-cut border shading; one jewel only.
+
+ui-bazaar-crate.png — Bazaar crate
+The small gold-yellow cubic market crate used for the Bazaar navigation tab in the reference. Isometric golden cargo cube with subtly inset pixel panels and warm brown edge shading; no handle, no text.
+
+ui-auction-gavel.png — Auction gavel
+One small auctioneer's oak-and-gold wooden gavel, diagonally oriented from lower-left handle to upper-right head, matching the Auctions navigation icon from the reference. Chunky warm oak handle and golden endcaps. No sound block or stand.
+
+ui-watchlist-chest.png — Watchlist chest
+A small closed Minecraft-inspired warm oak treasure chest, three-quarter view, golden brass trim, central bright square latch, dark brown outlines. Match the little chest in the My Flips navigation of the reference. No coins or background.
+
+ui-favorite-heart.png — Favorite heart
+One bright pink-red pixel heart, front-facing, chunky square stair-step silhouette with a lighter pink upper-left shine and burgundy lower-right volume, matching the Watchlist heart in the reference. One complete solid heart, no frame.
+
+ui-gold-coin.png — Gold coin
+One golden Minecraft-style coin, almost front-facing with a narrow visible right edge, stepped octagonal perimeter, embossed simple square central mark (not a letter), bright warm gold face and amber side pixels. Readable as currency at 16–24px.
+
+ui-deal-crown.png — Deal crown
+The small gold crown associated with DEAL OF THE DAY in the reference. Front-facing three-point blocky gold crown, orange lower shading, bright gold square tips, a tiny red square gemstone in its center. A compact instantly readable silhouette.
+
+ui-hot-flame.png — Hot deal flame
+One compact lively flame matching the little fire icon beside Hot Opportunities in the reference, rendered entirely in crisp square pixel clusters. Orange outer tongue, red lower edges, bright golden-yellow inner flame. No wood, torch handle, smoke, or pedestal.
+
+ui-favorite-star.png — Favorite star
+One filled golden favorite star, front-facing, five recognizable points built from stepped square pixels, warm amber thickness and pale golden upper-left highlights. Match the small watchlist stars on the item cards in the reference. No border tile.
+
+ui-alert-bell.png — Price alert bell
+One small gold price-alert bell rendered in the same chunky Minecraft pixel-art family as the reference's gold crown and coin. Squared arch body, small gold loop, chunky lower rim, amber clapper, upper-left highlight. No motion marks or red notification dot.
+
+item-summoning-eye.png — Summoning eye
+A single deep-purple enchanted Summoning Eye inspired by the purple eye in the reference item cards: rounded stepped-pixel orb, black-purple vertical central pupil, radiant lavender iris, subtle purple square crystalline highlights. Keep the actual eye unmistakable, not a cube. No stone pedestal; only a few tiny adjacent magenta pixel glints.
+
+item-diamond-block.png — Enchanted diamond block
+A single enchanted cyan diamond block matching the blue crystalline cube in the reference item cards. Crisp isometric cube, luminous cyan front face, deep blue side, pale ice-blue upper plane, diamondlike pixel facets and a few tiny near-edge glints. No pedestal or background.
+
+item-golden-cookie.png — Golden cookie
+One round stepped-pixel golden cookie matching the cookie in the reference. Three-quarter front view, rich golden baked edge, yellow-gold top, dark brown square chocolate chips, a few pale square highlights. Recognizable as a cookie rather than a coin; no plate.
+
+item-enchanted-sword.png — Enchanted sword
+One complete enchanted diamond sword matching the diagonal cyan-blue sword shown in the reference. Handle at lower-left, tip at upper-right, vivid icy-blue pixel blade with lavender enchantment edge, dark navy handle and blocky crossguard. Entire sword in frame. A few tiny close-in square glints, no stand or plinth.
+
+item-necrons-handle.png — Enchanted handle
+One complete purple enchanted handle inspired by Necron's Handle shown in the reference: a slim diagonal dark purple-black voxel rod from lower-left to upper-right with a sculpted chunky violet ornamental head, angular purple bands, and small lavender edge highlights. Make a handheld item, not a full scene. No pedestal or floor.
+
+item-enchanted-book.png — Enchanted book
+One closed enchanted book matching the bright magenta-purple book in the reference item grid. Isometric three-quarter view, deep crimson-purple cover, vivid pink enchantment edge, visible cream stepped page block, dark purple spine and a small simple angular gold clasp. No text or rune lettering, no pedestal.

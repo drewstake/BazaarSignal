@@ -1,0 +1,151 @@
+{
+  "name": "Sky Island Market",
+  "version": 1,
+  "generation": "Built-in image generation; matched to the concept reference",
+  "assets": [
+    {
+      "id": "ui-emerald",
+      "name": "Brand emerald",
+      "category": "interface",
+      "src": "/assets/sky-island-v1/ui-emerald.png",
+      "width": 1254,
+      "height": 1254,
+      "transparent": true
+    },
+    {
+      "id": "ui-bazaar-crate",
+      "name": "Bazaar crate",
+      "category": "interface",
+      "src": "/assets/sky-island-v1/ui-bazaar-crate.png",
+      "width": 1254,
+      "height": 1254,
+      "transparent": true
+    },
+    {
+      "id": "ui-auction-gavel",
+      "name": "Auction gavel",
+      "category": "interface",
+      "src": "/assets/sky-island-v1/ui-auction-gavel.png",
+      "width": 1402,
+      "height": 1122,
+      "transparent": true
+    },
+    {
+      "id": "ui-watchlist-chest",
+      "name": "Watchlist chest",
+      "category": "interface",
+      "src": "/assets/sky-island-v1/ui-watchlist-chest.png",
+      "width": 1390,
+      "height": 1132,
+      "transparent": true
+    },
+    {
+      "id": "ui-favorite-heart",
+      "name": "Favorite heart",
+      "category": "interface",
+      "src": "/assets/sky-island-v1/ui-favorite-heart.png",
+      "width": 1380,
+      "height": 1140,
+      "transparent": true
+    },
+    {
+      "id": "ui-gold-coin",
+      "name": "Gold coin",
+      "category": "interface",
+      "src": "/assets/sky-island-v1/ui-gold-coin.png",
+      "width": 1312,
+      "height": 1199,
+      "transparent": true
+    },
+    {
+      "id": "ui-deal-crown",
+      "name": "Deal crown",
+      "category": "interface",
+      "src": "/assets/sky-island-v1/ui-deal-crown.png",
+      "width": 1254,
+      "height": 1254,
+      "transparent": true
+    },
+    {
+      "id": "ui-hot-flame",
+      "name": "Hot deal flame",
+      "category": "interface",
+      "src": "/assets/sky-island-v1/ui-hot-flame.png",
+      "width": 1254,
+      "height": 1254,
+      "transparent": true
+    },
+    {
+      "id": "ui-favorite-star",
+      "name": "Favorite star",
+      "category": "interface",
+      "src": "/assets/sky-island-v1/ui-favorite-star.png",
+      "width": 1254,
+      "height": 1254,
+      "transparent": true
+    },
+    {
+      "id": "ui-alert-bell",
+      "name": "Price alert bell",
+      "category": "interface",
+      "src": "/assets/sky-island-v1/ui-alert-bell.png",
+      "width": 1290,
+      "height": 1219,
+      "transparent": true
+    },
+    {
+      "id": "item-summoning-eye",
+      "name": "Summoning eye",
+      "category": "items",
+      "src": "/assets/sky-island-v1/item-summoning-eye.png",
+      "width": 1254,
+      "height": 1254,
+      "transparent": true
+    },
+    {
+      "id": "item-diamond-block",
+      "name": "Enchanted diamond block",
+      "category": "items",
+      "src": "/assets/sky-island-v1/item-diamond-block.png",
+      "width": 1254,
+      "height": 1254,
+      "transparent": true
+    },
+    {
+      "id": "item-golden-cookie",
+      "name": "Golden cookie",
+      "category": "items",
+      "src": "/assets/sky-island-v1/item-golden-cookie.png",
+      "width": 1374,
+      "height": 1145,
+      "transparent": true
+    },
+    {
+      "id": "item-enchanted-sword",
+      "name": "Enchanted sword",
+      "category": "items",
+      "src": "/assets/sky-island-v1/item-enchanted-sword.png",
+      "width": 1254,
+      "height": 1254,
+      "transparent": true
+    },
+    {
+      "id": "item-necrons-handle",
+      "name": "Enchanted handle",
+      "category": "items",
+      "src": "/assets/sky-island-v1/item-necrons-handle.png",
+      "width": 1254,
+      "height": 1254,
+      "transparent": true
+    },
+    {
+      "id": "item-enchanted-book",
+      "name": "Enchanted book",
+      "category": "items",
+      "src": "/assets/sky-island-v1/item-enchanted-book.png",
+      "width": 1254,
+      "height": 1254,
+      "transparent": true
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+The current BazaarSignal UI is close to the Sky Island Market design I want, but some icons, item artwork, and decorative details still do not match the reference. Refine the existing UI to match it more closely.
+
+Use these local resources:
+- Asset folder: C:\Users\drews\Development\BazaarSignal\Sky-Island-UI-Assets
+- Visual reference: Sky-Island-UI-Assets/sky-island-market-reference.png
+- Icon overview: Sky-Island-UI-Assets/icon-overview.png
+- Individual icons: the transparent PNGs in that folder.
+- icons.css and usage.txt provide sizing and integration examples.
+
+Start by viewing the reference, the supplied icons, and the current running app. Identify the visible differences before editing. Keep the existing architecture and working Bazaar, Auctions, filtering, valuation, authentication, watchlist, and alert behavior.
+
+USE THE PROVIDED ARTWORK
+Replace mismatched generic line icons, emoji, and temporary graphics with the supplied images where they match the action or item:
+- ui-emerald.png: brand emblem.
+- ui-bazaar-crate.png: Bazaar navigation.
+- ui-auction-gavel.png: Auctions navigation.
+- ui-watchlist-chest.png: My Flips or saved-items chest.
+- ui-favorite-heart.png: Watchlist navigation or favorite action.
+- ui-gold-coin.png: coin prices and currency.
+- ui-deal-crown.png: Deal of the Day.
+- ui-hot-flame.png: Hot Opportunities.
+- ui-favorite-star.png: save-item controls.
+- ui-alert-bell.png: price alerts.
+- item-summoning-eye.png, item-diamond-block.png, item-golden-cookie.png, item-enchanted-sword.png, item-necrons-handle.png, and item-enchanted-book.png: corresponding item cards, featured deals, and inspector illustrations.
+
+These are custom concept illustrations. Map them deliberately to their intended items; do not use one generic illustration for unrelated products or imply that they are official item textures. Keep existing accurate artwork for other items.
+
+The same icons are already available under public/assets/sky-island-v1. Reuse that served directory when possible and use the root asset folder as the reference pack. Browser image URLs must use public asset paths, not absolute Windows filesystem paths.
+
+PRESERVE THE SKY ISLAND MARKET STYLE
+Match the reference's cream parchment surfaces, warm oak framing, sky-blue accents, leafy greens, golden currency highlights, rarity ribbons, and detailed Minecraft-inspired pixel artwork.
+
+Pay particular attention to:
+- The brand and wooden navigation tabs.
+- Item artwork size and placement.
+- The Deal of the Day showcase.
+- The central opportunity cards.
+- The pinned-paper item inspector.
+- The saved-items chest and watchlist controls.
+- Button depth, borders, spacing, and selected states.
+
+Keep scenery concentrated near the header and edges so search, prices, filters, and trading information remain clear. Use pixel typography selectively for branding and short headings, with readable text and numbers elsewhere.
+
+IMPLEMENTATION DETAILS
+Use actual image elements and reusable components. Preserve transparent backgrounds, original aspect ratios, and complete silhouettes with object-fit: contain. Account for the transparent padding when matching visual sizes. Start around 24–40px for navigation and 80–160px for item artwork, then adjust against the reference.
+
+Draw button backgrounds, rarity ribbons, borders, hover effects, and selected states separately from the images. Use accessible labels for icon-only controls and empty alt text for decorative icons beside existing text.
+
+If the current app needs more fields than the reference image shows, keep those fields and adapt the reference styling around them. Do not copy illustrative prices, descriptions, or sample data from the reference into live results.
+
+VERIFY AND DELIVER
+Check desktop and mobile layouts, transparent edges on parchment, icon alignment, legibility at actual display sizes, keyboard focus, and hover/selected states. Confirm that images load and existing market interactions still work.
+
+Compare screenshots of the refined app with the reference and correct the remaining visible mismatches. Report which areas changed and any missing artwork still needed.
+
+This is a focused visual refinement of the existing implementation. Implement the changes rather than stopping at suggestions.
+
