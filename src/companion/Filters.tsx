@@ -199,7 +199,7 @@ export function AuctionFilterBar({
           onChange={(budget) => set({ budget })}
         />
         <SelectField
-          label="Minimum confidence"
+          label="Minimum comparison confidence"
           value={f.confidence}
           onChange={(confidence) =>
             set({ confidence: confidence as AuctionFilters["confidence"] })
@@ -217,17 +217,17 @@ export function AuctionFilterBar({
           </summary>
           <div className="advanced-grid">
             <NumberField
-              label="Minimum net profit"
+              label="Minimum after-fee gap"
               value={f.minProfit}
               onChange={(minProfit) => set({ minProfit })}
             />
             <NumberField
-              label="Minimum ROI (%)"
+              label="Minimum gap / cost (%)"
               value={f.minRoi}
               onChange={(minRoi) => set({ minRoi })}
             />
             <NumberField
-              label="Minimum comparable sales"
+              label="Minimum matching listings"
               value={f.minComps}
               step="1"
               onChange={(minComps) => set({ minComps })}
@@ -322,7 +322,7 @@ export function AuctionFilterBar({
       </div>
       <div className="filter-foot">
         <span className="active-chip">Buy It Now only</span>
-        <span className="active-chip">{f.minComps}+ comparable sales</span>
+        <span className="active-chip">{f.minComps}+ matching listings</span>
         <span className="active-chip">
           {titleCase(f.confidence)}+ confidence
         </span>

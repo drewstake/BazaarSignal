@@ -1,4 +1,5 @@
-import { createHash } from "node:crypto";
+import { sha256 } from "@noble/hashes/sha2.js";
+import { bytesToHex } from "@noble/hashes/utils.js";
 import type {
   ItemVariant,
   Json,
@@ -142,7 +143,11 @@ export function normalizeVariant(
     try {
       const textures = item.tag.SkullOwner.Properties.textures.map(
         (x: any) =>
-          JSON.parse(Buffer.from(x.Value, "base64").toString("utf8")).textures,
+          JSON.parse(
+            new TextDecoder().decode(
+              Uint8Array.from(atob(x.Value), (c) => c.charCodeAt(0)),
+            ),
+          ).textures,
       );
       modifiers.headTextures = canonical(textures);
     } catch {
@@ -196,7 +201,7 @@ export function normalizeVariant(
       "",
     ),
     category: categoryFor(extra.id, info?.category),
-    fingerprint: `v1_${createHash("sha256").update(stable(config)).digest("hex")}`,
+    fingerprint: `v1_${bytesToHex(sha256(new TextEncoder().encode(stable(config))))}`,
     complete: issues.length === 0,
     issues,
   };
@@ -256,6 +261,7 @@ export function normalizeListing(
     return null;
   return {
     id: raw.uuid,
+    ...(uuid(raw.auctioneer) ? { seller: raw.auctioneer.toLowerCase() } : {}),
     variant: decodeVariant(raw.item_bytes, catalog),
     price: raw.starting_bid,
     start: raw.start,

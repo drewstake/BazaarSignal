@@ -178,7 +178,7 @@ export function quoteBazaar(
     concerns.push(
       "Current mayor fee modifiers could not be verified; standard-tax calculation is illustrative only.",
     );
-  if (!fresh) concerns.push("Stale data: refresh before trading.");
+  if (!fresh) concerns.push("Stale data: waiting for automatic updates.");
   if (!supported)
     concerns.push("Insufficient activity or outstanding-order data.");
   if (minActivity < 1000)

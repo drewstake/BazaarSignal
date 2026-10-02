@@ -1,7 +1,7 @@
+import { activeOpportunity } from "../../shared/companion/active-auctions";
 // Explicit development fixtures only. Never used after a failed live request.
 import { normalizeBazaar } from "../../shared/companion/bazaar";
 import {
-  auctionOpportunity,
   matchesAuction,
 } from "../../shared/companion/auctions";
 import type {
@@ -9,7 +9,6 @@ import type {
   CollectorHealth,
   ItemVariant,
   Listing,
-  Sale,
 } from "../../shared/companion/types";
 const rows = [
   ["SUMMONING_EYE", "Summoning Eye", "combat", "EPIC", 620000, 695000, 180000],
@@ -140,6 +139,7 @@ export function auctionFixtures(f: AuctionFilters, page: number) {
   };
   const listing: Listing = {
     id: "0123456789abcdef0123456789abcdef",
+    sellerName: "DemoSeller",
     variant,
     price: 2400000,
     start: now - 300000,
@@ -148,18 +148,9 @@ export function auctionFixtures(f: AuctionFilters, page: number) {
     observedAt: now,
     status: "active",
   };
-  const sales: Sale[] = Array.from({ length: 16 }, (_, i) => ({
-    id: `fixture-sale-${i}`,
-    variant,
-    price: 3200000 + i * 5000,
-    soldAt: now - i * 3600000,
-    observedAt: now,
-    seller: `seller-${i}`,
-    buyer: `buyer-${i}`,
-    source: "hypixel-ended",
-  }));
+  const peers: Listing[] = Array.from({ length: 16 }, (_, i) => ({...listing,id:('fixture-'+i),seller:'seller-'+i,price:3200000+i*5000}));
   const items = [
-    auctionOpportunity(listing, sales, [], now, f.durationHours),
+    activeOpportunity(listing, peers, now, f.durationHours),
   ].filter((o) => matchesAuction(o, f, now));
   const health: CollectorHealth = {
     mode: "local",
@@ -170,7 +161,7 @@ export function auctionFixtures(f: AuctionFilters, page: number) {
     activeUpstreamAt: now,
     missedMs: 0,
     gaps: [],
-    saleCount: 16,
+    saleCount: 0,
     variantCount: 1,
     listingCount: 1,
     rejectedCount: 0,

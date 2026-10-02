@@ -18,6 +18,7 @@ export default defineConfig({
   ],
   webServer: {
     command: "npm run dev",
+    env: { MARKET_SCHEDULER_DISABLED: "1", VITE_CONFIG_NATIVE_IGNORE_WARNING: "true" },
     url: "http://127.0.0.1:5173",
     reuseExistingServer: true,
   },

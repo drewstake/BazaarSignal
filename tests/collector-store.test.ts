@@ -2,7 +2,7 @@ import { beforeAll, afterAll, describe, expect, it } from "vitest";
 import { getApp, deleteApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { FirestoreHistory } from "../collector/store";
-import { MarketCollector, quotaDay } from "../collector/engine";
+import { MarketCollector, quotaDay } from "../collector/legacy-history-engine";
 import { normalizeVariant } from "../collector/normalize";
 import { valueVariant } from "../shared/companion/auctions";
 import type { Sale } from "../shared/companion/types";

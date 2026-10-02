@@ -1,0 +1,133 @@
+# $0 spending audit — October 1, 2026
+
+> **Current authorization, October 2, 2026:** the user clarified that $0 is not a strict limit and requested a live deployment targeting free allowances. The hourly cloud collector, cached public API, website and alert bridge are now enabled for a fixed reviewed period. See [FREE-TIER-LIVE-DEPLOYMENT.md](FREE-TIER-LIVE-DEPLOYMENT.md). The strict-$0 assessment and paused-state evidence below are historical. Paid overage is still not technically prevented; billing was neither upgraded nor unlinked.
+
+**Current outcome, October 1:** the user selected local measurement and kept cloud collection paused. The ten-minute local trial finished automatically at **17:18 UTC (1:18 p.m. Eastern)**. It recorded 20 collector opportunities, 105 Hypixel requests, eight complete Bazaar and two complete auction refreshes, and zero Google collector operations. The measured workload does not fit continuous cloud free allowances. See [LOCAL-MARKET-TRIAL-RESULTS.md](LOCAL-MARKET-TRIAL-RESULTS.md) for the complete table, projections and limits. A read-only check at **17:19:49 UTC** confirmed Scheduler PAUSED and no public API invoker. No local run remains active; the unused cloud deadline and temporary shutdown grants expired without extension.
+
+Before that choice, bounded handlers were deployed privately to both Cloud Run services using one locally built application-only image; no Cloud Build ran. Both services have zero minimum / one maximum instance, request billing and no startup CPU boost. Cloud collection was never activated. [MARKET-TRIAL.md](MARKET-TRIAL.md) preserves that private preparation and baseline evidence. The historical containment and billing-unlink option below remain preserved; unlinking was not authorized or performed. Deployment, configuration and test statements in historical sections describe their earlier audit stage; the latest local changes passed 175 tests and were not deployed.
+
+**Paid overage is not yet technically prevented in the collector project.** The owner must approve unlinking its billing account. Pausing work, IAM restrictions, application counters, instance limits, budgets, alerts and delayed spend caps do not make retained billing-enabled infrastructure free. Trial credits are not part of this plan.
+
+The selected operating mode is **market updates paused**. A 20-second visible-page polling interval is implemented for a future approved service, but production must make zero market API polls while paused. No active Google collector interval meets the requirement of infrastructure-enforced $0.
+
+## Verified deployment and containment
+
+Read-only inspection preceded changes. There were no AGENTS.md instructions in the repository or its ancestor directories. Existing uncommitted work was preserved.
+
+- `bazaarsignal`: billing disabled and no linked billing account; default Standard Firestore in `us-central1`, Google authentication and static Firebase Hosting. Cloud Run, Functions, Scheduler, Build and Artifact Registry APIs are disabled. Keep this project on Spark.
+- `bazaarsignal-510305` / `1081657730748`: an open **paid USD account**, second-generation Functions backed by request-based Cloud Run in `us-central1`. Both services use 1 vCPU / 1 GiB, zero minimum instances and startup CPU boost. `marketapi` allows two instances/concurrency 20; `refreshmarket` allows one/concurrency one/180-second timeout. These limits do not cap spending.
+- The account project-list API returned only `bazaarsignal-510305`, without another page. Other visible projects were not linked to this billing account. This is a timestamped association check, not a promise that projects cannot be added later. Apps Script quotas are shared with all scripts run by `bazaarsignal@gmail.com`; that account's other-script consumption is not completely observable here.
+- At **3:02:04 a.m. Eastern (07:02:04 UTC)**, `firebase-schedule-refreshMarket-us-central1` was verified **PAUSED**, and the API's public invocation bindings were removed, preserving unrelated IAM bindings. Google documents that IAM-denied Cloud Run requests are not billed as container requests. Existing invocations were allowed to drain. No resources or projects were deleted; billing was not disabled.
+- The collector contains only the `marketCache` Firestore collection. Its six current control/pointer/name documents and four complete public-data snapshots were backed up locally. Private users, watchlists and alerts are in the separate original project. The collector backup has a SHA-256 manifest and preserves the request ledger; never reset that ledger to recover quota.
+- No Pub/Sub topics, Eventarc triggers, BigQuery datasets, Monitoring uptime checks or alert policies were returned in the inspected collector project/region. The global Cloud Asset inventory API was unavailable (403) and was not enabled. Enabled APIs alone are not evidence of resources or of zero usage elsewhere.
+
+## Measured usage and known charges
+
+The Monitoring snapshot was requested at **2:55:47 a.m. Eastern (06:55:47 UTC)**. It covers September 1 07:00 UTC through that timestamp, including all observed deployment revisions. These are delayed operational counters, **not a bill or necessarily the current free-quota period**. Aligned time-series end timestamps are query boundaries, not proof that billing reporting is complete. Audit calls themselves consume a small amount of reads, transfer and Monitoring read allowance.
+
+| Meter | Collector project observed usage |
+| --- | ---: |
+| Container requests | 826 |
+| Billed instance time | 1,793.165 seconds |
+| Nominal CPU / memory time | approximately 1,793 vCPU-seconds / GiB-seconds at configured resources; startup CPU boost is additional and cannot be inferred exactly from instance seconds |
+| Cloud Run sent / received bytes | 604,833,896 / 959,603,982 |
+| Firestore document reads / writes | 6,550 / 1,525 |
+| Firestore deletes | no series returned; not asserted to be a complete billed zero |
+| Storage operations reported | 57 writes, 44 listings, 95 object reads, 39 deletes, 4 bucket/IAM operations |
+| Storage sent / received bytes | 104,251,643 / 70,259,184 |
+| Logs reported | 2,548,766 bytes / 2,749 entries, including exempt audit logs |
+| Cloud Builds | six successful regional builds, 207.926 execution seconds total; machine type unspecified in returned options, so free-tier eligibility is unverified |
+| Artifact repository | 208,201,877 bytes; scanning disabled |
+
+Sent bytes include Google-internal traffic; they must not all be classified as billable Internet egress. Internet destination eligibility and final billable bytes are not fully exposed by these counters. Monitoring storage gauges for the newly created collector buckets/database had not populated. A read-only object inventory at **3:11:52 a.m. Eastern** found 17,254,436 bytes in 12 market objects, 247,567 bytes in four retained source generations, and 378,095 bytes in six upload objects. Soft-deleted bytes are not included in those live/version totals. Source and upload buckets retain soft-deleted objects for seven days; the market bucket has versioning and soft delete disabled.
+
+The original Spark project's observed counters across the queried range were 1,688 reads, 2,679 writes and one delete. These are not its current daily counters. Its storage gauge also spans multiple aligned points; do not add gauge samples as if they were current capacity. Website transfer, complete Apps Script URL Fetch/runtime consumption, database index/egress billing and monitoring-read consumption are not fully reconciled. **Missing accounting requires a pause, never a fabricated zero.**
+
+The Cloud Billing console showed **$0.00, no cost rows**, for both October 1 and September 24–30 at approximately 3 a.m. Eastern, with a visible warning that costs take hours and can take more than 24 hours to appear. No already-incurred charge amount has been confirmed; this does not prove that no charges accrued. Builds, storage and deployment activity may still post charges. Unlinking billing cannot erase them; Google says late charges can take up to two days to appear. [Billing shutdown and reporting delays](https://docs.cloud.google.com/billing/docs/how-to/modify-project).
+
+**Later accounting update, October 1 at 14:59 UTC (10:59 a.m. Eastern):** the October charge-period Billing report now displays six usage rows and a rounded **$0.00** total. It has posted four Run invocations, 25.1 CPU-seconds, 25.1 GiB-seconds, 411 Firestore reads, 106 writes and one small operation. The earlier UTC-midnight metric ranges include September activity: the October Pacific boundary was 07:00 UTC. Current-period operational counters and remaining gaps are documented in [MARKET-TRIAL.md](MARKET-TRIAL.md). These newer rows do not settle September charges or certify complete zero charges. The bounded trial remains unstarted.
+
+Raw evidence is in ignored `.local/zero-cost-audit.json`, `.local/market-usage-latest.json`, and `.local/zero-cost-backup/`. The later visible billing rows are in `.local/trial-billing-console-2026-10-01T14-59Z.json`. No credentials or private user documents were copied into the report.
+
+## Allowances, scope, resets and enforcement
+
+Official prices checked October 1, 2026; USD on-demand, `us-central1`, request-based second generation. First-generation Functions compute allowances are inapplicable. These are separate meters, not interchangeable entitlements. Calendar-month allowance documentation does not supply an atomic reset signal suitable for restarting this application; verify new-period consumption and headroom rather than assuming a local-time or UTC reset.
+
+| Service / meter | Relevant free allowance and reset | Scope / overage mechanism |
+| --- | --- | --- |
+| Cloud Run requests | 2 million / month | Billing account across projects; automatic paid overage. $0.40/million beyond allowance. |
+| Cloud Run CPU | 180,000 vCPU-seconds / month | Same account; $0.000024/vCPU-second active usage. Startup, shutdown, waits and retries matter. |
+| Cloud Run memory | 360,000 GiB-seconds / month | Same account; $0.0000025/GiB-second active usage. |
+| Cloud Run outbound transfer | 1 GiB/month within North America | Account allowance, destination-dependent Premium network pricing; other destinations cannot be assumed free. |
+| Firestore reads / index reads | 50,000 document reads/day; chargeable index reads also matter | Exactly one free database per project; daily reset around midnight Pacific. Collector pays overage; original Spark refuses over-quota operations. |
+| Firestore writes / deletes | 20,000 each/day | Same database/project and Pacific daily reset; collector pays overage, Spark refuses it. |
+| Firestore stored documents/indexes | 1 GiB | Ongoing capacity, not a counter to reset; collector overage billed. |
+| Firestore outbound transfer | 10 GiB/month | Project/database; destination and transfer path matter. |
+| Firestore TTL / PITR / backups / restore / clone | No free usage for these features | Billing required; PITR disabled, no paid backup jobs introduced. |
+| Standard Cloud Storage capacity | 5 GB-months/month in eligible US regions | Combined eligible regions/account, automatic paid overage; regional Standard approximately $0.02/GiB-month. Includes versions and soft-deleted data. |
+| Cloud Storage Class A | 5,000/month | Account/eligible US regions; uploads and object listings count; $0.005/1,000 regional flat-namespace operations beyond allowance. |
+| Cloud Storage Class B | 50,000/month | Same scope; reads count; $0.0004/1,000 beyond allowance. Standard object deletion is a free operation, but listings and retention are not. |
+| Cloud Storage outbound transfer | 100 GB/month from North America, eligible destinations excluding China/Australia | Account and eligible regional storage; same-region Google transfers may be exempt. |
+| Cloud Scheduler | Three jobs/month per billing account | $0.10/job/31 days beyond allowance, calculated daily; **paused jobs still count**. Execution count is not the Scheduler price meter. |
+| Cloud Build | 2,500 minutes/month, promotional allowance specifically for default-pool `e2-standard-2` | Billing account; other machine types cannot assume coverage. Published e2-standard-2 $0.006/minute; e2-medium $0.003/minute. |
+| Artifact Registry | 0.5 GiB-month/month | Billing account; excess storage approximately $0.10/GiB-month, transfer/scanning separate. Storage continues while functions are idle. |
+| Cloud Logging | 50 GiB/project/month, default 30-day retention | Excess ingestion $0.50/GiB; extended retention separate. Required audit logs have exemptions and 400-day retention. |
+| Cloud Monitoring | Google-provided non-chargeable metrics; first one million read time series/month/account | Reads beyond allowance $0.50/million; at least one series charged per time-series query even if empty. Custom/Prometheus/synthetic metrics have separate pricing; none added. |
+| Firebase static Hosting | 10 GB storage; pricing page lists 360 MB/day transfer | Original Spark project; capacity/transfer exhaustion can block deployment or service, with no paid overage while billing remains unlinked. Not Firebase App Hosting. Product-specific enforcement/reset must be checked in console; no automatic upgrade. |
+| Firebase Google Authentication | Non-phone authentication listed no-cost; Identity Platform has separate MAU limits if enabled | Original Spark; no SMS, paid provider or Identity Platform upgrade introduced. |
+| Consumer Apps Script / MailApp | 100 recipients/day, 20,000 URL Fetch calls/day, 90 trigger-minutes/day, 50,000 property operations/day | Per sender account across scripts; reset 24 hours after first request; provider throws/stops on exhaustion. Six minutes/execution, 30 simultaneous/user, 20 triggers/user/script, 500 KB properties also bound work. No paid fallback. |
+| Hypixel / seller provider | Not a purchased entitlement; local conservative 120 requests/rolling five minutes with at least 20% reserve, and 30 seller calls/minute | Shared ledger; authoritative response limits/Retry-After can further restrict usage. Local limits do not establish the provider's actual entitlement. All page/probe/retry/metadata calls count. |
+
+Sources: [Cloud Run](https://cloud.google.com/run/pricing), [Firestore](https://cloud.google.com/firestore/pricing), [Cloud Storage](https://cloud.google.com/storage/pricing), [Scheduler](https://cloud.google.com/scheduler/pricing), [Build](https://cloud.google.com/build/pricing), [Artifact Registry](https://cloud.google.com/artifact-registry/pricing), [Observability](https://cloud.google.com/products/observability/pricing), [Firebase pricing](https://firebase.google.com/pricing), [Apps Script quotas](https://developers.google.com/apps-script/guides/services/quotas), [free-tier scopes](https://docs.cloud.google.com/free/docs/free-cloud-features).
+
+## Measurements and selected intervals
+
+Re-measurement used naturally completed work and the durable ledger, without launching another Hypixel collector. The initial audit observed **43 pages in 14.927 seconds**. The final complete generation before containment recorded **43 pages in 15.929 seconds**, source **3:00:00.881 a.m. Eastern**, observed **3:00:40.966 a.m.** Bazaar recorded 0.950 seconds, source **3:01:58.717 a.m.** The final shared lifetime counter was 741 requests, including retries, probes and metadata. Source cache headers and observed cadence were approximately 60 seconds; page count and latency remain variable.
+
+For a 30-day planning month:
+
+- Five-second continuous visible polling: 518,400 requests per tab per route. Twenty seconds: 129,600, a **75% reduction**, before hidden time and cross-tab reuse. A 304 still reaches Cloud Run, and an explicit ETag header can require a cached CORS preflight. Conditional transfer is not billing enforcement.
+- Auctions at the previous three-minute scheduler cadence: 14,400 collections × 15.929 seconds = **229,377.6 nominal vCPU-seconds**, already beyond 180,000 before Bazaar, startup, API serving, retries, billed sleeps or cleanup. A 75% CPU planning ceiling of 135,000 would require more than five minutes for auctions alone at this measured latency.
+- Uploading Bazaar every minute, auctions every three minutes and election metadata every five minutes, plus minute cleanup: roughly **109,470 Class A operations/month**, assuming one list page and one upload each. Hourly cleanup lowers listings from 43,200 to 720 (**98.33% fewer**), but uploads alone still exceed 5,000 by a large margin.
+- Even just two snapshot uploads per cycle with 3,000 operations left after headroom/other work require roughly a **29-minute cycle**. Snapshots older than three minutes cannot support fresh comparisons or alert triggers. Slowing this architecture does not satisfy both freshness and conservative free allowances.
+
+**Selected now:** browser market polling stopped; Bazaar, auctions, catalog, election, seller lookups, scheduled cleanup and market-trigger evaluation stopped. Existing queued email processing remains approximately every five minutes on Apps Script's enforced quotas. Twenty-second polling is a dormant default for an approved future deployment, 60 seconds under slowdown, and no timer under pause. There is no automatic cloud resume on a date boundary.
+
+## Implemented controls and verification
+
+Production browser builds default to paused. Public CacheStorage and Web Locks reuse identical responses across tabs/reloads; memory/in-flight deduplication is the fallback. Cache size is bounded. Recent results are reused on tab return, hidden tabs abort their request, and polls cannot overlap. Paused views reuse saved public data with its source timestamp; unavailable data stays unavailable. Availability checks and seller commands cannot reuse a saved command during a pause. Snapshot changes update items, while error/freshness/policy metadata remains visible. Stale comparison logic, pricing, exact configuration matching, quantity, taxes and item links remain intact.
+
+The collector remains cache-only on every browser route. Shared CAS leases, per-physical-request Hypixel charges, Retry-After, bounded backoff, jitter, complete pagination validation and atomic publication are preserved. No completed-sales history is restored. Duplicate source/metadata versions skip snapshot publication; stale Google CAS attempts now fail before uploading. Cleanup has shared hourly admission. The emulator measures one list for 60 competing cleanup callers and one upload rather than three for valid/stale/expired candidates.
+
+`collector/usage.ts` implements a **best-effort admission component for a future reviewed migration**, with 50% warning, 65% slowdown and 75% pause, earlier projected-usage pauses, per-meter scopes/periods, conservative headroom and durable CAS reservations. Missing/inconsistent/stale reports fail closed. Crashes, retries and ambiguous results never refund reservations. Resume needs fresh complete reports after all affected periods and in-flight margin. **It is not connected to an automated billing exporter and is not claimed as a live spend cap.** No complete live accounting feed exists, so the production decision is the stronger operational pause/shutdown, not permissive estimates. Reservation I/O, startup/request admission, network bytes already sent, retained storage, builds and reporting delays cannot all be prevented by application accounting.
+
+At the initial containment stage, Google deployment/resource-creation commands refused the billing-enabled architecture and local Functions source contained private/pause recovery stubs. Those stubs were later replaced locally by the bounded trial handlers described in [MARKET-TRIAL.md](MARKET-TRIAL.md); they have **not been redeployed**. The deployment guard still refuses an unverified release. Actual containment remains the Scheduler/IAM configuration.
+
+Verification completed with local fixtures and emulators; no live load test or test email was sent:
+
+- 126 unit/integration tests passed across 12 files. These cover 50/65/75% thresholds, projected exhaustion, missing/inconsistent accounting, concurrent reservations, reset and in-flight margins, duplicate snapshots, lease expiry, retries/429/Retry-After, failed pagination and recovery.
+- 21 Firestore emulator/rules tests passed across four files, including 100 competing coordinators, 100 collector instances and 1,200 cache reads. Browser/cache reads do not multiply Hypixel refreshes.
+- Fourteen desktop/mobile companion scenarios passed across the suite and a focused rerun. The focused four-test run verifies two tabs plus reload reuse one public response and paused views retain their data timestamp without polling. A clock-installation race caused an initially blank desktop fixture; moving the test clock installation after the initial render fixed it.
+- Two desktop/mobile authenticated alert scenarios passed using the Auth emulator and backend fixtures. Existing-alert editing and queued email behavior are covered without sending live mail. Two additional production-build scenarios passed with no market API request across navigation and two simulated minutes. Hidden-tab abort/reuse and non-overlap are unit-tested.
+- Website, Apps Script, collector and Functions local typechecks/builds passed. Vite reports its existing large-chunk warning and extensionless imports relevant to a future native config-loader change; these do not fail the build. No Functions deployment or Cloud Build was started.
+- Apps Script's existing web-app deployment was updated to version **9** around **3:19 a.m. Eastern**. A read-only market call returns the explicit pause message. Account access, target updates and pending-email processing retain their existing routes and deployment URL.
+- The paused Hosting release was checked in the preview and promoted to **https://bazaarsignal.web.app** at **3:25 a.m. Eastern**. A subsequent copy-only release clarifies that Price Alerts do not retry fresh prices during the pause. No auth settings or private records were changed.
+
+At **3:25:34 a.m. Eastern**, read-only verification confirmed Scheduler **PAUSED**, no public API invoker binding, public API HTTP **403**, unchanged total Hypixel requests **741**, original-project billing disabled and collector billing still enabled. Metrics queried from **3:06 a.m.** had populated through **3:23 a.m.**: no successful API/collector requests, three API 403s, but **1.3 seconds of billable instance time** (0.8 API, 0.5 collector) after containment. Shutdown/startup and reporting effects are not attributable exactly from this counter. This is additional evidence that operational pause is not a billing guarantee. The Apps Script market guard was deployed after those three periodic 403s. Evidence: `.local/zero-cost-verification.json`.
+
+## Approval-ready shutdown and retention plan
+
+The next action is to **unlink billing only from `bazaarsignal-510305`**. It requires the owner's explicit approval under item 4 of the supplied instructions.
+
+1. Already prepared: paused schedule, denied public API, preserved IAM/scheduler metadata, full `marketCache` export and four gzip snapshots with hashes. The backup is `.local/zero-cost-backup/manifest.json`; it is local and should be retained. No original-project private records are part of this action.
+2. Completed: released the verified paused browser and Apps Script changes so visitors receive a clear message and the email worker stops external market calls. Kept the same Hosting and Apps Script URLs, sign-in configuration, signing key, private records and existing trigger.
+3. After approval, run `node scripts/disable-market-billing.cjs --apply --approved-project=bazaarsignal-510305`. The script checks four distinct snapshot hashes/sizes and their saved pointers, all six cache documents, valid backup/pause timestamps, unchanged live collection layout and every document's contents/update time, paused job, nonpublic API, drained work and original-project billing before unlinking. Default invocation is read-only. `--verify-backup` checks saved evidence entirely offline. The actual backup and eight corrupt/incomplete-evidence failure cases passed local verification. It never deletes projects/data or enables billing.
+4. Verify collector `billingEnabled:false` and empty billing account, and original `bazaarsignal` still billing-disabled. Verify the website remains available and no new collector work occurs. Keep all backups. Reconcile late charges separately; no recurring paid monitor is created.
+
+**Availability:** the URL, authentication, watchlists, saved filters, existing Price Alerts, target editing, disable links and queued email delivery remain. Fresh market discovery, current active-listing comparisons, seller availability/name calls, new price-based alert creation and fresh target evaluation are unavailable until an enforced-free replacement is approved. Last saved browser snapshots remain labeled stale; no targets trigger on stale data.
+
+**Retention:** the original Spark project's user data is unaffected. Firebase says non-default buckets become inaccessible on downgrade without deleting their data, while Google Cloud's broader billing-shutdown documentation warns that some resources can be removed and become unrecoverable. Therefore **do not promise indefinite retention or restoration of the collector's Cloud resources**. Complete local current-data/ledger backups are prepared; source code remains in the repository. Deployment images/source staging are rebuildable. No resource is explicitly deleted by this plan. [Downgrade effects](https://firebase.google.com/docs/projects/billing/firebase-pricing-plans), [billing shutdown effects](https://docs.cloud.google.com/billing/docs/how-to/modify-project).
+
+After verified unlinking, the two project billing configurations enforce no paid overage unless someone later enables billing. Existing charges remain payable. Until then, the collector's retained database, all buckets/versions/soft deletes, image repository and paused Scheduler job remain potential charge sources even with no market requests.
+
+This is the concrete $0 path selected instead of purchasing or guessing at another always-free host. An active replacement would need provider-enforced refusal of paid overage for compute, scheduling, storage, database, requests, transfer, builds and monitoring; sufficient measured capacity for complete 43-page snapshots; and the same atomic shared coordination. No such active replacement has been provisioned or represented as verified.

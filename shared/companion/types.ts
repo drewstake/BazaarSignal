@@ -97,6 +97,8 @@ export interface Sale {
 }
 export interface Listing {
   id: string;
+  seller?: string;
+  sellerName?: string;
   variant: ItemVariant;
   price: number;
   start: number;
@@ -106,6 +108,8 @@ export interface Listing {
   status: "active" | "sold" | "expired" | "unavailable" | "stale";
 }
 export interface Valuation {
+  basis?: "active-listings";
+  listings?: { id: string; price: number; end: number }[];
   confidence: Confidence;
   reasons: string[];
   estimate: number | null;
@@ -159,7 +163,7 @@ export interface AuctionFilters {
   view: "cards" | "list";
 }
 export interface CollectorHealth {
-  mode: "local" | "firestore";
+  mode: "local" | "firestore" | "shared";
   startedAt: number;
   lastEndedSuccess: number;
   lastActiveSuccess: number;

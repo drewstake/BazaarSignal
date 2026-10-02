@@ -9,7 +9,6 @@ import {
   List,
   LogOut,
   Plus,
-  RefreshCw,
   Search,
   ShieldCheck,
   X,
@@ -31,7 +30,13 @@ import {
 } from "../../shared/companion/auctions";
 import { auth, login, logout, watchAuth } from "../data";
 import { signInErrorMessage } from "../sign-in-error";
-import { fixtureMode, getAuctions, getBazaar, marketRequest } from "./api";
+import {
+  fixtureMode,
+  getAuctions,
+  getBazaar,
+  getAuctionCommand,
+  getAuctionDetail,
+} from "./api";
 import {
   loadPreferences,
   loadWatchlist,
@@ -61,6 +66,8 @@ import {
   titleCase,
 } from "./components";
 import "./market.css";
+import { visiblePoll, pollingDirective, PAUSED_MESSAGE } from "./polling";
+import type { CacheResult, CacheStatus } from "./api";
 
 type View = "bazaar" | "auctions" | "watchlist";
 const currentView = (): View => {
@@ -93,6 +100,8 @@ function localPreferences<T extends object>(market: string, defaults: T) {
   }
 }
 export default function MarketApp() {
+  const [copyingAuction, setCopyingAuction] = useState<string | null>(null);
+  const [auctionNames, setAuctionNames] = useState<Record<string, string>>({});
   const [view, setView] = useState<View>(currentView),
     [user, setUser] = useState<User | null>(auth?.currentUser ?? null),
     [authBusy, setAuthBusy] = useState(false);
@@ -112,7 +121,6 @@ export default function MarketApp() {
     [auctionTotal, setAuctionTotal] = useState(0);
   const [page, setPage] = useState(0),
     [auctionPage, setAuctionPage] = useState(0),
-    [refresh, setRefresh] = useState(0),
     [now, setNow] = useState(Date.now());
   const [selectedBazaar, setSelectedBazaar] = useState<string | null>(null),
     [selectedAuction, setSelectedAuction] = useState<AuctionOpportunity | null>(
@@ -125,6 +133,16 @@ export default function MarketApp() {
     [toast, setToast] = useState(""),
     [privateError, setPrivateError] = useState("");
   const [help, setHelp] = useState(false);
+  const [cacheStatus, setCacheStatus] = useState<CacheStatus | null>(null);
+  const [usage, setUsage] = useState(pollingDirective);
+  useEffect(() => {
+    const update = () => setUsage(pollingDirective());
+    window.addEventListener("market-usage-policy", update);
+    return () => window.removeEventListener("market-usage-policy", update);
+  }, []);
+  useEffect(() => {
+    setCacheStatus(null);
+  }, [view]);
   useEffect(() => {
     const update = () => {
       setView(currentView());
@@ -194,75 +212,95 @@ export default function MarketApp() {
     }
   }, [bf, af, user]);
   useEffect(() => {
-    const controller = new AbortController();
-    let closed = false;
-    setBazaarLoading(true);
-    const fetchData = () =>
-      getBazaar(controller.signal)
-        .then((r) => {
-          if (!closed) {
-            setBazaar(r.items);
-            setMarketError(r.error ?? "");
-            setBazaarLoading(false);
-          }
-        })
-        .catch((e) => {
-          if (!closed) {
-            setMarketError(
-              e instanceof Error ? e.message : "Bazaar unavailable",
-            );
-            setBazaarLoading(false);
-          }
-        });
-    void fetchData();
-    const timer = setInterval(fetchData, 60000);
+    if (view === "auctions") return;
+    let version = "",
+      alive = true;
+    const stop = visiblePoll(async (signal) => {
+      try {
+        const r = await getBazaar(signal),
+          meta = r as typeof r & CacheResult;
+        if (!alive || signal.aborted) return;
+        const nextVersion = meta.version ?? String(r.items[0]?.upstreamAt);
+        if (nextVersion !== version) {
+          version = nextVersion;
+          setBazaar(r.items);
+        }
+        setMarketError(r.error ?? "");
+        setCacheStatus((prev) =>
+          JSON.stringify(prev) === JSON.stringify(meta.status ?? null)
+            ? prev
+            : (meta.status ?? null),
+        );
+        setBazaarLoading(false);
+      } catch (e) {
+        if (alive && !signal.aborted) {
+          setMarketError(e instanceof Error ? e.message : "Bazaar unavailable");
+          setBazaarLoading(false);
+        }
+      }
+    });
     return () => {
-      closed = true;
-      controller.abort();
-      clearInterval(timer);
+      alive = false;
+      stop();
     };
-  }, [refresh]);
+  }, [view]);
   useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 15000);
-    return () => clearInterval(timer);
+    const update = () => {
+      if (document.visibilityState !== "hidden") setNow(Date.now());
+    };
+    const timer = setInterval(update, 5000);
+    document.addEventListener("visibilitychange", update);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", update);
+    };
   }, []);
   useEffect(() => {
     if (view !== "auctions") return;
-    const controller = new AbortController();
-    let closed = false;
+    let version = "",
+      alive = true;
     setAuctionLoading(true);
-    setAuctionError("");
-    const fetchData = () =>
-      getAuctions(af, auctionPage, controller.signal)
-        .then((r) => {
-          if (!closed) {
+    const stop = visiblePoll(
+      async (signal) => {
+        try {
+          const r = await getAuctions(af, auctionPage, signal),
+            meta = r as typeof r & CacheResult;
+          if (!alive || signal.aborted) return;
+          const nextVersion = meta.version ?? String(r.health.activeUpstreamAt);
+          if (nextVersion !== version) {
+            version = nextVersion;
             setAuctions(r.items);
             setAuctionTotal(r.total);
             setHealth(r.health);
-            setAuctionLoading(false);
             setSelectedAuction(
               (prev) =>
                 r.items.find((x) => x.listing.id === prev?.listing.id) ?? prev,
             );
           }
-        })
-        .catch((e) => {
-          if (!closed) {
+          setCacheStatus((prev) =>
+            JSON.stringify(prev) === JSON.stringify(meta.status ?? null)
+              ? prev
+              : (meta.status ?? null),
+          );
+          setAuctionError(meta.status?.error ?? r.health.error ?? "");
+          setAuctionLoading(false);
+        } catch (e) {
+          if (alive && !signal.aborted) {
             setAuctionError(
               e instanceof Error ? e.message : "Auction service unavailable",
             );
             setAuctionLoading(false);
           }
-        });
-    const debounce = setTimeout(fetchData, 250),
-      timer = setInterval(fetchData, 30000);
+        }
+      },
+      20_000,
+      250,
+    );
     return () => {
-      closed = true;
-      controller.abort();
-      clearTimeout(debounce);
-      clearInterval(timer);
+      alive = false;
+      stop();
     };
-  }, [view, af, auctionPage, refresh]);
+  }, [view, af, auctionPage]);
   const validBazaar =
     Object.values(bf).every(
       (v) => typeof v !== "number" || Number.isFinite(v),
@@ -271,17 +309,45 @@ export default function MarketApp() {
     Number.isSafeInteger(bf.quantity) &&
     bf.budget >= 0 &&
     bf.maxActivityShare >= 0;
+  const bazaarStale = bazaar.length > 0 && now - bazaar[0].upstreamAt > 180000;
   const opportunities = useMemo(
-    () => (validBazaar ? filterBazaar(bazaar, bf, now) : []),
-    [bazaar, bf, now, validBazaar],
+    () =>
+      validBazaar
+        ? filterBazaar(bazaar, bf, bazaarStale ? bazaar[0].upstreamAt : now)
+        : [],
+    [bazaar, bf, now, validBazaar, bazaarStale],
   );
   const pages = Math.max(1, Math.ceil(opportunities.length / 6)),
     safePage = Math.min(page, pages - 1),
     shown = opportunities.slice(safePage * 6, safePage * 6 + 6);
+  const visibleAuctions = useMemo(
+    () =>
+      auctions.map((o) =>
+        auctionOpportunity(
+          {
+            ...o.listing,
+            status:
+              o.listing.end <= now
+                ? "expired"
+                : now - o.listing.upstreamAt > 180000
+                  ? "stale"
+                  : o.listing.status,
+          },
+          [],
+          [],
+          now,
+          af.durationHours,
+          false,
+          o.valuation,
+          o.feeContext,
+        ),
+      ),
+    [auctions, now, af.durationHours],
+  );
   const deal = opportunities.find(
-      (q) => q.profit > 0 && q.concerns.length === 0,
+      (q) => !bazaarStale && q.profit > 0 && q.concerns.length === 0,
     ),
-    auctionDeal = auctions.find(
+    auctionDeal = visibleAuctions.find(
       (o) =>
         o.profit !== null &&
         o.profit > 0 &&
@@ -292,7 +358,7 @@ export default function MarketApp() {
     );
   const selectedItem =
     bazaar.find((i) => i.id === selectedBazaar) ?? shown[0]?.item ?? null;
-  const rawSelectedAh = selectedAuction ?? auctions[0] ?? null;
+  const rawSelectedAh = selectedAuction ?? visibleAuctions[0] ?? null;
   const selectedAh = rawSelectedAh
     ? auctionOpportunity(
         {
@@ -411,6 +477,44 @@ export default function MarketApp() {
     setSelectedAuction(item);
     setSheetOpen(true);
   }
+  async function copyAuction(item: AuctionOpportunity) {
+    if (copyingAuction) return;
+    setCopyingAuction(item.listing.id);
+    setToast("");
+    let command = "";
+    try {
+      const result = await getAuctionCommand(item.listing.id);
+      if (!/^\/ah [A-Za-z0-9_]{1,16}$/.test(result.command))
+        throw new Error("Seller username unavailable. Please try again.");
+      command = result.command;
+      setAuctionNames((names) => ({
+        ...names,
+        [item.listing.id]: command.slice(4),
+      }));
+      await navigator.clipboard.writeText(command);
+      setToast(
+        `Copied ${command} — paste into Minecraft chat.${fixtureMode ? " Demo seller only." : ""}`,
+      );
+    } catch (e) {
+      setToast(
+        command
+          ? `Clipboard unavailable. Copy manually: ${command}`
+          : e instanceof Error
+            ? e.message
+            : "Couldn’t copy the auction command. Please try again.",
+      );
+    } finally {
+      setCopyingAuction(null);
+    }
+  }
+  function auctionLabel(item: AuctionOpportunity) {
+    const name = auctionNames[item.listing.id] ?? item.listing.sellerName;
+    return name
+      ? `/ah ${name}`
+      : copyingAuction === item.listing.id
+        ? "Finding seller…"
+        : "Find seller";
+  }
   async function reopen(item: SavedItem) {
     if (item.kind === "bazaar") {
       navigate("bazaar");
@@ -423,17 +527,18 @@ export default function MarketApp() {
       try {
         const result =
           auctions.find((a) => a.listing.id === item.itemId) ??
-          (await marketRequest<AuctionOpportunity>(`auctions/${item.itemId}`));
+          (await getAuctionDetail(item.itemId, af.durationHours));
         openAuction(result);
       } catch {
         setToast(
-          "This saved auction is unavailable or no longer in the collector cache.",
+          "This saved auction is unavailable or no longer in the current snapshot.",
         );
       }
     }
   }
   const lastUpdate =
-    view === "auctions" ? health?.activeUpstreamAt : bazaar[0]?.upstreamAt;
+    (view === "auctions" ? health?.activeUpstreamAt : bazaar[0]?.upstreamAt) ||
+    cacheStatus?.upstreamAt;
   const freshness = (
     <span className="freshness">
       <span
@@ -444,12 +549,20 @@ export default function MarketApp() {
         : lastUpdate
           ? `Updated ${new Date(lastUpdate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`
           : "Waiting for market data"}
-      <button
-        aria-label="Refresh market"
-        onClick={() => setRefresh((r) => r + 1)}
-      >
-        <RefreshCw size={14} />
-      </button>
+      <span className="automatic-status" aria-live="polite">
+        {usage.mode === "paused"
+          ? `${PAUSED_MESSAGE} · ${lastUpdate ? `data from ${new Date(lastUpdate).toLocaleString()}` : "no saved snapshot"}`
+          : !lastUpdate
+            ? "Automatic updates · waiting"
+            : now - lastUpdate > 180000
+              ? "Stale · comparisons withheld · retrying automatically"
+              : (view === "auctions" ? auctionError : marketError)
+                ? "Update delayed · retrying automatically"
+                : cacheStatus?.refreshing && view === "auctions"
+                  ? "Updating automatically…"
+                  : "Automatic updates"}
+        {usage.mode !== "paused" && usage.pollMs >= 3600_000 ? " · hourly collection" : ""}
+      </span>
     </span>
   );
   const watchSlots = saved.slice(0, 3);
@@ -702,7 +815,9 @@ export default function MarketApp() {
                   {bazaar.length > 0
                     ? "Last successful data remains visible; stale opportunities are excluded."
                     : ""}
-                  <a href="#legacy=1">Open existing public price search</a>
+                  {usage.mode !== "paused" && (
+                    <a href="#legacy=1">Open existing public price search</a>
+                  )}
                 </div>
               )}
               {view === "auctions" && (auctionError || health?.error) && (
@@ -800,11 +915,12 @@ export default function MarketApp() {
                             {auctionDeal.listing.variant.name}
                           </h2>
                           <p>
-                            {auctionDeal.valuation.count} exact comparable sales
-                            support this estimate.
+                            {auctionDeal.valuation.count} matching active
+                            listings support this estimate.
                           </p>
                           <PriceComparison
                             buy={auctionDeal.listing.price}
+                            askingPrice
                             sell={auctionDeal.valuation.estimate}
                             profit={auctionDeal.profit}
                             roi={auctionDeal.roi}
@@ -812,26 +928,35 @@ export default function MarketApp() {
                           />
                           <button
                             className="button green"
+                            onClick={() => copyAuction(auctionDeal)}
+                            disabled={copyingAuction !== null}
+                          >
+                            {auctionLabel(auctionDeal)}{" "}
+                            <ChevronRight size={22} strokeWidth={3} />
+                          </button>
+                          <button
+                            className="auction-details"
                             onClick={() => openAuction(auctionDeal)}
                           >
-                            Inspect the evidence{" "}
-                            <ChevronRight size={22} strokeWidth={3} />
+                            View details
                           </button>
                           <div className="deal-reason">
                             <ShieldCheck size={16} />
                             <span>
-                              Fresh, positive estimated profit and at least
-                              medium confidence. Recheck availability before
-                              trading.
+                              Fresh, positive after-fee asking-price gap and at
+                              least medium confidence. Recheck availability
+                              before trading.
                             </span>
                           </div>
                         </div>
                       </>
                     ) : (
                       <EmptyState title="Good deals take patience">
-                        {view === "bazaar"
-                          ? "No fresh opportunities pass your filters without liquidity concerns. Try a smaller quantity or adjust your filters."
-                          : "A deal earns this spot with recent, comparable completed sales. We’re waiting for sufficient evidence."}
+                        {usage.mode === "paused"
+                          ? "Fresh comparisons are unavailable while market updates are paused."
+                          : view === "bazaar"
+                            ? "No fresh opportunities pass your filters without liquidity concerns. Try a smaller quantity or adjust your filters."
+                            : "This spot compares current asking prices for matching configurations. No matching listings meet your filters yet."}
                       </EmptyState>
                     )}
                   </div>
@@ -884,7 +1009,7 @@ export default function MarketApp() {
                               ["balanced", "Profit + Liquidity"],
                             ]
                           : [
-                              ["profit", "Highest Profit"],
+                              ["profit", "Largest after-fee gap"],
                               ["roi", "Highest ROI"],
                               ["capital", "Lowest Price"],
                               ["confidence", "Confidence"],
@@ -948,16 +1073,24 @@ export default function MarketApp() {
                           Bazaar uses visible order-book depth, your quantity,
                           and sale tax. Weekly activity is a sizing proxy, not
                           an exact trade count or fill-time promise. Auctions
-                          use completed sales of the exact item configuration.
-                          Bidding auctions are excluded because bids are not
-                          executable purchase prices. Missing history means no
-                          recommendation.
+                          use the arithmetic average of other active BIN
+                          listings with the exact configuration and stack
+                          quantity. Bidding auctions are excluded because bids
+                          are not executable purchase prices. Asking prices do
+                          not prove resale value.
                         </p>
                       </div>
                     </div>
                   )}
                   {(view === "bazaar" ? bazaarLoading : auctionLoading) ? (
-                    <LoadingState />
+                    <>
+                      {view === "auctions" && (
+                        <p role="status">
+                          Loading a complete snapshot of current BIN listings…
+                        </p>
+                      )}
+                      <LoadingState />
+                    </>
                   ) : view === "bazaar" ? (
                     shown.length ? (
                       <div
@@ -971,11 +1104,17 @@ export default function MarketApp() {
                             rarity={q.item.rarity}
                             category={q.item.category}
                             buy={q.acquisition}
-                            sell={q.grossSale}
-                            profit={q.profit}
-                            roi={q.roi}
-                            badge={titleCase(q.liquidity)}
-                            warning={q.concerns[0]}
+                            sell={bazaarStale ? null : q.grossSale}
+                            profit={bazaarStale ? null : q.profit}
+                            roi={bazaarStale ? null : q.roi}
+                            badge={
+                              bazaarStale ? "Stale" : titleCase(q.liquidity)
+                            }
+                            warning={
+                              bazaarStale
+                                ? "Comparisons withheld until automatic updates recover."
+                                : q.concerns[0]
+                            }
                             subtitle={
                               <>
                                 {q.strategy === "order-offer"
@@ -1002,32 +1141,36 @@ export default function MarketApp() {
                     ) : (
                       <EmptyState
                         title={
-                          marketError
-                            ? "Market connection needs attention"
-                            : "No matching opportunities"
+                          usage.mode === "paused"
+                            ? "Market updates paused"
+                            : marketError
+                              ? "Market connection needs attention"
+                              : "No matching opportunities"
                         }
                         action={
-                          <button
-                            className="button paper"
-                            onClick={() => {
-                              setBf({ ...defaultBazaarFilters });
-                              setPage(0);
-                            }}
-                          >
-                            Reset filters
-                          </button>
+                          usage.mode !== "paused" && (
+                            <button
+                              className="button paper"
+                              onClick={() => {
+                                setBf({ ...defaultBazaarFilters });
+                                setPage(0);
+                              }}
+                            >
+                              Reset filters
+                            </button>
+                          )
                         }
                       >
-                        Try a lower quantity, a different strategy, or broader
-                        liquidity checks. Losing trades are excluded by the
-                        default minimum profit.
+                        {usage.mode === "paused"
+                          ? "Fresh prices are unavailable. Your watchlist and existing Price Alerts remain available, and you can still edit alert targets."
+                          : "Try a lower quantity, a different strategy, or broader liquidity checks. Losing trades are excluded by the default minimum profit."}
                       </EmptyState>
                     )
-                  ) : auctions.length ? (
+                  ) : visibleAuctions.length ? (
                     <div
                       className={`item-grid ${af.view === "list" ? "compact-list" : ""}`}
                     >
-                      {auctions.map((o) => (
+                      {visibleAuctions.map((o) => (
                         <ItemCard
                           key={o.listing.id}
                           id={o.listing.variant.itemId}
@@ -1035,6 +1178,7 @@ export default function MarketApp() {
                           rarity={o.listing.variant.rarity}
                           category={o.listing.variant.category}
                           buy={o.listing.price}
+                          askingPrice
                           sell={o.valuation.estimate}
                           profit={o.profit}
                           roi={o.roi}
@@ -1043,10 +1187,21 @@ export default function MarketApp() {
                               ? "Stale"
                               : `${titleCase(o.valuation.confidence)} confidence`
                           }
-                          subtitle={`${o.valuation.count} exact sales · 14-day window`}
+                          subtitle={`${o.valuation.count} matching active listings`}
+                          warning={
+                            o.valuation.reasons.some((r) =>
+                              r.includes("inflate"),
+                            )
+                              ? "Asking prices vary widely — check the median."
+                              : undefined
+                          }
                           selected={selectedAh?.listing.id === o.listing.id}
                           saved={isSaved("auction", o.listing.id)}
-                          onOpen={() => openAuction(o)}
+                          onOpen={() => copyAuction(o)}
+                          actionLabel={auctionLabel(o)}
+                          actionAriaLabel={`Copy seller command for ${o.listing.variant.name}`}
+                          actionBusy={copyingAuction !== null}
+                          onInspect={() => openAuction(o)}
                           onSave={() =>
                             toggle(
                               "auction",
@@ -1060,31 +1215,33 @@ export default function MarketApp() {
                   ) : (
                     <EmptyState
                       title={
-                        auctionError
-                          ? "Auction service unavailable"
-                          : health?.saleCount
-                            ? "Not enough matching evidence"
-                            : "Collecting price history"
+                        usage.mode === "paused"
+                          ? "Market updates paused"
+                          : auctionError
+                            ? "Auction service unavailable"
+                            : health?.listingCount
+                              ? "Not enough matching evidence"
+                              : "No matching active listings"
                       }
                       action={
-                        <button
-                          className="button paper"
-                          onClick={() =>
-                            patchAuction({
-                              showInsufficient: true,
-                              hideFlagged: false,
-                            })
-                          }
-                        >
-                          Show listings with insufficient evidence
-                        </button>
+                        usage.mode !== "paused" && (
+                          <button
+                            className="button paper"
+                            onClick={() =>
+                              patchAuction({
+                                showInsufficient: true,
+                                hideFlagged: false,
+                              })
+                            }
+                          >
+                            Show listings with insufficient evidence
+                          </button>
+                        )
                       }
                     >
-                      {health
-                        ? `${health.saleCount} verified sales collected across ${health.variantCount} variants. `
-                        : ""}
-                      Recommendations need exact configuration matches. Active
-                      asking prices never stand in for completed sales.
+                      {usage.mode === "paused"
+                        ? "Fresh listings and seller commands are unavailable. Your watchlist and existing Price Alerts remain available, and you can still edit alert targets."
+                        : `${health ? `${health.listingCount} active BIN listings in the current snapshot. ` : ""}Comparisons need other listings with the exact configuration. Try widening your filters.`}
                     </EmptyState>
                   )}
                   <div className="pagination">
@@ -1128,7 +1285,7 @@ export default function MarketApp() {
                     <p>
                       {view === "bazaar"
                         ? "After-tax estimates for your selected quantity. Activity is reported 7-day units + live state. Orders can take time to fill."
-                        : `Completed BIN sales only. ${health?.missedMs ? `${Math.ceil(health.missedMs / 60000)} minutes of known collection gaps.` : "Coverage begins when the shared collector runs."} Asking prices and bids are not sales.`}
+                        : `Current active BIN asking prices. Snapshot ${health?.activeUpstreamAt ? new Date(health.activeUpstreamAt).toLocaleTimeString() : "loading"}. Averages exclude the selected listing. After-fee gaps are hypothetical, not proven profit.`}
                     </p>
                   </div>
                 </section>

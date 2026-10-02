@@ -15,6 +15,8 @@ import {
   doc,
 } from "firebase/firestore";
 import { backendUrl, requestBackend, validBackendUrl } from './backend';
+import { marketRequest } from './companion/api';
+import { visiblePoll } from './companion/polling';
 import {
   DEFAULT_SETTINGS,
   type AppData,
@@ -313,32 +315,33 @@ export function subscribe(
   onError: (message: string, market?: boolean) => void,
 ) {
   if (!db) return () => {};
-  let closed = false, pending = false;
+  let closed = false, pending = false, marketVersion = "";
   const current = auth?.currentUser;
-  async function refresh() {
+  async function refresh(signal: AbortSignal) {
     if (pending || closed) return;
     pending = true;
     try {
-      const patch = await requestBackend<Partial<AppData>>({action:'snapshot'});
+      const patch = await marketRequest<Partial<AppData>>('snapshot', signal);
       if (uid) delete patch.monitoring; // Signed-in users need their own worker progress.
-      if (!closed) onData(patch);
+      const version = JSON.stringify([patch.status?.lastUpdated, patch.status?.error]);
+      if (!closed && version !== marketVersion) { marketVersion = version; onData(patch); }
     } catch (e) {
+      marketVersion = "";
       if (!closed) onError(e instanceof Error ? e.message : 'Prices unavailable.', true);
     }
     if (!closed && current && uid && auth?.currentUser?.uid === uid) {
       try {
-        const patch=await requestBackend<Partial<AppData>>({action:'account'},await current.getIdToken());
+        const patch=await requestBackend<Partial<AppData>>({action:'account'},await current.getIdToken(),signal);
         if (!closed && auth?.currentUser?.uid === uid) onData(patch);
       } catch(e) { if (!closed) onError(e instanceof Error ? e.message : 'Your alert status is unavailable.', false); }
     }
     pending = false;
   }
-  void refresh();
+  const stopPolling = visiblePoll(refresh, 60000);
   const stop = uid ? onSnapshot(doc(db, 'users', uid, 'status', 'main'), s => {
     if (!closed && auth?.currentUser?.uid === uid && s.exists()) {
       try { onData(JSON.parse(s.data().json)); } catch { onError('Invalid monitoring status.', false); }
     }
   }, () => { if (!closed) onError('Sign in with a verified Google account to view your alert status.', false); }) : () => {};
-  const timer = setInterval(refresh, 60000);
-  return () => { closed = true; clearInterval(timer); stop(); };
+  return () => { closed = true; stopPolling(); stop(); };
 }

@@ -1,14 +1,16 @@
 # BazaarSignal
 
-The new Sky Island Market companion adds public Bazaar strategies, exact-configuration BIN valuation, a shared historical collector, private watchlists, and saved filters. Start with `npm run dev`; see [docs/MARKET.md](docs/MARKET.md) for pricing assumptions, collector setup, costs, tests, and deployment. **This companion release is implemented locally and has not been deployed.** Existing production details below describe the prior price-alert release.
+**$0 operating policy:** market collection is paused and the Google cache API is private. The original website/authentication/private-data project remains on Spark. Collector billing still needs explicit approval to unlink; retained resources can incur charges until then. See [the measured audit and shutdown plan](docs/ZERO-COST-AUDIT.md). Earlier live-deployment notes below describe the pre-pause service.
+
+The Sky Island Market companion provides public Bazaar strategies, current active-BIN asking-price averages, private watchlists, saved filters, and the redesigned Price Alerts board. Start with `npm run dev`; see [docs/MARKET.md](docs/MARKET.md) for pricing assumptions and tests. The shared current-market cache is deployed on scheduled Google Functions with atomic coordination and a global request budget; see [deployment details](docs/GOOGLE-MARKET-DEPLOYMENT.md).
 
 Public SkyBlock Bazaar prices and private email alerts at https://bazaarsignal.web.app.
 
 Anyone can search items, inspect details/order books and calculate full-quantity estimates without signing in. Sign in with a verified Google account to create a buy-below or sell-above alert. Emails go to that account's verified address. Each user's alert records remain private. The confirmation email has a secure disable link; opening it does nothing until **Disable alert** is selected. An alert completes after one qualifying target event.
 
-The existing price and alert workflows remain available alongside the new React market board. Firebase remains on **Spark** with Hosting, Google Authentication and Firestore. Apps Script polls alerts approximately every five minutes and sends through MailApp as `bazaarsignal@gmail.com`. Continuous auction history requires the separate collector described above; no billing upgrade or paid service has been enabled.
+The existing price and alert workflows remain available alongside the React market board. The original **bazaarsignal** Firebase project remains on **Spark** with Hosting, Google Authentication and Firestore. Apps Script polls alerts approximately every five minutes and sends through MailApp as `bazaarsignal@gmail.com`. Production browser requests read the shared current-snapshot service in the separate, owner-authorized, billing-enabled **bazaarsignal-510305** project. This infrastructure has free allowances but is not guaranteed to cost zero.
 
-The original owner `drew@theinnovativeowl.com` remains the project administrator, but no longer has exclusive app access. The public-access change was explicitly requested after the original private deployment. The sender and every Firebase user are separate identities. `drewstake3@gmail.com` remains the explicitly authorized delivery-test recipient.
+`drewstake3@gmail.com` has Owner access to both Google projects and is the deployment account for this workspace. At the user's request, the direct project permissions for the original Firebase owner `drew@theinnovativeowl.com` were removed on October 1; the existing website URL, users and alerts stay in `bazaarsignal`. Project ownership is separate from public app access and Firebase user identities. The sender remains `bazaarsignal@gmail.com`; `drewstake3@gmail.com` remains the explicitly authorized delivery-test recipient.
 
 See [SETUP.md](SETUP.md) for deployment, verification, quotas, migration and recovery. See [GMAIL_SETUP.md](GMAIL_SETUP.md) for sender authorization and the untouched encrypted app password.
 
@@ -47,12 +49,15 @@ The gallery is a separate entry point in `src/ui-kits/`. It uses illustrative fi
 
 ### Application development
 
-Workspace: `C:\Users\drews\Development\BazaarSignal`. Use Node.js 22.12+. `npm ci`, then `npm run dev`. The ignored `.env.local` contains public Firebase values and the public Apps Script URL, never service credentials. Production requires `VITE_BACKEND_READY=true` and all Firebase client values. Development `VITE_APP_MODE=local` uses browser-only live-price simulation; `?demo=1` uses fixtures. Production with Firebase configured ignores that local override.
+Workspace: `C:\Users\drews\Development\BazaarSignal`. Use Node.js 24 (verified with 24.19.0; the collector uses built-in SQLite). `npm ci`, then `npm run dev`. The ignored `.env.local` contains public Firebase values and the public Apps Script URL, never service credentials. Production requires `VITE_BACKEND_READY=true` and all Firebase client values. Development `VITE_APP_MODE=local` uses browser-only live-price simulation; `?demo=1` uses fixtures. Production with Firebase configured ignores that local override.
 
 - `npm run build`: frontend and Apps Script type checks/bundles.
-- `npm test`: 54 unit/handler tests, including account isolation, migration, quotas, idempotency and pricing.
-- `npm run test:rules`: 11 emulator/security/backend checks; requires Java 21.
+- `npm test`: 114 unit/handler tests, including shared budgets, recovery, account isolation, migration, quotas, idempotency and pricing.
+- `npm run test:rules`: 20 emulator/security/backend checks including 100-instance Google cache coordination; requires Java 21.
 - `npm run test:browser`: 6 existing desktop/mobile flow checks.
 - `npm run test:public-browser`: 2 production-build desktop/mobile anonymous-access checks with mocked public API responses; run after build.
 
 `functions/` is historical regression/local simulation code and is not deployed. `firebase.json` configures only Hosting/Firestore for deployment. Follow the preview-first release process in SETUP.md.
+# Google deployment — October 1, 2026
+
+The shared collector is live in `bazaarsignal-510305`. The verified Hosting preview was promoted to the existing website; Apps Script version 8 reads the same cache. Existing authentication, user records, alert targets, signing configuration and email trigger remain in place. See [Google deployment procedure and measured usage](docs/GOOGLE-MARKET-DEPLOYMENT.md).

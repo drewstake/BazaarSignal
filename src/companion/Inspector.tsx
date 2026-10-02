@@ -128,7 +128,7 @@ export function BazaarInspector({
   save: () => void;
 }) {
   const quote = quoteBazaar(item, filters),
-    q = quote;
+    q = quote?.fresh ? quote : null;
   return (
     <>
       <InspectorItem
@@ -196,7 +196,7 @@ export function BazaarInspector({
           </div>
           <div className="inspector-block">
             <h4>
-              Buy <span className="arrow">→</span> Sell Comparison{" "}
+              Buy <span className="arrow">→</span> AH Average Comparison{" "}
               <span>(×{q.quantity})</span>
             </h4>
             <PriceComparison
@@ -220,8 +220,9 @@ export function BazaarInspector({
         </>
       ) : (
         <p className="notice warning">
-          Insufficient visible liquidity or invalid quantity. The full trade
-          cannot be priced.
+          {quote && !quote.fresh
+            ? "Stale snapshot. Comparisons withheld until automatic updates recover."
+            : "Insufficient visible liquidity or invalid quantity. The full trade cannot be priced."}
         </p>
       )}
       <button className="button green watch-button" onClick={save}>
@@ -418,14 +419,15 @@ export function AuctionInspector({
         save={save}
       />
       <span className={`confidence ${val.confidence}`}>
-        {titleCase(val.confidence)} confidence · {val.count} sales
+        {titleCase(val.confidence)} confidence · {val.count} matching listings
       </span>
       <div className="inspector-block">
         <h4>
-          Buy <span className="arrow">→</span> Sell Comparison
+          Buy <span className="arrow">→</span> AH Average
         </h4>
         <PriceComparison
           buy={o.listing.price}
+          askingPrice
           sell={val.estimate}
           profit={o.profit}
           roi={o.roi}
@@ -436,18 +438,18 @@ export function AuctionInspector({
         <h4>The comparison evidence</h4>
         <dl>
           <div>
-            <dt>Resale range (25th–75th)</dt>
+            <dt>Asking-price range (25th–75th)</dt>
             <dd>
               {compact(val.low)} – {compact(val.high)}
             </dd>
           </div>
           <div>
-            <dt>Median sale</dt>
+            <dt>Median asking price</dt>
             <dd>{exact(val.median)}</dd>
           </div>
           <div>
-            <dt>Robust mean</dt>
-            <dd>{exact(val.trimmedMean)}</dd>
+            <dt>Current AH average</dt>
+            <dd>{exact(val.estimate)}</dd>
           </div>
           <div>
             <dt>Dispersion (IQR / median)</dt>
@@ -458,50 +460,39 @@ export function AuctionInspector({
             </dd>
           </div>
           <div>
-            <dt>Recent median movement</dt>
-            <dd>
-              {val.movement === null
-                ? "Insufficient periods"
-                : `${val.movement.toFixed(1)}%`}
-            </dd>
-          </div>
-          <div>
-            <dt>Included / observed sales</dt>
-            <dd>
-              {val.count} / {val.rawCount}
-            </dd>
+            <dt>Matching active listings</dt>
+            <dd>{val.count}</dd>
           </div>
         </dl>
         <p>
-          {new Date(val.windowStart).toLocaleDateString()} –{" "}
-          {new Date(val.windowEnd).toLocaleDateString()} · verified completed
-          BIN sales.
+          Snapshot {new Date(val.windowStart).toLocaleTimeString()} · active BIN
+          asking prices.
         </p>
         {val.reasons.map((r) => (
           <p key={r}>{r}</p>
         ))}
         <details>
-          <summary>Comparable completed sales</summary>
-          {val.sales.length ? (
+          <summary>Comparable active listings</summary>
+          {(val.listings ?? []).length ? (
             <table>
               <caption>Exact configuration matches</caption>
               <thead>
                 <tr>
-                  <th>Sold</th>
+                  <th>Ends</th>
                   <th>Price</th>
                 </tr>
               </thead>
               <tbody>
-                {val.sales.map((s) => (
+                {(val.listings ?? []).map((s) => (
                   <tr key={s.id}>
-                    <td>{new Date(s.soldAt).toLocaleString()}</td>
+                    <td>{new Date(s.end).toLocaleString()}</td>
                     <td>{exact(s.price)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           ) : (
-            <p>Collecting price history.</p>
+            <p>No matching active listings.</p>
           )}
         </details>
       </div>

@@ -319,6 +319,7 @@ export function PriceComparison({
   roi,
   full = false,
   variant = "detail",
+  askingPrice = false,
 }: {
   buy: number | null;
   sell: number | null;
@@ -326,8 +327,9 @@ export function PriceComparison({
   roi: number | null;
   full?: boolean;
   variant?: keyof typeof comparisonLabels;
+  askingPrice?: boolean;
 }) {
-  const [buyLabel, sellLabel, profitLabel] = comparisonLabels[variant];
+  const [buyLabel, sellLabel, profitLabel] = askingPrice ? ["Buy", "AH average", "After-fee gap"] : comparisonLabels[variant];
   return (
     <div className={`price-comparison ${variant}`}>
       <div>
@@ -371,6 +373,11 @@ export function ItemCard({
   onSave,
   subtitle,
   warning,
+  actionLabel = "View Deal",
+  actionAriaLabel,
+  actionBusy = false,
+  onInspect,
+  askingPrice = false,
 }: {
   id: string;
   name: string;
@@ -387,10 +394,15 @@ export function ItemCard({
   onSave: () => void;
   subtitle: ReactNode;
   warning?: string;
+  actionLabel?: string;
+  actionAriaLabel?: string;
+  actionBusy?: boolean;
+  onInspect?: () => void;
+  askingPrice?: boolean;
 }) {
   return (
     <article
-      className={`market-card ${selected ? "selected" : ""}`}
+      className={`market-card ${askingPrice ? "asking-price-card" : ""} ${selected ? "selected" : ""}`}
       aria-label={`${name} opportunity`}
     >
       <div className="card-art" style={artGlow(id)}>
@@ -421,14 +433,17 @@ export function ItemCard({
           profit={profit}
           roi={roi}
           variant="card"
+          askingPrice={askingPrice}
         />
         <button
           className="button blue"
           onClick={onOpen}
-          aria-label={`Inspect ${name}`}
+          aria-label={actionAriaLabel ?? `Inspect ${name}`}
+          disabled={actionBusy}
         >
-          View Deal <ArrowRight size={16} strokeWidth={2.6} />
+          {actionLabel} <ArrowRight size={16} strokeWidth={2.6} />
         </button>
+        {onInspect && <button className="auction-details" onClick={onInspect} aria-label={`View details for ${name}`}>View details</button>}
       </div>
     </article>
   );

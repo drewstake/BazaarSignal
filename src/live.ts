@@ -2,6 +2,7 @@ import type { AppData } from "../shared/model";
 import { DEFAULT_SETTINGS } from "../shared/model";
 import { trigger } from "../functions/src/engine";
 import type { LiveSnapshot } from "../server/live-market";
+import { visiblePoll } from "./companion/polling";
 const KEY = "bazaar-watch-live-v1";
 export function readLive(): AppData {
   const base: AppData = {
@@ -80,38 +81,32 @@ export function subscribeLive(
   onError: (message: string) => void,
 ) {
   let closed = false,
-    inflight = false;
-  const controller = new AbortController();
-  async function poll() {
+    inflight = false, version = "";
+  async function poll(signal: AbortSignal) {
     if (inflight || closed) return;
     inflight = true;
     try {
       const response = await fetch("/api/market", {
-        signal: controller.signal,
+        signal,
       });
       const body = await response.json();
       if (!response.ok)
         throw new Error(body.error ?? "Live market is unavailable.");
       if (!body.status || !Array.isArray(body.prices) || !body.books)
         throw new Error("Invalid market response.");
-      if (!closed) update(body);
+      const next = JSON.stringify([body.status.lastUpdated, body.status.error]);
+      if (!closed && version !== next) { version = next; update(body); }
     } catch (e) {
+      version = "";
       if (!closed)
         onError(e instanceof Error ? e.message : "Live market is unavailable.");
     } finally {
       inflight = false;
     }
   }
-  void poll();
-  const timer = setInterval(poll, 60_000);
-  const visible = () => {
-    if (document.visibilityState === "visible") void poll();
-  };
-  document.addEventListener("visibilitychange", visible);
+  const stop = visiblePoll(poll, 60000);
   return () => {
     closed = true;
-    controller.abort();
-    clearInterval(timer);
-    document.removeEventListener("visibilitychange", visible);
+    stop();
   };
 }

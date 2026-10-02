@@ -14,10 +14,13 @@ export function decodeNbt(encoded: unknown): Record<string, unknown> {
   )
     throw new Error("Invalid base64 item_bytes");
   const compressed = Buffer.from(base64, "base64");
-  const data =
-    compressed[0] === 31 && compressed[1] === 139
-      ? gunzipSync(compressed, { maxOutputLength: 2_000_000 })
-      : compressed;
+  let data = compressed;
+  if (compressed[0] === 31 && compressed[1] === 139) {
+    // Collection runs only in Node. Native bounded decompression avoids tens of
+    // thousands of JavaScript base64/gzip loops during a full auction snapshot.
+    data = gunzipSync(compressed, { maxOutputLength: 2_000_000 });
+  }
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
   let at = 0,
     nodes = 0;
   const need = (n: number) => {
@@ -29,16 +32,16 @@ export function decodeNbt(encoded: unknown): Record<string, unknown> {
   };
   const i32 = () => {
     need(4);
-    const n = data.readInt32BE(at);
+    const n = view.getInt32(at);
     at += 4;
     return n;
   };
   const str = () => {
     need(2);
-    const n = data.readUInt16BE(at);
+    const n = view.getUint16(at);
     at += 2;
     need(n);
-    const s = data.toString("utf8", at, at + n);
+    const s = new TextDecoder().decode(data.subarray(at, at + n));
     at += n;
     return s;
   };
@@ -46,18 +49,18 @@ export function decodeNbt(encoded: unknown): Record<string, unknown> {
     if (++nodes > 100_000 || depth > 40) throw new Error("NBT limits exceeded");
     if (type === 1) {
       need(1);
-      return data.readInt8(at++);
+      return view.getInt8(at++);
     }
     if (type === 2) {
       need(2);
-      const n = data.readInt16BE(at);
+      const n = view.getInt16(at);
       at += 2;
       return n;
     }
     if (type === 3) return i32();
     if (type === 4) {
       need(8);
-      const n = data.readBigInt64BE(at);
+      const n = view.getBigInt64(at);
       at += 8;
       return n <= BigInt(Number.MAX_SAFE_INTEGER) &&
         n >= BigInt(Number.MIN_SAFE_INTEGER)
@@ -67,7 +70,7 @@ export function decodeNbt(encoded: unknown): Record<string, unknown> {
     if (type === 5 || type === 6) {
       const size = type === 5 ? 4 : 8;
       need(size);
-      const n = type === 5 ? data.readFloatBE(at) : data.readDoubleBE(at);
+      const n = type === 5 ? view.getFloat32(at) : view.getFloat64(at);
       at += size;
       if (!Number.isFinite(n)) throw new Error("Nonfinite NBT");
       return n;

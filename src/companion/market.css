@@ -1051,6 +1051,13 @@ img.item-art.pack.hero {
 }
 
 /* Buttons */
+.companion .auction-details {
+  min-height: 44px;
+  padding: 8px 10px;
+  color: var(--ink-soft);
+  font-size: 13px;
+  text-decoration: underline;
+}
 .companion .button {
   --edge: #163b78;
   position: relative;
@@ -1454,9 +1461,11 @@ img.item-art.pack.hero {
 }
 .freshness {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 7px;
 }
+.automatic-status { font-size: 11px; max-width: 100%; }
 .freshness button {
   width: 26px;
   height: 26px;
@@ -1626,6 +1635,11 @@ img.item-art.pack.hero {
   background: #fff1d6;
   border: 1px solid #ecc88a;
   border-radius: 3px;
+}
+.asking-price-card .card-subtitle {
+  display: block;
+  margin: 0 0 8px;
+  font-size: 13px;
 }
 .card-content .price-comparison {
   margin-bottom: 10px;

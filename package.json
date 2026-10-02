@@ -17,6 +17,12 @@
     "test": "vitest run",
     "collector": "node scripts/build-collector.mjs && node .local/collector-runner.mjs",
     "build:collector": "tsc --noEmit -p collector/tsconfig.json && node scripts/build-collector.mjs",
+    "build:market-functions": "tsc --noEmit -p market-functions/tsconfig.json && node scripts/build-market-functions.mjs",
+    "build:market-image": "npm run build:market-functions && node scripts/build-market-image.mjs",
+    "trial:launch": "esbuild scripts/launch-market-trial.ts --bundle --platform=node --format=esm --packages=external --outfile=.local/launch-market-trial.mjs && node .local/launch-market-trial.mjs",
+    "trial:local": "esbuild scripts/local-market-trial.ts --bundle --platform=node --format=esm --packages=external --outfile=.local/local-market-trial.mjs && node .local/local-market-trial.mjs",
+    "measure:market": "esbuild scripts/measure-market.ts --bundle --platform=node --format=esm --packages=external --outfile=.local/measure-market.mjs && node .local/measure-market.mjs",
+    "configure:market": "esbuild scripts/configure-market.ts --bundle --platform=node --format=esm --packages=external --outfile=.local/configure-market.mjs && node .local/configure-market.mjs",
     "test:companion": "playwright test --config playwright.companion.config.ts",
     "test:private-browser": "firebase emulators:exec --only auth,firestore --project demo-bazaar-watch \"playwright test --config playwright.private.config.ts\"",
     "test:rules": "firebase emulators:exec --only firestore --project demo-bazaar-watch \"vitest run --config vitest.rules.config.ts\"",
@@ -27,13 +33,17 @@
     "deploy": "npm run build && firebase deploy --only hosting,firestore",
     "build:backend": "tsc --noEmit --project apps-script/tsconfig.json && node scripts/build-apps-script.mjs",
     "test:public-browser": "playwright test --config playwright.public.config.ts",
+    "test:alerts-browser": "firebase emulators:exec --only auth --project demo-bazaar-watch \"playwright test --config playwright.alerts.config.ts\"",
     "test:ui-kits": "playwright test --config playwright.ui-kits.config.ts"
   },
   "dependencies": {
+    "@noble/hashes": "^2.4.0",
+    "fflate": "^0.8.3",
     "firebase": "^12.19.0",
     "lucide-react": "^0.577.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "redis": "^5.12.1"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.0",

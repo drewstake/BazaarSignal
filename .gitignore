@@ -1,6 +1,7 @@
 node_modules/
 dist/
 functions/lib/
+market-functions/lib/
 .env*
 !.env.example
 !functions/.env.example

@@ -4,11 +4,20 @@ import type { PriceAlertInput } from '../shared/model';
 import { confirmation, updatePriceAlertTarget } from '../shared/price-alert';
 import { ADMIN_UID, fetchJson, firestore, readDoc, loadUser, persistUser, linkWrite, loadControl, saveControl, activeUsers, needsWork, checkAdmission, jsonWrite } from './store';
 import type { UserRecord } from './store';
-import { publicCompanion } from './companion';
+import { publicCompanion, publicPlayerNames, sharedMarket } from './companion';
 declare const PropertiesService:any, ScriptApp:any, Session:any, UrlFetchApp:any,
   Utilities:any, LockService:any, ContentService:any, CacheService:any, MailApp:any;
 const PROJECT='bazaarsignal', SENDER='bazaarsignal@gmail.com';
 const props=()=>PropertiesService.getScriptProperties();
+/** Operator-only editor action, never routed from doPost. No email or user writes. */
+export function configureFreeTierMarket() {
+  settings();
+  const end='2026-11-01T07:00:00.000Z';
+  if(Date.now()>=Date.parse(end))throw new Error('This reviewed allowance period has expired.');
+  props().setProperties({MARKET_OPERATING_MODE:'free-tier',MARKET_UPDATES_PAUSED:'false',
+    MARKET_TRIAL_START:new Date().toISOString(),MARKET_TRIAL_END:end});
+  return 'Hourly cached market bridge enabled until '+end;
+}
 function settings() {
   const p = props().getProperties();
   if (!p.FIREBASE_API_KEY || !/^[a-f0-9]{64}$/.test(p.TOKEN_KEY || '') ||
@@ -46,41 +55,9 @@ function hash(value:string) { return hex(Utilities.computeDigest(Utilities.Diges
 function disableToken(id:string,uid:string,p:any) {
   return hex(Utilities.computeHmacSha256Signature(`disable:v1:${uid}:${id}`,p.TOKEN_KEY,Utilities.Charset.UTF_8));
 }
-function names() {
-  const cache=CacheService.getScriptCache();
-  const cached=cache.get('names');
-  if (cached) return JSON.parse(cached);
-  try {
-    const data=fetchJson('https://api.hypixel.net/v2/resources/skyblock/items'), map:Record<string,string>={};
-    if (data.success!==true || !Array.isArray(data.items)) return map;
-    for (const item of data.items) if (typeof item.id==='string' && typeof item.name==='string') map[item.id]=item.name.slice(0,150);
-    const raw=JSON.stringify(map);
-    if (Utilities.newBlob(raw).getBytes().length<95000) cache.put('names',raw,21600);
-    return map;
-  } catch { return {}; }
-}
 function market():Market {
-  // A shared compressed cache keeps requests within the free UrlFetch quota.
-  const cache=CacheService.getScriptCache();
-  const meta=cache.get('market-count');
-  if (meta) {
-    try {
-      const count=Number(meta); if (!Number.isInteger(count) || count<1 || count>50) throw new Error();
-      const chunks=Array.from({length:count},(_,i)=>cache.get(`market-${i}`));
-      if (chunks.some(x=>!x)) throw new Error();
-      const raw=JSON.parse(Utilities.ungzip(Utilities.newBlob(Utilities.base64Decode(chunks.join('')))).getDataAsString());
-      return parseMarket(raw,Date.now(),names());
-    } catch { /* Cache eviction/staleness is safe: fetch again. */ }
-  }
-  const raw=fetchJson('https://api.hypixel.net/v2/skyblock/bazaar');
-  const result=parseMarket(raw,Date.now(),names());
-  const encoded=Utilities.base64Encode(Utilities.gzip(Utilities.newBlob(JSON.stringify(raw))).getBytes());
-  const chunks=encoded.match(/.{1,80000}/g) || [];
-  if (chunks.length<=50) {
-    const values:Record<string,string>={'market-count':String(chunks.length)};
-    chunks.forEach((x:string,i:number)=>values[`market-${i}`]=x); cache.putAll(values,60);
-  }
-  return result;
+  const raw=sharedMarket('raw-bazaar');
+  return parseMarket(raw,Date.now(),raw.names ?? {});
 }
 function send(mail:Mail,alert:RecordAlert,state:State,p:any) {
   const w=alert.workflow;
@@ -126,8 +103,10 @@ export function doPost(e:any) {
     const request=JSON.parse(e.postData.contents),p=settings();
     const origins=[p.APP_URL,...(p.ALLOWED_ORIGINS || '').split(',').map((x:string)=>x.trim()).filter(Boolean)];
     if(request.version!==1 || !origins.includes(request.origin))throw new Error('Website origin is not configured.');
-    if(!['snapshot','book','companion','account','create','update','disable'].includes(request.action))throw new Error('Unsupported operation.');
-    if(request.action==='companion')return output({ok:true,data:locked(()=>publicCompanion())});
+    if(!['snapshot','book','companion','playerNames','account','create','update','disable'].includes(request.action))throw new Error('Unsupported operation.');
+    if(request.action==='playerNames')return output({ok:true,data:publicPlayerNames(request.ids)});
+    // Public cache reads must not contend with account writes or the email worker.
+    if(request.action==='companion')return output({ok:true,data:publicCompanion()});
     // Only public Hypixel data and aggregate monitoring are returned without login.
     if(request.action==='snapshot' || request.action==='book') {
       const snapshot=market();
@@ -157,6 +136,7 @@ export function doPost(e:any) {
       persistUser(record);
       return {workflow:alert.workflow};
     })});
+    const cachedMarket=loadUser(identity.uid).state.alerts.some(a=>a.workflow.id===request.input?.requestId)?null:market();
     return output({ok:true,data:locked(()=>{
       const record=loadUser(identity.uid),state=record.state,input=request.input as PriceAlertInput,fp=fingerprint(input);
       const existing=state.alerts.find(a=>a.workflow.id===input.requestId);
@@ -166,7 +146,8 @@ export function doPost(e:any) {
         if(record.legacy)persistUser(record);
         const control=loadControl(),now=Date.now();checkAdmission(control.state,state,now);
         const tokenHash=hash(disableToken(input.requestId,identity.uid,p));
-        createAlert(state,input,market(),identity.email,tokenHash,now);
+        if(!cachedMarket)throw new Error('Market data unavailable. Retry shortly.');
+        createAlert(state,input,cachedMarket,identity.email,tokenHash,now);
         state.monitor={...control.state.monitor};control.state.admissions++;
         // Admission, per-user ledger, capability lookup and projection commit together.
         persistUser(record,[linkWrite(tokenHash,identity.uid,input.requestId),jsonWrite('backend/worker',control.state,control.version)]);
@@ -183,6 +164,8 @@ export function scheduledPoll() {
   const started=Date.now();
   try {
     const p=settings();
+    let cachedMarket:Market|null=null;
+    try { cachedMarket=market(); } catch { /* Continue queued email delivery while prices are unavailable. */ }
     return locked(()=>{
       const legacy=loadUser(ADMIN_UID);if(legacy.legacy)persistUser(legacy);
       const control=loadControl(),c=control.state,m=c.monitor;
@@ -194,7 +177,7 @@ export function scheduledPoll() {
       saveControl(control);
       let snapshot:Market|null=null;
       if(m.nextAttempt<=Date.now()) {
-        try {snapshot=market();m.lastSuccess=Date.now();m.lastUpdated=snapshot.timestamp;m.error=null;m.failures=0;m.nextAttempt=0;}
+        try {if(!cachedMarket)throw new Error('Market cache unavailable');snapshot=cachedMarket;m.lastSuccess=Date.now();m.lastUpdated=snapshot.timestamp;m.error=null;m.failures=0;m.nextAttempt=0;}
         catch {m.failures++;m.nextAttempt=Date.now()+retryDelay(m.failures);m.error='Market check failed or prices were stale. Alerts are waiting for fresh data.';}
       }
       let records=activeUsers(c.cursor);if(!records.length && c.cursor){c.cursor='';records=activeUsers('');}

@@ -69,7 +69,7 @@ test("auction evidence, enchantment exclusion and availability checks", async ({
     page.getByRole("article", { name: "Livid Dagger opportunity" }),
   ).toBeVisible();
   await page
-    .getByRole("button", { name: "Inspect Livid Dagger", exact: true })
+    .getByRole("button", { name: "View details for Livid Dagger", exact: true })
     .click();
   const inspector =
     info.project.name === "mobile"

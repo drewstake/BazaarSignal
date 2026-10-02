@@ -17,15 +17,15 @@ export const defaultAuctionFilters: AuctionFilters = {
   budget: 10_000_000,
   minProfit: 0,
   minRoi: 0,
-  minComps: 5,
-  confidence: "medium",
+  minComps: 1,
+  confidence: "low",
   requiredEnchant: "",
   excludedEnchant: "",
   enchantLevel: 1,
   upgrade: "",
   maxAgeMinutes: 1440,
-  hideFlagged: true,
-  showInsufficient: false,
+  hideFlagged: false,
+  showInsufficient: true,
   durationHours: 24,
   sort: "profit",
   view: "cards",
@@ -249,7 +249,7 @@ export function auctionOpportunity(
   precomputed?: Valuation,
   feeContext?: FeeContext,
 ): AuctionOpportunity {
-  const valuation =
+  let valuation =
     precomputed ??
     valueVariant(
       listing.variant,
@@ -258,6 +258,32 @@ export function auctionOpportunity(
       now,
       hasGaps,
     );
+  if (
+    valuation.basis === "active-listings" &&
+    (listing.status !== "active" ||
+      listing.end <= now ||
+      now - listing.upstreamAt > 180000 ||
+      listing.upstreamAt > now + 30000)
+  ) {
+    valuation = {
+      ...valuation,
+      estimate: null,
+      median: null,
+      low: null,
+      high: null,
+      trimmedMean: null,
+      dispersion: null,
+      movement: null,
+      count: 0,
+      rawCount: 0,
+      match: "none",
+      listings: [],
+      confidence: "insufficient",
+      reasons: [
+        "Listing is stale or unavailable. Waiting for automatic updates.",
+      ],
+    };
+  }
   const feeReady =
     !feeContext ||
     (feeContext.multiplier !== null && now - feeContext.checkedAt < 600000);

@@ -1,0 +1,4 @@
+{
+  "indexes": [],
+  "fieldOverrides": [{"collectionGroup":"marketCache","fieldPath":"value","indexes":[]}]
+}

@@ -1,10 +1,9 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { liveMarketPlugin } from "./server/live-market";
 import { fileURLToPath } from "node:url";
 import { companionPlugin } from './server/companion';
 export default defineConfig({
-  plugins: [react(), liveMarketPlugin(), companionPlugin()],
+  plugins: [react(), companionPlugin()],
   server: { port: 5173 },
   build: {
     sourcemap: false,

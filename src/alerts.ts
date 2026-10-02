@@ -2,6 +2,7 @@ import type { AppData, Book, PriceAlertInput, Workflow } from "../shared/model";
 import { confirmation, newPriceAlert } from "../shared/price-alert";
 import { auth, isDemo } from "./data";
 import { requestBackend } from './backend';
+import { marketRequest } from './companion/api';
 
 const linksKey = () => `bazaarsignal-${isDemo ? "demo" : "local"}-links`;
 export function createLocalAlert(data: AppData, input: PriceAlertInput) {
@@ -72,6 +73,6 @@ export async function updateCloudAlert(workflow: Workflow, target: number) {
 export async function disableCloudAlert(token: string) {
   await requestBackend({action:'disable',token,confirm:true});
 }
-export async function fetchItemBook(itemId: string) {
-  return requestBackend<{book:Book;timestamp:number}>({action:'book',itemId});
+export async function fetchItemBook(itemId: string, signal?: AbortSignal) {
+  return marketRequest<{book:Book;timestamp:number}>(`book?itemId=${encodeURIComponent(itemId)}`,signal);
 }

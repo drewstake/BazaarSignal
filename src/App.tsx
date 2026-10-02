@@ -1,4 +1,4 @@
-import { useEffect, useState, type Dispatch, type SetStateAction, type FormEvent } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import type { User } from "firebase/auth";
 import {
   ArrowLeft,
@@ -11,10 +11,8 @@ import {
   Search,
 } from "lucide-react";
 import type {
-  AlertEvent,
   AppData,
   Book,
-  PriceAlertInput,
   ProductPrice,
 } from "../shared/model";
 import { estimate, isFresh } from "../shared/market";
@@ -34,21 +32,20 @@ import {
   watchAuth,
 } from "./data";
 import {
-  evaluateLocal,
   mergeLive,
   readLive,
   saveLive,
   subscribeLive,
 } from "./live";
 import {
-  createCloudAlert,
-  createLocalAlert,
   disableCloudAlert,
   disableLocalAlert,
   fetchItemBook,
 } from "./alerts";
 import OrderBook from "./OrderBookView";
 import MyAlerts from "./MyAlerts";
+import AlertForm from "./AlertForm";
+import PriceAlerts from "./PriceAlerts";
 import { signInErrorMessage } from "./sign-in-error";
 
 const coins = (v: number | null | undefined) =>
@@ -113,7 +110,7 @@ export default function App() {
     return subscribe(
       user?.uid ?? null,
       (patch) => { setData((d) => ({ ...d, ...patch })); if (patch.prices) setError(""); },
-      (message, market) => { setError(message); if (market) setData((d) => ({ ...d, prices: [], books: {}, status: { ...d.status, error: message } })); },
+      (message, market) => { setError(message); if (market) setData((d) => ({ ...d, status: { ...d.status, error: message } })); },
     );
   }, [user]);
   useEffect(() => {
@@ -148,6 +145,9 @@ export default function App() {
     token = hash.has("disable") ? (hash.get("disable") ?? "") : null;
   const item = data.prices.find((p) => p.id === itemId);
   const canBrowse = isLocal || backendReady;
+  if (token === null && (hash.has("alerts") || (itemId && hash.has("alert")))) {
+    return <PriceAlerts key={user?.uid ?? "anonymous"} data={data} update={setData} user={user} signIn={signIn} signingIn={signingIn || authLoading} authError={authError} error={configError || error || data.status.error || ""} itemId={itemId} />;
+  }
   return (
     <div className="minimal-app">
       <header className="site-header">
@@ -249,8 +249,6 @@ export default function App() {
             </p>
           )}
         </main>
-      ) : hash.has('alerts') ? (
-        <main className="item-page"><button className="text-button" onClick={home}>← Back to market</button>{user || isLocal ? <MyAlerts data={data} update={setData} uid={user?.uid} create={home}/> : <section className="center-page"><h1>Sign in for email alerts.</h1><p>Your saved alerts are private.</p><button className="primary" onClick={signIn} disabled={signingIn}>Continue with Google</button>{authError&&<p role="alert" className="error">{authError}</p>}</section>}</main>
       ) : itemId ? (
         item ? (
           <ItemPage
@@ -433,16 +431,8 @@ function ItemPage({
   home: () => void;
 }) {
   const [tab, setTab] = useState<"details" | "book" | "alert" | "my-alerts">(route().has('alert') ? 'alert' : 'details');
-  const [quantity, setQuantity] = useState("1"),
-    [side, setSide] = useState<"buy" | "sell">("buy");
-  const [target, setTarget] = useState(String(item.buy ?? "")),
-    [tax, setTax] = useState("1.25");
-  const [requestId, setRequestId] = useState(() => crypto.randomUUID());
-  const [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
-  const [receipt, setReceipt] = useState<AlertEvent | null>(null),
-    [success, setSuccess] = useState("");
-  const [showEmail, setShowEmail] = useState(false);
+  const [quantity, setQuantity] = useState("1"), [side, setSide] = useState<"buy" | "sell">("buy");
+  const [tax, setTax] = useState("1.25");
   const [cloudBook, setCloudBook] = useState<{
     book: Book;
     timestamp: number;
@@ -490,45 +480,6 @@ function ItemPage({
   const buy = estimate(book, qty, "buy", taxRate),
     sell = estimate(book, qty, "sell", taxRate),
     quote = side === "buy" ? buy : sell;
-  const resetRequest = () => {
-    setRequestId(crypto.randomUUID());
-    setError("");
-  };
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    setError("");
-    const input: PriceAlertInput = {
-      requestId,
-      itemId: item.id,
-      quantity: qty,
-      side,
-      target: Number(target),
-      taxRate,
-    };
-    try {
-      if (isLocal) {
-        const result = createLocalAlert(data, input);
-        update(evaluateLocal(result.data));
-        setReceipt(result.event);
-        setSuccess("Preview alert created.");
-      } else {
-        const result = await createCloudAlert(input);
-        setSuccess(
-          result.emailStatus === "sent"
-            ? "Confirmation email sent."
-            : "Alert created. Your confirmation email is queued.",
-        );
-      }
-    } catch (e) {
-      setError(errorMessage(e));
-    } finally {
-      setBusy(false);
-    }
-  };
-  const disableUrl = receipt?.message
-    .split("\n")
-    .find((line) => line.includes("#disable="));
   return (
     <main className="item-page">
       <div className="item-heading">
@@ -561,12 +512,6 @@ function ItemPage({
             key={value}
             aria-current={tab === value ? "page" : undefined}
             onClick={() => {
-              if (value === "alert" && success) {
-                setSuccess("");
-                setReceipt(null);
-                setShowEmail(false);
-                resetRequest();
-              }
               setTab(value);
             }}
           >
@@ -611,7 +556,6 @@ function ItemPage({
                 value={quantity}
                 onChange={(e) => {
                   setQuantity(e.target.value);
-                  resetRequest();
                 }}
               />
             </label>
@@ -656,170 +600,9 @@ function ItemPage({
           </div>
         </section>
       ) : tab === "my-alerts" && (isLocal || user) ? (
-        <MyAlerts key={user?.uid ?? "local"} data={data} update={update} uid={user?.uid} create={() => { setSuccess(""); setRequestId(crypto.randomUUID()); setTab("alert"); }} />
-      ) : success && tab === "alert" ? (
-        <section className="success-view">
-          <span className="success-icon">
-            <Check size={26} />
-          </span>
-          <h2>{success}</h2>
-          <p>
-            {isLocal
-              ? "No email was sent. Preview the confirmation below."
-              : `We’ll email ${user?.email ?? "your Google account"} when your target is reached. Use the link in your confirmation email to disable this alert.`}
-          </p>
-          {isLocal && (
-            <button
-              className="secondary"
-              onClick={() => setShowEmail((v) => !v)}
-            >
-              {showEmail ? "Hide email preview" : "Preview confirmation email"}
-            </button>
-          )}
-          {showEmail && receipt && (
-            <div className="email-preview">
-              <span className="eyebrow">EMAIL PREVIEW · NOT SENT</span>
-              <h3>{receipt.message.split("\n")[0]}</h3>
-              <p>
-                {receipt.message
-                  .split("\n")
-                  .find((line) => line.startsWith("Notify me"))}
-              </p>
-              <p>We’ll email you once when this target is reached.</p>
-              <a className="disable-link" href={disableUrl}>
-                Disable this alert <ArrowRight size={14} />
-              </a>
-            </div>
-          )}
-          <button className="primary" onClick={() => setTab("my-alerts")}>
-            View my alerts
-          </button>
-          <button className="text-button" onClick={home}>
-            Back to search <ArrowRight size={15} />
-          </button>
-        </section>
-      ) : !isLocal && !user ? (
-        <section className="alert-form">
-          <div className="form-intro">
-            <h2>Sign in for email alerts.</h2>
-            <p>Use your Google account. Your alerts stay private and emails go to your verified address.</p>
-          </div>
-          <button className="primary google-button" onClick={signIn} disabled={signingIn}>
-            {signingIn ? 'Connecting…' : 'Continue with Google'}
-          </button>
-          <p className="delivery-note">Browsing prices is free and needs no sign-in.</p>
-          {authError && <p className="error" role="alert">{authError}</p>}
-        </section>
+        <MyAlerts key={user?.uid ?? "local"} data={data} update={update} uid={user?.uid} create={() => setTab("alert")} />
       ) : (
-        <form className="alert-form" onSubmit={submit}>
-          <div className="form-intro">
-            <h2>Set your price.</h2>
-            <p>One email when your target is reached.</p>
-          </div>
-          <div
-            className="direction-switch"
-            role="group"
-            aria-label="Alert direction"
-          >
-            <button
-              type="button"
-              aria-pressed={side === "buy"}
-              onClick={() => {
-                setSide("buy");
-                setTarget(String(buy?.unit ?? item.buy ?? ""));
-                resetRequest();
-              }}
-            >
-              Buy below
-            </button>
-            <button
-              type="button"
-              aria-pressed={side === "sell"}
-              onClick={() => {
-                setSide("sell");
-                setTarget(String(sell?.unit ?? ""));
-                resetRequest();
-              }}
-            >
-              Sell above
-            </button>
-          </div>
-          <div className="form-fields">
-            <label>
-              Target price{" "}
-              <span>coins / item{side === "sell" ? ", after tax" : ""}</span>
-              <input
-                aria-label="Target price"
-                type="number"
-                required
-                min="0.000001"
-                step="any"
-                value={target}
-                onChange={(e) => {
-                  setTarget(e.target.value);
-                  resetRequest();
-                }}
-              />
-            </label>
-            <label>
-              Quantity
-              <input
-                aria-label="Quantity"
-                type="number"
-                required
-                min="1"
-                step="1"
-                value={quantity}
-                onChange={(e) => {
-                  setQuantity(e.target.value);
-                  resetRequest();
-                }}
-              />
-            </label>
-          </div>
-          {side === "sell" && (
-            <label className="tax-field">
-              Sale tax (%)
-              <input
-                type="number"
-                required
-                min="0"
-                max="99.99"
-                step="0.01"
-                value={tax}
-                onChange={(e) => {
-                  setTax(e.target.value);
-                  resetRequest();
-                }}
-              />
-            </label>
-          )}
-          <p className="quote-note">
-            {stale
-              ? "Waiting for fresh market data. Alerts only trigger on fresh prices."
-              : quote
-                ? `Current estimate: ${coins(quote.unit)} coins / item for ${coins(qty)} items.`
-                : "Insufficient visible liquidity. The alert waits until your full quantity is available."}
-          </p>
-          <button className="primary" type="submit" disabled={busy}>
-            {busy ? "Creating…" : "Create alert"}
-            <ArrowRight size={16} />
-          </button>
-          <p className="delivery-note">
-            {isLocal
-              ? "Preview only. No email will be sent."
-              : `Confirmation goes to ${user?.email}.`}
-            <br />
-            Disable your alert using the link in that email.
-            {!isLocal && <><br />Checks about every five minutes can miss brief price movements.
-              <br />20 active alerts per account · Free service shares 40 new alerts per day. Delivery may queue.</>}
-          </p>
-          {error && (
-            <p className="error" role="alert">
-              {error}
-            </p>
-          )}
-        </form>
+        <AlertForm key={user?.uid ?? "local"} item={item} initialQuantity={quantity} data={data} user={user} signIn={signIn} signingIn={signingIn} authError={authError} update={update} onViewAlerts={() => setTab("my-alerts")} />
       )}
     </main>
   );

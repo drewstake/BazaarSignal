@@ -1,0 +1,4 @@
+{
+  "extends": "../collector/tsconfig.json",
+  "include": ["src/**/*.ts", "../collector/**/*.ts", "../shared/**/*.ts"]
+}

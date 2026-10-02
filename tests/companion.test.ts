@@ -25,7 +25,7 @@ import {
   consistentSnapshot,
   MarketCollector,
   recordCoverage,
-} from "../collector/engine";
+} from "../collector/legacy-history-engine";
 import type { HistoryStore } from "../collector/store";
 import type { ItemVariant, Listing, Sale } from "../shared/companion/types";
 import { feeContextFromElection } from "../collector/fee-context";
@@ -285,6 +285,12 @@ describe("NBT and deterministic configuration fingerprints", () => {
       decodeNbt(Buffer.from([10, 0, 0, 3]).toString("base64")),
     ).toThrow();
   });
+  it("bounds native decompression and rejects damaged gzip data", () => {
+    expect(() => decodeNbt(gzipSync(Buffer.alloc(2_000_001)).toString("base64"))).toThrow();
+    const damaged = Buffer.from(bytesFixture(), "base64");
+    damaged[damaged.length - 8] ^= 1;
+    expect(() => decodeNbt(damaged.toString("base64"))).toThrow();
+  });
   it("ignores individual identities but distinguishes every enchant and upgrade", () => {
     const a = variant({ uuid: "one", timestamp: 123 }),
       b = variant({ uuid: "two", timestamp: 456 });
@@ -346,6 +352,9 @@ describe("NBT and deterministic configuration fingerprints", () => {
     expect(normalizeSale(raw, now, catalog)?.price).toBe(100);
     expect(normalizeSale({ ...raw, buyer: "" }, now, catalog)).toBeNull();
     expect(normalizeSale({ ...raw, bin: false }, now, catalog)).toBeNull();
+    const active = { uuid: "a".repeat(32), auctioneer: "B".repeat(32), bin: true, starting_bid: 100, start: now - 1000, end: now + 60000, item_bytes: bytesFixture() };
+    expect(normalizeListing(active, now, now, catalog)?.seller).toBe("b".repeat(32));
+    expect(normalizeListing({ ...active, auctioneer: "invalid" }, now, now, catalog)?.seller).toBeUndefined();
     expect(
       normalizeListing({ uuid: "a".repeat(32), bin: false }, now, now, catalog),
     ).toBeNull();

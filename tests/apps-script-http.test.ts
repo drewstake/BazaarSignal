@@ -2,6 +2,7 @@ import { describe,it,expect,vi,beforeEach } from 'vitest';
 import { createHash,createHmac } from 'node:crypto';
 import { doGet,doPost,scheduledPoll } from '../apps-script/backend';
 import { emptyState,createAlert,parseMarket } from '../apps-script/core';
+import { normalizeBazaar } from '../shared/companion/bazaar';
 import { ADMIN_UID,DOCUMENT,checkAdmission,loadControl } from '../apps-script/store';
 const origin='https://bazaarsignal.web.app',email='drew@theinnovativeowl.com';
 let docs:Map<string,any>,locked=false,writes=0,sends=0,authCalls=0,claims:any,remaining=100,failCommit=false;
@@ -18,7 +19,9 @@ function asUser(uid:string,mail:string){claims={...claims,sub:uid,email:mail};}
 beforeEach(()=>{
   docs=new Map();locked=false;writes=0;sends=0;authCalls=0;remaining=100;failCommit=false;deliveries=[];
   const now=Date.now();claims={sub:ADMIN_UID,email,email_verified:true,aud:'bazaarsignal',iss:'https://securetoken.google.com/bazaarsignal',exp:now/1000+3600,iat:now/1000,auth_time:now/1000,firebase:{sign_in_provider:'google.com'}};
-  properties={FIREBASE_API_KEY:'public-key',TOKEN_KEY:'a'.repeat(64),APP_URL:origin};
+  properties={FIREBASE_API_KEY:'public-key',TOKEN_KEY:'a'.repeat(64),APP_URL:origin,MARKET_API_URL:'https://market.example.com',MARKET_UPDATES_PAUSED:'false'};
+  properties.MARKET_TRIAL_START=new Date(now-1000).toISOString();
+  properties.MARKET_TRIAL_END=new Date(now+14*60_000).toISOString();
   vi.stubGlobal('PropertiesService',{getScriptProperties:()=>({getProperties:()=>properties,getProperty:(k:string)=>properties[k],setProperty:(k:string,v:string)=>properties[k]=v,deleteProperty:(k:string)=>delete properties[k]})});
   vi.stubGlobal('Session',{getEffectiveUser:()=>({getEmail:()=> 'bazaarsignal@gmail.com'})});
   vi.stubGlobal('ScriptApp',{getOAuthToken:()=> 'server-only-access-token',getProjectTriggers:()=>[{getHandlerFunction:()=> 'scheduledPoll'}]});
@@ -40,13 +43,51 @@ beforeEach(()=>{
       const query=JSON.parse(options.payload).structuredQuery,cursor=query.startAt?.values[0].referenceValue || '';
       body=[...docs.values()].filter(d=>d.name.startsWith(`${DOCUMENT}/backendUsers/`) && d.fields.active?.booleanValue && d.name>cursor).sort((a,b)=>a.name.localeCompare(b.name)).slice(0,query.limit).map(document=>({document}));
     } else if(url.includes('/documents/')) {body=docs.get(url.split('/documents/')[1]);if(!body){code=404;body={};}}
-    else if(url.includes('/resources/'))body={success:true,items:[]};
-    else if(url.endsWith('/bazaar'))body=raw();
+    else if(url.endsWith('/raw-bazaar'))body={...raw(),names:{}};
+    else if(url.endsWith('/bazaar'))body={items:[{...normalizeBazaar('SUMMONING_EYE',raw().products.SUMMONING_EYE,Date.now(),Date.now()),feeContext:{mayor:'Unknown',multiplier:null,checkedAt:Date.now(),explanation:'Unknown'}}],error:null};
     else throw new Error('Unexpected URL');
     return {getResponseCode:()=>code,getContentText:()=>JSON.stringify(body)};
   }});
 });
 describe('Public Apps Script access and isolation',()=>{
+  it('an expired or missing trial deadline blocks market calls even when the pause flag is false',()=>{
+    const fetcher=vi.spyOn((globalThis as any).UrlFetchApp,'fetch');
+    properties.MARKET_TRIAL_END=new Date(Date.now()-1).toISOString();
+    expect(doPost(req({action:'companion'})).error).toContain('paused');
+    delete properties.MARKET_TRIAL_END;
+    expect(doPost(req({action:'companion'})).error).toContain('paused');
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+  it('paused or missing market permission stops cache calls while preserving account, target editing and queued mail',()=>{
+    expect(doPost(req({action:'create',input,idToken:token()})).ok).toBe(true);
+    delete properties.MARKET_UPDATES_PAUSED;
+    const spy=vi.spyOn((globalThis as any).UrlFetchApp,'fetch');spy.mockClear();
+    expect(doPost(req({action:'companion'})).error).toContain('paused');
+    expect(doPost(req({action:'account',idToken:token()})).data.workflows).toHaveLength(1);
+    expect(doPost(req({action:'update',id:input.requestId,target:90,revision:0,idToken:token()})).ok).toBe(true);
+    scheduledPoll();
+    expect(sends).toBe(1);
+    expect(spy.mock.calls.some(([url])=>String(url).includes('market.example.com'))).toBe(false);
+    expect(stored(`backendUsers/${ADMIN_UID}`).alerts[0].workflow.buyTarget).toBe(90);
+    expect(stored(`backendUsers/${ADMIN_UID}`).alerts[0].workflow.stage).not.toBe('completed');
+  });
+  it('delegates bounded seller lookup to the shared provider cache without accessing Hypixel',()=>{
+    const fetcher=vi.fn((url:string)=>{
+      expect(url).toContain('https://market.example.com/api/companion/player-names?ids=');
+      return {getResponseCode:()=>200,getContentText:()=>JSON.stringify({names:{['a'.repeat(32)]:'Sky_Player'}})};
+    });
+    vi.stubGlobal('UrlFetchApp',{fetch:fetcher});
+    expect(doPost(req({action:'playerNames',ids:['a'.repeat(32)]})).data.names).toEqual({['a'.repeat(32)]:'Sky_Player'});
+    expect(doPost(req({action:'playerNames',ids:['https://example.com']})).ok).toBe(false);
+    expect(doPost(req({action:'playerNames',ids:Array(7).fill('a'.repeat(32))})).ok).toBe(false);
+    expect(fetcher).toHaveBeenCalledTimes(1);expect(sends).toBe(0);expect(writes).toBe(0);
+  });
+  it('serves public market data while the alert worker owns its mutation lock',()=>{
+    locked=true;
+    const result=doPost(req({action:'companion'}));
+    expect(result.ok).toBe(true);expect(result.data.items).toHaveLength(1);
+    expect(locked).toBe(true);expect(writes).toBe(0);expect(sends).toBe(0);
+  });
   it('serves the new public companion without leaking accounts and withholds unverified tax assumptions',()=>{
     const result=doPost(req({action:'companion',uid:ADMIN_UID,email}));
     expect(result.ok).toBe(true);expect(result.data.items[0].asks[0].pricePerUnit).toBe(100);

@@ -1,86 +1,52 @@
-import { normalizeBazaar } from "../shared/companion/bazaar";
-import type { BazaarItem } from "../shared/companion/types";
-import { feeContextFromElection } from "../collector/fee-context";
 import { fetchJson } from "./store";
-import { isFresh } from "../shared/market";
-declare const CacheService: any, Utilities: any;
-function cachedJson(key: string, url: string, ttl: number) {
-  const cache = CacheService.getScriptCache(),
-    count = Number(cache.get(`${key}-count`) ?? 0);
-  if (Number.isInteger(count) && count > 0 && count < 50) {
-    try {
-      const chunks = Array.from({ length: count }, (_, i) =>
-        cache.get(`${key}-${i}`),
-      );
-      if (chunks.every(Boolean))
-        return JSON.parse(
-          Utilities.ungzip(
-            Utilities.newBlob(Utilities.base64Decode(chunks.join(""))),
-          ).getDataAsString(),
-        );
-    } catch {
-      /* Fetch a new coherent payload after eviction. */
-    }
-  }
-  const data = fetchJson(url);
-  if (data.success !== true) throw new Error("Hypixel data unavailable.");
-  const encoded = Utilities.base64Encode(
-    Utilities.gzip(Utilities.newBlob(JSON.stringify(data))).getBytes(),
-  );
-  const chunks = encoded.match(/.{1,80000}/g) || [];
-  if (chunks.length < 50) {
-    const values: Record<string, string> = {
-      [`${key}-count`]: String(chunks.length),
-    };
-    chunks.forEach((x: string, i: number) => (values[`${key}-${i}`] = x));
-    cache.putAll(values, ttl);
-  }
-  return data;
+declare const PropertiesService: any, CacheService: any, LockService: any;
+
+/** Cache-only bridge. No public request, alert mutation or email job fetches Hypixel. */
+export function sharedMarket(path: string) {
+  // Fail closed by default. The preserved email worker can still deliver queued
+  // mail and edit existing targets without issuing a billable market request.
+  const properties = PropertiesService.getScriptProperties();
+  const start = Date.parse(properties.getProperty("MARKET_TRIAL_START") ?? "");
+  const end = Date.parse(properties.getProperty("MARKET_TRIAL_END") ?? "");
+  const live = properties.getProperty("MARKET_OPERATING_MODE") === "free-tier";
+  if (properties.getProperty("MARKET_UPDATES_PAUSED") !== "false" ||
+      !Number.isFinite(start) || !Number.isFinite(end) || end <= start || end - start > (live ? 32 * 86400_000 : 15 * 60_000) ||
+      Date.now() < start || Date.now() >= end)
+    throw new Error("Market data: Updates paused to protect the free allowance.");
+  // The production origin is public configuration, not a credential. A Script
+  // Property can override it for a different deployment without changing auth.
+  const base = (properties.getProperty("MARKET_API_URL") ?? "https://marketapi-k5a64sgi2q-uc.a.run.app").replace(/\/$/, "");
+  if (!/^https:\/\/[A-Za-z0-9.-]+(?::\d+)?$/.test(base))
+    throw new Error("Market data service is not configured. Set MARKET_API_URL to the shared collector HTTPS origin.");
+  if (!live || path !== 'raw-bazaar') return fetchJson(`${base}/api/companion/${path}`);
+  // The existing five-minute email worker shares ONE hourly cloud download.
+  // Only public market data enters this cache; freshness checks remain in core.
+  const cache=CacheService.getScriptCache(),slot=Math.floor(Date.now()/3600_000);
+  const prefix=`market:${properties.getProperty('MARKET_TRIAL_START')}:${slot}:`;
+  const read=()=>{
+    const count=Number(cache.get(prefix+'count'));if(!Number.isInteger(count)||count<1||count>450)return null;
+    const keys=Array.from({length:count},(_,i)=>prefix+i),parts=cache.getAll(keys);
+    return keys.every(k=>typeof parts[k]==='string')?JSON.parse(keys.map(k=>parts[k]).join('')):null;
+  };
+  const hit=read();if(hit)return hit;
+  const lock=LockService.getScriptLock(),alreadyLocked=lock.hasLock();
+  if(!alreadyLocked&&!lock.tryLock(5000))throw new Error('Market data: cached hourly update is busy.');
+  try {
+    const second=read();if(second)return second;
+    // Cache eviction must not silently multiply paid cloud calls within a slot.
+    const marker=properties.getProperty('MARKET_LAST_CLOUD_SLOT');
+    if(marker===String(slot))throw new Error('Market data: hourly snapshot is unavailable until the next collection.');
+    properties.setProperty('MARKET_LAST_CLOUD_SLOT',String(slot));
+    const result=fetchJson(`${base}/api/companion/${path}`),text=JSON.stringify(result);
+    if(text.length>9_000_000)throw new Error('Market data: response exceeded cache limit.');
+    const parts:Record<string,string>={};let count=0;
+    for(let i=0;i<text.length;i+=20000)parts[prefix+count++]=text.slice(i,i+20000);
+    cache.putAll(parts,3600);cache.put(prefix+'count',String(count),3600);return result;
+  } finally {if(!alreadyLocked)lock.releaseLock();}
 }
-// The existing Spark-compatible Apps Script deployment can serve Bazaar without
-// a Node host. Auctions still require the 30-second shared collector.
-export function publicCompanion() {
-  const raw = cachedJson(
-      "market",
-      "https://api.hypixel.net/v2/skyblock/bazaar",
-      60,
-    ),
-    now = Date.now();
-  if (!isFresh(raw.lastUpdated, now) || !raw.products)
-    throw new Error("Bazaar data is stale or malformed.");
-  let catalog: Record<string, any> = {};
-  try {
-    const resource = cachedJson(
-      "companion-catalog",
-      "https://api.hypixel.net/v2/resources/skyblock/items",
-      21600,
-    );
-    catalog = Object.fromEntries(resource.items.map((x: any) => [x.id, x]));
-  } catch {
-    /* UNKNOWN rarity is explicit; prices remain usable. */
-  }
-  let election: any = {};
-  try {
-    election = cachedJson(
-      "companion-election",
-      "https://api.hypixel.net/v2/resources/skyblock/election",
-      300,
-    );
-  } catch {
-    /* Unknown fees withhold recommendations. */
-  }
-  const feeContext = feeContextFromElection(election, now),
-    items: BazaarItem[] = [];
-  for (const [id, product] of Object.entries(raw.products)) {
-    try {
-      items.push({
-        ...normalizeBazaar(id, product, raw.lastUpdated, now, catalog[id]),
-        feeContext,
-      });
-    } catch {
-      /* Reject malformed books. */
-    }
-  }
-  if (!items.length) throw new Error("No valid Bazaar products.");
-  return { items, error: null };
+export function publicCompanion() { return sharedMarket("bazaar"); }
+export function publicPlayerNames(ids: unknown) {
+  if (!Array.isArray(ids) || ids.length > 6 || !ids.every(id => typeof id === "string" && /^[a-f0-9]{32}$/i.test(id))) throw new Error("Invalid player IDs.");
+  if (!ids.length) return { names: {} };
+  return sharedMarket(`player-names?ids=${encodeURIComponent([...new Set(ids)].join(","))}`);
 }

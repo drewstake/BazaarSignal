@@ -1,0 +1,10 @@
+{
+  "functions": [{
+    "source": "market-functions",
+    "codebase": "market-cache",
+    "runtime": "nodejs24",
+    "ignore": ["node_modules", ".git", "*-debug.log", "src", "tsconfig.json"],
+    "predeploy": ["node scripts/guard-market-deploy.cjs", "npm run build:market-functions"]
+  }],
+  "firestore": { "rules": "market-functions/firestore.rules", "indexes": "market-functions/firestore.indexes.json" }
+}
