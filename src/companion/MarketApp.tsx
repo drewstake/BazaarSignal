@@ -566,7 +566,13 @@ export default function MarketApp() {
             <SkyIcon name="emerald" size={72} className="brand-gem" />
             <span className="brand-word">BazaarSignal</span>
           </button>
+          <p className="tagline-sign">
+            Good loot. <span>Better deals.</span>
+          </p>
           <div className="header-signs">
+            <span className="server-tag">
+              HYPIXEL<br /><b>SKYBLOCK</b>
+            </span>
             {user ? (
               <button
                 className="account-button"
@@ -585,6 +591,7 @@ export default function MarketApp() {
                 {authBusy ? "Connecting…" : "Sign in with Google"}
               </button>
             )}
+            <span className="lantern" aria-hidden="true" />
           </div>
           <nav className="market-tabs" aria-label="Main navigation">
             {(

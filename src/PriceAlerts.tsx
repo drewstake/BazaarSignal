@@ -97,7 +97,13 @@ export default function PriceAlerts({
             <SkyIcon name="emerald" size={72} className="brand-gem" />
             <span className="brand-word">BazaarSignal</span>
           </a>
+          <p className="tagline-sign">
+            Good loot. <span>Better deals.</span>
+          </p>
           <div className="header-signs">
+            <span className="server-tag">
+              HYPIXEL<br /><b>SKYBLOCK</b>
+            </span>
             {user ? (
               <button
                 className="account-button"
@@ -118,6 +124,7 @@ export default function PriceAlerts({
                 </button>
               )
             )}
+            <span className="lantern" aria-hidden="true" />
           </div>
           <nav className="market-tabs" aria-label="Main navigation">
             {(
@@ -144,6 +151,7 @@ export default function PriceAlerts({
         <div className="market-frame alerts-frame">
           <div className="alerts-board parchment" ref={board} tabIndex={-1}>
             <div className="alerts-title">
+              <SkyIcon name="alert-bell" size={96} />
               <div>
                 <h1>Price Alerts</h1>
                 <p>Email alerts for your buy or sell target.</p>
@@ -264,6 +272,11 @@ export default function PriceAlerts({
                     : "Choose an item to set its target price."}
               </p>
             )}
+            <div className="alert-desk" aria-hidden="true">
+              <SkyIcon name="watchlist-chest" size={116} />
+              <SkyIcon name="gold-coin" size={36} />
+              <span className="desk-paper" />
+            </div>
           </aside>
         </div>
         <footer className="alerts-footer">

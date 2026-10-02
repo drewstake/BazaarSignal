@@ -1,5 +1,13 @@
 # BazaarSignal usability review — October 2, 2026
 
+## Visual-theme follow-up
+
+The user preferred the original Minecraft-inspired design. The initial simplification flattened that identity too far. The subsequent release restores the sky islands, hanging wooden brand and slogan, illustrated tabs, vines, lantern, parchment, item glow and rarity ribbons, and alert bell/desk artwork. The search fix, explicit pricing and quantity labels, shorter alert copy, expandable details and two-column results layout remain. Owner navigation receives enough room for all five tabs.
+
+This presentation-only follow-up passed the production build, two production-build desktop/mobile scenarios using the real cached Summoning Eye response, and all 14 authenticated alert browser scenarios. The final live bundle `app-CrzejrCW.js` was verified at 1440 × 1000 and 390 × 844. The existing alert remains at 1,350,000 coins for one item. No real alerts, targets, settings, emails or backend controls were changed. The release was deployed through the existing Firebase Hosting preview channel. Restored screenshots are `.local/usability-review/restored-bazaar-desktop.jpg`, `restored-eye-desktop.jpg`, `restored-eye-mobile.jpg` and `restored-alerts-mobile.jpg`.
+
+The review and initial implementation record below are preserved as the history of the first pass; the visual changes described above supersede its flatter styling.
+
 Reviewed the actual https://bazaarsignal.web.app in the existing signed-in Chrome session at 1440 × 1000 and 390 × 844. Navigated Bazaar, Auctions, Watchlist and Price Alerts; searched Summoning Eye; changed temporary quantity; opened its mobile details; inspected the existing active alert and its edit form; selected an item and both directions in the creation form. No alert was submitted, target changed, saved filter changed, watchlist item added, or email sent.
 
 ## First impression
