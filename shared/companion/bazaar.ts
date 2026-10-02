@@ -1,4 +1,4 @@
-import { parseBook, isFresh } from "../market";
+import { parseBook, isFresh, isValidSample } from "../market";
 import type { Level } from "../model";
 import { bazaarTax } from "./fees";
 import type { BazaarFilters, BazaarItem, BazaarQuote, Strategy } from "./types";
@@ -105,6 +105,7 @@ export function executeDepth(levels: Level[], quantity: number) {
     const take = Math.min(remaining, level.amount);
     total += take * level.pricePerUnit;
     remaining -= take;
+    if (!Number.isFinite(total)) return null;
     if (!remaining)
       return {
         total,
@@ -114,6 +115,30 @@ export function executeDepth(levels: Level[], quantity: number) {
       };
   }
   return null; // Never extrapolate beyond visible levels.
+}
+export function validBazaarSample(item: BazaarItem, now = Date.now()) {
+  return isValidSample(item.upstreamAt, now) && isValidSample(item.observedAt, now) &&
+    isFresh(item.upstreamAt, item.observedAt);
+}
+/** Independently price each leg; never manufacture the other side of a book. */
+export function bazaarTrade(item: BazaarItem, f: BazaarFilters, now = Date.now()) {
+  const valid = validBazaarSample(item, now) && Number.isSafeInteger(f.quantity) && f.quantity > 0;
+  const passive = (levels: Level[]) => {
+    const top = executeDepth(levels.slice(0, 1), 1);
+    const total = top ? top.unit * f.quantity : NaN;
+    return Number.isFinite(total) ? { total, unit: top!.unit, slippage: 0 } : null;
+  };
+  return {
+    buy: !valid ? null : f.strategy === 'instant-offer' ? executeDepth(item.asks, f.quantity) : passive(item.bids),
+    sale: !valid ? null : f.strategy === 'order-instant' ? executeDepth(item.bids, f.quantity) : passive(item.asks),
+  };
+}
+export function sampledFeesReady(item: BazaarItem, now = Date.now()) {
+  const fee = item.feeContext;
+  // A price sample needs explicit compatible fee evidence for profit.
+  return !!fee && (isValidSample(fee.checkedAt, now) &&
+    Math.abs(item.observedAt - fee.checkedAt) < 600_000 &&
+    fee.multiplier !== null && Number.isFinite(fee.multiplier) && fee.multiplier > 0);
 }
 export function quoteBazaar(
   item: BazaarItem,
@@ -136,19 +161,10 @@ export function quoteBazaar(
   )
     return null;
   // Passive orders join the current best price. No unmodeled outbidding premium.
-  const buy =
-    f.strategy === "instant-offer"
-      ? executeDepth(item.asks, qty)
-      : { total: bid * qty, unit: bid, slippage: 0 };
-  const sale =
-    f.strategy === "order-instant"
-      ? executeDepth(item.bids, qty)
-      : { total: ask * qty, unit: ask, slippage: 0 };
+  const { buy, sale } = bazaarTrade(item, f, now);
   if (!buy || !sale) return null;
-  const feeReady =
-    !item.feeContext ||
-    (item.feeContext.multiplier !== null &&
-      now - item.feeContext.checkedAt < 600000);
+  const feeReady = sampledFeesReady(item, now);
+  if (!feeReady || f.taxPercent * (item.feeContext?.multiplier ?? 1) > 100) return null;
   const tax = bazaarTax(
       sale.total,
       f.taxPercent * (item.feeContext?.multiplier ?? 1),
@@ -156,6 +172,7 @@ export function quoteBazaar(
     netSale = sale.total - tax;
   const capital = buy.total + f.executionCost,
     profit = netSale - capital;
+  if (![capital, profit, netSale, tax].every(Number.isFinite) || capital <= 0) return null;
   const buyActivity = item.instantBuyActivity7d,
     sellActivity = item.instantSellActivity7d;
   const supported =
@@ -178,7 +195,7 @@ export function quoteBazaar(
     concerns.push(
       "Current mayor fee modifiers could not be verified; standard-tax calculation is illustrative only.",
     );
-  if (!fresh) concerns.push("Stale data: waiting for automatic updates.");
+  if (!fresh) concerns.push("Last sampled estimate · stale prices; not a current opportunity.");
   if (!supported)
     concerns.push("Insufficient activity or outstanding-order data.");
   if (minActivity < 1000)
@@ -241,6 +258,7 @@ export function filterBazaar(
   items: BazaarItem[],
   f: BazaarFilters,
   now = Date.now(),
+  includeSampled = false,
 ) {
   return items
     .flatMap((item) => {
@@ -254,7 +272,7 @@ export function filterBazaar(
       const q = quoteBazaar(item, f, now);
       if (
         !q ||
-        !q.fresh ||
+        (!q.fresh && !includeSampled) ||
         !q.supported ||
         q.capital > f.budget ||
         q.profit < f.minProfit ||

@@ -1,9 +1,10 @@
 import type { Book, Level, Workflow } from "./model.js";
 export const STALE_MS = 180_000;
+// Display validity is independent of eligibility for a fresh target evaluation.
+export const isValidSample = (stamp: number, now = Date.now()) =>
+  Number.isFinite(stamp) && stamp > 0 && stamp <= now + 30_000;
 export const isFresh = (stamp: number, now = Date.now()) =>
-  Number.isFinite(stamp) &&
-  stamp > 0 &&
-  stamp <= now + 30_000 &&
+  isValidSample(stamp, now) &&
   now - stamp <= STALE_MS;
 export function parseLevels(raw: unknown): Level[] {
   if (!Array.isArray(raw) || raw.length > 30)
@@ -52,7 +53,9 @@ export function estimate(
     return null;
   let remaining = quantity,
     gross = 0;
+  if (!Array.isArray(book[side])) return null;
   for (const level of book[side]) {
+    if (![level.amount, level.pricePerUnit, level.orders].every(n => Number.isFinite(n) && n > 0)) return null;
     const amount = Math.min(remaining, level.amount);
     gross += amount * level.pricePerUnit;
     remaining -= amount;

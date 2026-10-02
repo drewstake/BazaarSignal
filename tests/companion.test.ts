@@ -49,10 +49,10 @@ const product = {
   },
 };
 const item = () =>
-  normalizeBazaar("DIAMOND", product, now, now, {
+  ({ ...normalizeBazaar("DIAMOND", product, now, now, {
     name: "Diamond",
     tier: "COMMON",
-  });
+  }), feeContext: { mayor: "Fixture", multiplier: 1, checkedAt: now, explanation: "Test fee context" } });
 const f = {
   ...defaultBazaarFilters,
   quantity: 3,
@@ -227,7 +227,7 @@ describe("Bazaar supported metrics and execution", () => {
       previous,
     );
     expect(next.priceChangePct).toBeCloseTo(36.363636);
-    expect(quoteBazaar(next, f, now + 61000)!.concerns.join(" ")).toContain(
+    expect(quoteBazaar({...next, feeContext: item().feeContext}, f, now + 61000)!.concerns.join(" ")).toContain(
       "15%",
     );
   });

@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { createHash } from "node:crypto";
 import { MarketCollector, message } from "./engine";
-import { parseMarket } from "../apps-script/core";
+import { parseSampledMarket } from "../apps-script/core";
 
 export type MarketResponder = (req: IncomingMessage, res: ServerResponse, status: number, body?: unknown) => Promise<void>;
 export const respondMarket: MarketResponder = async (req,res,status,body) => {
@@ -66,17 +66,18 @@ export function marketHandler(collector: MarketCollector, respond: MarketRespond
         body = await collector.rawBazaar();
       else if (url.pathname === "/api/companion/book") {
         const raw = await collector.rawBazaar();
-        const snapshot = parseMarket(raw, collector.now(), raw.names);
+        const snapshot = parseSampledMarket(raw, collector.now(), raw.names);
         const id = url.searchParams.get("itemId") ?? "";
         if (!Object.hasOwn(snapshot.books, id))
           throw new Error("Item unavailable");
-        body = { book: snapshot.books[id], timestamp: snapshot.timestamp };
+        const status = await collector.status("bazaar");
+        body = { book: snapshot.books[id], timestamp: snapshot.timestamp, observedAt: status.observedAt, status };
       } else if (
         url.pathname === "/api/market" ||
         url.pathname === "/api/companion/snapshot"
       ) {
         const raw = await collector.rawBazaar(),
-          snapshot = parseMarket(raw, raw.lastUpdated, raw.names);
+          snapshot = parseSampledMarket(raw, collector.now(), raw.names);
         const status = await collector.status("bazaar");
         body = {
           prices: snapshot.prices,
@@ -85,9 +86,9 @@ export function marketHandler(collector: MarketCollector, respond: MarketRespond
             lastUpdated: snapshot.timestamp,
             lastSuccess: status.observedAt,
             lastAttempt: status.observedAt,
-            error: status.stale
-              ? "Market data is stale; waiting for automatic updates."
-              : status.error,
+            stale: status.stale,
+            nextAt: status.nextAt,
+            error: status.error,
           },
         };
       } else if (url.pathname === "/api/companion/auctions") {

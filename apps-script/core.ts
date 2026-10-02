@@ -1,4 +1,4 @@
-import { evaluate, isFresh, parseBook } from '../shared/market';
+import { evaluate, isFresh, isValidSample, parseBook } from '../shared/market';
 import { newPriceAlert, validatePriceAlert } from '../shared/price-alert';
 import type { Book, PriceAlertInput, ProductPrice, Workflow } from '../shared/model';
 
@@ -26,7 +26,12 @@ export function emptyState(ownerUid: string): State {
   }};
 }
 export function parseMarket(raw: any, now: number, names: Record<string, string> = {}): Market {
-  if (raw?.success !== true || !isFresh(raw.lastUpdated, now) || !raw.products ||
+  if (!isFresh(raw?.lastUpdated, now)) throw new Error('Market data is stale or malformed.');
+  return parseSampledMarket(raw, now, names);
+}
+/** Public browsing only. Alert workers must keep using parseMarket/evaluate. */
+export function parseSampledMarket(raw: any, now: number, names: Record<string, string> = {}): Market {
+  if (raw?.success !== true || !isValidSample(raw.lastUpdated, now) || !raw.products ||
       typeof raw.products !== 'object' || Array.isArray(raw.products)) throw new Error('Market data is stale or malformed.');
   const books: Record<string, Book> = {}, prices: ProductPrice[] = [];
   for (const [id, value] of Object.entries(raw.products)) {

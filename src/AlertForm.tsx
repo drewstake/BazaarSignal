@@ -18,6 +18,7 @@ import { createCloudAlert, createLocalAlert } from "./alerts";
 import { evaluateLocal } from "./live";
 import { useAlertBook } from "./useAlertBook";
 import { SkyIcon } from "./companion/components";
+import { SampleTime } from './SampleTime';
 const coins = (v: number | null | undefined) =>
   v == null ? "—" : v.toLocaleString("en-US", { maximumFractionDigits: 6 });
 const errorMessage = (e: unknown) =>
@@ -60,6 +61,9 @@ export default function AlertForm({
   const {
     book,
     stale,
+    timestamp,
+    observedAt,
+    collectionError,
     error: bookError,
   } = useAlertBook(item.id, data);
   const qty = Number(quantity),
@@ -292,16 +296,16 @@ export default function AlertForm({
         </div>
         {bookError && (
           <p className="error" role="alert">
-            Prices unavailable. {bookError}
+            {collectionError ? 'Collection failed.' : 'Cached price read failed.'} {bookError}
             {hourlyMarketMode ? ' Prices update at the scheduled hourly check.' : ' Prices update automatically.'}
           </p>
         )}
         <p className="quote-note">
-          {stale
-            ? "Waiting for fresh market data. Alerts only trigger on fresh prices."
-            : quote
-              ? `Current estimate: ${coins(quote.unit)} coins / item for ${coins(qty)} items.`
+          {quote
+              ? `${stale ? 'Last sampled' : 'Sampled'} ${side === 'buy' ? 'instant-buy cost' : `instant-sell proceeds after ${taxRate}% tax`}: ${coins(quote.unit)} coins / item for ${coins(qty)} items.`
               : "Insufficient visible liquidity. The alert waits until your full quantity is available."}
+          {' '}<SampleTime timestamp={timestamp} observedAt={observedAt} />
+          {stale && ' Alerts only trigger on fresh prices.'}
         </p>
         {compact && (
           <div className="email-delivery">

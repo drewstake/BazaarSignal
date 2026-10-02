@@ -3,6 +3,7 @@ import { confirmation, newPriceAlert } from "../shared/price-alert";
 import { auth, isDemo } from "./data";
 import { requestBackend } from './backend';
 import { marketRequest } from './companion/api';
+import type { CacheStatus } from './companion/api';
 
 const linksKey = () => `bazaarsignal-${isDemo ? "demo" : "local"}-links`;
 export function createLocalAlert(data: AppData, input: PriceAlertInput) {
@@ -74,5 +75,5 @@ export async function disableCloudAlert(token: string) {
   await requestBackend({action:'disable',token,confirm:true});
 }
 export async function fetchItemBook(itemId: string, signal?: AbortSignal) {
-  return marketRequest<{book:Book;timestamp:number}>(`book?itemId=${encodeURIComponent(itemId)}`,signal);
+  return marketRequest<{book:Book;timestamp:number;observedAt?:number;status?:CacheStatus}>(`book?itemId=${encodeURIComponent(itemId)}`,signal);
 }

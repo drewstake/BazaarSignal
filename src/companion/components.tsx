@@ -320,6 +320,7 @@ export function PriceComparison({
   full = false,
   variant = "detail",
   askingPrice = false,
+  sampled = false,
 }: {
   buy: number | null;
   sell: number | null;
@@ -328,6 +329,7 @@ export function PriceComparison({
   full?: boolean;
   variant?: keyof typeof comparisonLabels;
   askingPrice?: boolean;
+  sampled?: boolean;
 }) {
   const [buyLabel, sellLabel, profitLabel] = askingPrice ? ["Buy", "AH average", "After-fee gap"] : comparisonLabels[variant];
   return (
@@ -343,7 +345,7 @@ export function PriceComparison({
       <div
         className={`profit-line ${profit !== null && profit < 0 ? "negative" : ""}`}
       >
-        <span>{profitLabel}</span>
+        <span>{sampled ? 'Sampled profit' : profitLabel}</span>
         <strong>
           <Coin value={profit} full={full} positive />
           {roi !== null && (
@@ -378,6 +380,7 @@ export function ItemCard({
   actionBusy = false,
   onInspect,
   askingPrice = false,
+  sampled = false,
 }: {
   id: string;
   name: string;
@@ -399,10 +402,11 @@ export function ItemCard({
   actionBusy?: boolean;
   onInspect?: () => void;
   askingPrice?: boolean;
+  sampled?: boolean;
 }) {
   return (
     <article
-      className={`market-card ${askingPrice ? "asking-price-card" : ""} ${selected ? "selected" : ""}`}
+      className={`market-card ${askingPrice ? "asking-price-card" : "bazaar-price-card"} ${selected ? "selected" : ""}`}
       aria-label={`${name} opportunity`}
     >
       <div className="card-art" style={artGlow(id)}>
@@ -434,6 +438,7 @@ export function ItemCard({
           roi={roi}
           variant="card"
           askingPrice={askingPrice}
+          sampled={sampled}
         />
         <button
           className="button blue"

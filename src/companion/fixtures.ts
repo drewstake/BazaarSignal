@@ -96,7 +96,7 @@ const rows = [
 ] as const;
 export function bazaarFixtures() {
   return rows.map(([id, name, category, tier, bid, ask, activity]) =>
-    normalizeBazaar(
+    ({ ...normalizeBazaar(
       id,
       {
         buy_summary: [
@@ -119,7 +119,7 @@ export function bazaarFixtures() {
       Date.now() - 15000,
       Date.now(),
       { name, category, tier },
-    ),
+    ), feeContext: { mayor: "Fixture", multiplier: 1, checkedAt: Date.now(), explanation: "Explicit fixture standard-tax assumption." } }),
   );
 }
 export function auctionFixtures(f: AuctionFilters, page: number) {

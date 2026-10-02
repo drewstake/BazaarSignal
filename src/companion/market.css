@@ -2881,3 +2881,13 @@ details.inspector-section[open] > summary::after {
     animation: none !important;
   }
 }
+
+/* Sample provenance and units are required in both card and compact views. */
+.bazaar-price-card .card-subtitle {
+  display: block;
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0 0 8px;
+  overflow-wrap: anywhere;
+}
+.sample-time { overflow-wrap: anywhere; }

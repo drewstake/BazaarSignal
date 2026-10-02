@@ -5,7 +5,8 @@ import type {
   BazaarFilters,
   BazaarItem,
 } from "../../shared/companion/types";
-import { quoteBazaar, strategyLabels } from "../../shared/companion/bazaar";
+import { bazaarTrade, quoteBazaar, strategyLabels } from "../../shared/companion/bazaar";
+import { SampleTime } from '../SampleTime';
 import {
   artGlow,
   SkyIcon,
@@ -127,8 +128,7 @@ export function BazaarInspector({
   saved: boolean;
   save: () => void;
 }) {
-  const quote = quoteBazaar(item, filters),
-    q = quote?.fresh ? quote : null;
+  const q = quoteBazaar(item, filters), trade = bazaarTrade(item, filters);
   return (
     <>
       <InspectorItem
@@ -160,12 +160,20 @@ export function BazaarInspector({
           </select>
         </label>
       </div>
+      <p className="data-time"><SampleTime timestamp={item.upstreamAt} observedAt={item.observedAt} /></p>
+      <div className="inspector-block">
+        <h4>Sampled strategy prices <span>(coins / unit)</span></h4>
+        <dl className="price-table">
+          <div><dt>Your buy price</dt><dd><Coin value={trade.buy?.unit} full /></dd></div>
+          <div><dt>Your sell price, before tax</dt><dd><Coin value={trade.sale?.unit} full /></dd></div>
+        </dl>
+      </div>
       {q ? (
         <>
           <p className="wait-note">{q.waits}</p>
           <div className="inspector-block">
             <h4>
-              Unit prices <span>(live order book)</span>
+              Unit prices <span>(sampled order book)</span>
             </h4>
             <dl className="price-table">
               <div>
@@ -196,7 +204,7 @@ export function BazaarInspector({
           </div>
           <div className="inspector-block">
             <h4>
-              Buy <span className="arrow">→</span> AH Average Comparison{" "}
+              Buy <span className="arrow">→</span> Bazaar sale estimate{" "}
               <span>(×{q.quantity})</span>
             </h4>
             <PriceComparison
@@ -205,6 +213,7 @@ export function BazaarInspector({
               profit={q.profit}
               roi={q.roi}
               full
+              sampled={!q.fresh}
             />
           </div>
           {q.concerns.length > 0 && (
@@ -220,9 +229,7 @@ export function BazaarInspector({
         </>
       ) : (
         <p className="notice warning">
-          {quote && !quote.fresh
-            ? "Stale snapshot. Comparisons withheld until automatic updates recover."
-            : "Insufficient visible liquidity or invalid quantity. The full trade cannot be priced."}
+          Profit unavailable: the full quantity needs valid prices on both sides and fee evidence from the same collection period.
         </p>
       )}
       <button className="button green watch-button" onClick={save}>
@@ -256,7 +263,7 @@ export function BazaarInspector({
                 </dd>
               </div>
               <div>
-                <dt>Sale tax ({filters.taxPercent}%)</dt>
+                <dt>Sale tax ({filters.taxPercent * (item.feeContext?.multiplier ?? 1)}%)</dt>
                 <dd>−{exact(q.tax)}</dd>
               </div>
               <div>
@@ -281,7 +288,7 @@ export function BazaarInspector({
               </div>
             </dl>
             <p>
-              {item.feeContext?.explanation ??
+              {item.feeContext ? `Fee evidence sampled ${new Date(item.feeContext.checkedAt).toLocaleString()}. ${item.feeContext.explanation.replace('Current mayor', 'Sampled mayor')}` :
                 "Fixture assumption: standard taxes with your selected Bazaar Flipper tier."}{" "}
               Passive prices join the best bid/ask without outbidding.
             </p>
@@ -335,7 +342,7 @@ export function BazaarInspector({
               </div>
             </dl>
             <p>
-              Activity: reported 7-day units + live state. Exact short-window
+              Activity: reported 7-day units + sampled state. Exact short-window
               trades and fill time are unavailable. Outstanding orders are
               competition, not completed trades.
             </p>

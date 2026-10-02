@@ -13,6 +13,8 @@ import { ArrowDown, ArrowUp, Mail, Search } from "lucide-react";
 import { estimate } from "../shared/market";
 import { Coin, ItemArt, RarityRibbon, artGlow } from "./companion/components";
 import { useAlertBook } from "./useAlertBook";
+import { SampleTime } from './SampleTime';
+import { nextScheduledMarketCheck, pollingDirective } from './companion/polling';
 
 const coins = (value: number) =>
   value.toLocaleString("en-US", { maximumFractionDigits: 6 });
@@ -281,6 +283,9 @@ function SavedAlert({
   const {
     book,
     stale,
+    timestamp,
+    observedAt,
+    collectionError,
     error: priceError,
   } = useAlertBook(w.itemId, data);
   const quote =
@@ -357,14 +362,10 @@ function SavedAlert({
           {board && (
             <>
               <div className="current-quote">
-                <span>Current</span>
+                <span>{stale ? 'Last sampled' : 'Sampled estimate'} · {side === 'sell' ? 'instant sell, after tax' : 'instant buy'}</span>
                 <strong>
-                  {priceError ? (
-                    "Unavailable"
-                  ) : !book ? (
+                  {!book ? (
                     "Price unavailable"
-                  ) : stale ? (
-                    "Stale price"
                   ) : !side ? (
                     "Direction unavailable"
                   ) : !quote ? (
@@ -373,9 +374,12 @@ function SavedAlert({
                     <Coin value={quote.unit} full />
                   )}
                 </strong>
-                {priceError && !isLocal && (
-                  <span>Retrying automatically</span>
-                )}
+                {quote && <span>coins / item · full quantity estimate</span>}
+                <SampleTime timestamp={timestamp} observedAt={observedAt} />
+                {stale && <span>Target checks wait for a fresh sample.</span>}
+                {priceError && <span>{collectionError ? 'Collection failed' : 'Cached price read failed'}: {priceError}</span>}
+                {!isLocal && <span>{pollingDirective().mode === 'paused' ? 'Scheduled updates are paused.' :
+                  nextScheduledMarketCheck() !== null ? `Next scheduled cache check: ${new Date(nextScheduledMarketCheck()!).toLocaleTimeString([], {hour:'numeric', minute:'2-digit',timeZoneName:'short'})}.` : 'Cached prices update automatically while this tab is visible.'}</span>}
               </div>
               <div>
                 <span>Target</span>

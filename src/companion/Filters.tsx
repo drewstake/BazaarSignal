@@ -101,10 +101,10 @@ export function BazaarFilterBar({
               tip="Minimum units across the visible asks and bids. Passive orders still compete with other players."
             />
             <NumberField
-              label="Maximum data age (seconds)"
+              label="Fresh recommendation age (seconds)"
               value={f.maxAgeSeconds}
               onChange={(maxAgeSeconds) => set({ maxAgeSeconds })}
-              tip="Hard safety limit: data older than 180 seconds is never recommended."
+                tip="Fresh recommendations require data at most 180 seconds old. Older samples remain browsable as historical estimates."
             />
             <SelectField
               label="Liquidity"

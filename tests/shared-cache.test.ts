@@ -108,6 +108,43 @@ it("concurrent cold readers share one decoded snapshot allocation", async () => 
   expect(fetcher).toHaveBeenCalledTimes(7);
 });
 
+it('cached browsing serves aging and failed snapshots without upstream requests or invented prices', async () => {
+  const initial = Date.parse('2026-10-02T14:00:10Z');
+  let now = initial;
+  const fetcher = upstream(() => now), store = connect();
+  const collector = new MarketCollector(store, livePolicy, fetcher, () => now, () => 0, () => {}, LIVE_HOUR);
+  expect((await get(collector, '/api/companion/book?itemId=TEST')).code).toBe(503);
+  expect(fetcher).not.toHaveBeenCalled();
+  await collector.tick();
+  const collected = fetcher.mock.calls.length;
+  for (const age of [30_000, 180_001, 35*60_000]) {
+    now = initial + age;
+    const book = await get(collector, '/api/companion/book?itemId=TEST');
+    expect(book.code).toBe(200);
+    expect(book.body.timestamp).toBe(initial);
+    expect(book.body.book).toMatchObject({buy:[{pricePerUnit:100}],sell:[{pricePerUnit:90}]});
+    expect(book.body.status.stale).toBe(age > 180_000);
+    expect(book.body.status.error).toBeNull();
+    const snapshot = await get(collector, '/api/companion/snapshot');
+    expect(snapshot.body.status.error).toBeNull();
+    expect(snapshot.body.status.stale).toBe(age > 180_000);
+    expect((await get(collector, '/api/companion/book?itemId=MISSING')).code).toBe(503);
+  }
+  expect(fetcher).toHaveBeenCalledTimes(collected);
+  now = initial + 3_600_000;
+  fetcher.mockRejectedValue(new Error('Upstream offline'));
+  await collector.tick();
+  const attempts = fetcher.mock.calls.length;
+  const failed = await get(collector, '/api/companion/book?itemId=TEST');
+  expect(failed.code).toBe(200);
+  expect(failed.body.timestamp).toBe(initial);
+  expect(failed.body.status.error).toMatch(/offline/);
+  expect(failed.body.status.stale).toBe(true);
+  expect((await get(collector, '/api/companion/snapshot')).body.status.error).toMatch(/offline/);
+  expect(fetcher).toHaveBeenCalledTimes(attempts);
+  expect((await get(collector, '/api/companion/bazaar?force=1')).code).toBe(400);
+});
+
 it("100 backend instances, concurrent users, reloads, filters and tabs issue exactly one shared refresh", async () => {
   const path = database(),
     now = Date.now(),
@@ -283,8 +320,8 @@ it("Price Alerts price/book reads bypass authentication and never fetch upstream
     expect((await get(c,"/api/companion/book?itemId=TEST")).body.book.buy[0].pricePerUnit).toBe(100);
   }));
   now+=181000;
-  expect((await get(c,"/api/companion/snapshot")).body.status.error).toContain("stale");
-  expect((await get(c,"/api/companion/book?itemId=TEST")).code).toBe(503);
+  expect((await get(c,"/api/companion/snapshot")).body.status).toMatchObject({error:null,stale:true});
+  expect((await get(c,"/api/companion/book?itemId=TEST")).code).toBe(200);
   expect(fetcher).toHaveBeenCalledTimes(count);
 });
 it("counts discovery, stops unaffordable pagination, preserves reserve, survives restart and recovers", async () => {

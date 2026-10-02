@@ -23,6 +23,8 @@ import type {
 import {
   defaultBazaarFilters,
   filterBazaar,
+  quoteBazaar,
+  bazaarTrade,
 } from "../../shared/companion/bazaar";
 import {
   auctionOpportunity,
@@ -70,6 +72,8 @@ import { visiblePoll, pollingDirective, PAUSED_MESSAGE } from "./polling";
 import type { CacheResult, CacheStatus } from "./api";
 import UsageDashboard from './UsageDashboard';
 import { ownerCandidate } from './usage-access';
+import { SampleTime } from '../SampleTime';
+import { isFresh } from '../../shared/market';
 
 type View = "bazaar" | "auctions" | "watchlist" | "usage";
 const currentView = (): View => {
@@ -312,17 +316,24 @@ export default function MarketApp() {
     Number.isSafeInteger(bf.quantity) &&
     bf.budget >= 0 &&
     bf.maxActivityShare >= 0;
-  const bazaarStale = bazaar.length > 0 && now - bazaar[0].upstreamAt > 180000;
   const opportunities = useMemo(
     () =>
       validBazaar
-        ? filterBazaar(bazaar, bf, bazaarStale ? bazaar[0].upstreamAt : now)
+        ? filterBazaar(bazaar, bf, now, true)
         : [],
-    [bazaar, bf, now, validBazaar, bazaarStale],
+    [bazaar, bf, now, validBazaar],
   );
-  const pages = Math.max(1, Math.ceil(opportunities.length / 6)),
+  // Keep partial books discoverable without ranking an incomplete trade as profit.
+  const rows = useMemo(() => [
+    ...opportunities.map(quote => ({ item: quote.item, quote })),
+    ...bazaar.filter(item => validBazaar &&
+      `${item.name} ${item.id}`.toLowerCase().includes(bf.query.trim().toLowerCase()) &&
+      (bf.category === 'all' || item.category === bf.category) && !quoteBazaar(item, bf, now))
+      .map(item => ({ item, quote: null })),
+  ], [opportunities, bazaar, bf, now, validBazaar]);
+  const pages = Math.max(1, Math.ceil(rows.length / 6)),
     safePage = Math.min(page, pages - 1),
-    shown = opportunities.slice(safePage * 6, safePage * 6 + 6);
+    shown = rows.slice(safePage * 6, safePage * 6 + 6);
   const visibleAuctions = useMemo(
     () =>
       auctions.map((o) =>
@@ -348,7 +359,7 @@ export default function MarketApp() {
     [auctions, now, af.durationHours],
   );
   const deal = opportunities.find(
-      (q) => !bazaarStale && q.profit > 0 && q.concerns.length === 0,
+      (q) => q.fresh && !marketError && !cacheStatus?.error && q.profit > 0 && q.concerns.length === 0,
     ),
     auctionDeal = visibleAuctions.find(
       (o) =>
@@ -550,7 +561,7 @@ export default function MarketApp() {
       {fixtureMode
         ? "Illustrative fixtures"
         : lastUpdate
-          ? `Updated ${new Date(lastUpdate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`
+          ? <SampleTime timestamp={lastUpdate} observedAt={cacheStatus?.observedAt} now={now} />
           : "Waiting for market data"}
       <span className="automatic-status" aria-live="polite">
         {usage.mode === "paused"
@@ -558,9 +569,9 @@ export default function MarketApp() {
           : !lastUpdate
             ? "Automatic updates · waiting"
             : now - lastUpdate > 180000
-              ? usage.pollMs >= 3600_000 ? "Stale · comparisons withheld until the scheduled check" : "Stale · comparisons withheld · retrying automatically"
+              ? view === 'bazaar' ? "Historical estimates use the sampled prices and fee context" : "Stale · auction comparisons withheld until the scheduled check"
               : (view === "auctions" ? auctionError : marketError)
-                ? "Update delayed · retrying automatically"
+                ? "Cached update failed · waiting for the next scheduled check"
                 : cacheStatus?.refreshing && view === "auctions"
                   ? "Updating automatically…"
                   : "Automatic updates"}
@@ -817,7 +828,7 @@ export default function MarketApp() {
                 <div className="notice warning" role="alert">
                   {marketError}{" "}
                   {bazaar.length > 0
-                    ? "Last successful data remains visible; stale opportunities are excluded."
+                    ? "Last successful sample remains visible. Estimates use that sample; collection failures are separate from its age."
                     : ""}
                   {usage.mode !== "paused" && (
                     <a href="#legacy=1">Open existing public price search</a>
@@ -978,12 +989,12 @@ export default function MarketApp() {
                           className="hot-flame"
                         />
                         {view === "bazaar"
-                          ? "Hot Opportunities"
+                          ? "Bazaar Samples"
                           : "Auction Finds"}
                       </h2>
                       <p>
                         {view === "bazaar"
-                          ? opportunities.length
+                          ? rows.length
                           : auctionTotal}{" "}
                         matching {view === "bazaar" ? "items" : "listings"} from
                         the {view === "bazaar" ? "Bazaar" : "Auction House"}.
@@ -1100,47 +1111,53 @@ export default function MarketApp() {
                       <div
                         className={`item-grid ${bf.view === "list" ? "compact-list" : ""}`}
                       >
-                        {shown.map((q) => (
+                        {shown.map(({ item, quote: q }) => {
+                          const trade = bazaarTrade(item, bf, now);
+                          const stale = !isFresh(item.upstreamAt, now);
+                          return (
                           <ItemCard
-                            key={q.item.id}
-                            id={q.item.id}
-                            name={q.item.name}
-                            rarity={q.item.rarity}
-                            category={q.item.category}
-                            buy={q.acquisition}
-                            sell={bazaarStale ? null : q.grossSale}
-                            profit={bazaarStale ? null : q.profit}
-                            roi={bazaarStale ? null : q.roi}
+                            key={item.id}
+                            id={item.id}
+                            name={item.name}
+                            rarity={item.rarity}
+                            category={item.category}
+                            buy={trade.buy?.total ?? null}
+                            sell={trade.sale?.total ?? null}
+                            profit={q?.profit ?? null}
+                            roi={q?.roi ?? null}
+                            sampled={stale || Boolean(marketError)}
+                            actionLabel="View sample"
                             badge={
-                              bazaarStale ? "Stale" : titleCase(q.liquidity)
+                              stale ? "Last sampled · Stale" : q ? titleCase(q.liquidity) : "Partial data"
                             }
                             warning={
-                              bazaarStale
-                                ? "Comparisons withheld until automatic updates recover."
+                              !q ? "Profit unavailable: missing depth, invalid prices or incompatible fee evidence."
                                 : q.concerns[0]
                             }
                             subtitle={
                               <>
-                                {q.strategy === "order-offer"
+                                {bf.strategy === "order-offer"
                                   ? "Order → offer"
-                                  : q.strategy === "instant-offer"
+                                  : bf.strategy === "instant-offer"
                                     ? "Instant buy → offer"
                                     : "Order → instant sell"}{" "}
-                                · {q.quantity} units
+                                · totals for {bf.quantity} units · sale before tax
                                 <br />
-                                {compact(q.item.instantBuyActivity7d)} buy /{" "}
-                                {compact(q.item.instantSellActivity7d)} sell ·
+                                <SampleTime timestamp={item.upstreamAt} observedAt={item.observedAt} now={now} />
+                                <br />
+                                {compact(item.instantBuyActivity7d)} buy /{" "}
+                                {compact(item.instantSellActivity7d)} sell ·
                                 7d proxy
                               </>
                             }
-                            selected={selectedItem?.id === q.item.id}
-                            saved={isSaved("bazaar", q.item.id)}
-                            onOpen={() => openBazaar(q.item.id)}
+                            selected={selectedItem?.id === item.id}
+                            saved={isSaved("bazaar", item.id)}
+                            onOpen={() => openBazaar(item.id)}
                             onSave={() =>
-                              toggle("bazaar", q.item.id, q.item.name)
+                              toggle("bazaar", item.id, item.name)
                             }
                           />
-                        ))}
+                        );})}
                       </div>
                     ) : (
                       <EmptyState

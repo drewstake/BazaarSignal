@@ -26,7 +26,7 @@ test("Bazaar budget, activity, quantity, views, filter persistence and responsiv
   await expect(inspector.getByText("Every coin accounted for")).toBeVisible();
   await inspector.getByLabel("Inspector quantity").fill("8");
   await expect(inspector).toContainText("Profit / unit");
-  await expect(inspector).toContainText("7-day units + live state");
+  await expect(inspector).toContainText("7-day units + sampled state");
   await page.screenshot({
     path: `.local/companion/inspector-${info.project.name}.png`,
     fullPage: true,

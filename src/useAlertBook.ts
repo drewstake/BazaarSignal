@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { AppData, Book } from "../shared/model";
-import { isFresh } from "../shared/market";
+import { isFresh, isValidSample } from "../shared/market";
+import type { CacheStatus } from './companion/api';
 import { fetchItemBook } from "./alerts";
 import { isLocal } from "./data";
 import { visiblePoll } from "./companion/polling";
@@ -10,6 +11,8 @@ export function useAlertBook(itemId: string, data: AppData) {
   const [snapshot, setSnapshot] = useState<{
     book: Book;
     timestamp: number;
+    observedAt?: number;
+    status?: CacheStatus;
   } | null>(null);
   const [error, setError] = useState("");
   const [, tick] = useState(0);
@@ -29,9 +32,7 @@ export function useAlertBook(itemId: string, data: AppData) {
       try {
         const result = await fetchItemBook(itemId, signal);
         if (!closed) {
-          setSnapshot((prev) =>
-            prev?.timestamp === result.timestamp ? prev : result,
-          );
+          setSnapshot(result);
           setError("");
         }
       } catch (e) {
@@ -51,10 +52,12 @@ export function useAlertBook(itemId: string, data: AppData) {
   const timestamp = isLocal
     ? data.status.lastUpdated
     : (snapshot?.timestamp ?? 0);
-  const failure = isLocal ? data.status.error : error;
+  const failure = isLocal ? data.status.error : error || snapshot?.status?.error;
   return {
-    book,
+    book: isValidSample(timestamp) ? book : undefined,
     timestamp,
+    observedAt: isLocal ? data.status.lastSuccess : snapshot?.observedAt,
+    collectionError: isLocal ? data.status.error : snapshot?.status?.error,
     error: failure,
     stale: !isFresh(timestamp) || Boolean(failure),
   };
