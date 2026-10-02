@@ -4,12 +4,12 @@ import { fetchJson } from '../apps-script/store';
 
 vi.mock('../apps-script/store', () => ({ fetchJson: vi.fn() }));
 let properties: Record<string, string>, cache: Map<string, string>, owned: boolean, busy: boolean;
-const snapshot = { lastUpdated: Date.parse('2026-10-02T03:50:00Z'), products: { EXAMPLE: { price: 42, description: 'x'.repeat(40000) } } };
+const snapshot = { lastUpdated: Date.parse('2026-10-02T03:00:08Z'), products: { EXAMPLE: { price: 42, description: 'x'.repeat(40000) } } };
 
 beforeEach(() => {
-  vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-02T03:51:00Z'));
+  vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-02T03:02:00Z'));
   properties = { MARKET_OPERATING_MODE: 'free-tier', MARKET_UPDATES_PAUSED: 'false',
-    MARKET_TRIAL_START: '2026-10-02T03:45:00Z', MARKET_TRIAL_END: '2026-11-01T07:00:00Z' };
+    MARKET_TRIAL_START: '2026-10-02T02:45:00Z', MARKET_TRIAL_END: '2026-11-01T07:00:00Z' };
   cache = new Map(); owned = false; busy = false;
   vi.stubGlobal('PropertiesService', { getScriptProperties: () => ({
     getProperty: (key: string) => properties[key], setProperty: (key: string, value: string) => properties[key] = value,
@@ -27,6 +27,16 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 describe('Hourly Apps Script market downloads', () => {
+  it('does not consume the hourly download before publication or outside the fresh-check window', () => {
+    for(const stamp of ['2026-10-02T03:00:20Z','2026-10-02T03:01:29Z','2026-10-02T03:02:30Z','2026-10-02T03:55:00Z']) {
+      vi.setSystemTime(new Date(stamp));
+      expect(() => sharedMarket('raw-bazaar')).toThrow(/hourly price check/);
+    }
+    expect(fetchJson).not.toHaveBeenCalled();
+    expect(properties.MARKET_LAST_CLOUD_SLOT).toBeUndefined();
+    vi.setSystemTime(new Date('2026-10-02T04:01:45Z'));
+    sharedMarket('raw-bazaar');expect(fetchJson).toHaveBeenCalledOnce();
+  });
   it('shares a large snapshot across repeated checks without refreshing its source timestamp', () => {
     expect(sharedMarket('raw-bazaar')).toEqual(snapshot);
     vi.advanceTimersByTime(5 * 60_000);
@@ -38,7 +48,7 @@ describe('Hourly Apps Script market downloads', () => {
     sharedMarket('raw-bazaar'); cache.clear();
     expect(() => sharedMarket('raw-bazaar')).toThrow(/next collection/);
     expect(fetchJson).toHaveBeenCalledTimes(1);
-    vi.setSystemTime(new Date('2026-10-02T04:01:00Z'));
+    vi.setSystemTime(new Date('2026-10-02T04:02:00Z'));
     vi.mocked(fetchJson).mockImplementationOnce(() => { throw new Error('Network failed'); });
     expect(() => sharedMarket('raw-bazaar')).toThrow('Network failed');
     expect(() => sharedMarket('raw-bazaar')).toThrow(/next collection/);

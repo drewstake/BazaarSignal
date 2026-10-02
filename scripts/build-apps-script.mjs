@@ -8,4 +8,5 @@ console.log('Apps Script bundle built (no credentials).');
 // Owner runs this configuration action once in the editor for the reviewed release.
 const { appendFile } = await import('node:fs/promises');
 await appendFile('apps-script/build/Entrypoints.js', 'function configureFreeTierMarket() { return BazaarBackend.configureFreeTierMarket(); }\n');
+await appendFile('apps-script/build/Entrypoints.js', 'function scheduledMinuteTick() { return BazaarBackend.scheduledMinuteTick(); }\nfunction installAlignedTrigger() { return BazaarBackend.installAlignedTrigger(); }\n');
 

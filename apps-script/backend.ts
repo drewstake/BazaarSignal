@@ -5,6 +5,7 @@ import { confirmation, updatePriceAlertTarget } from '../shared/price-alert';
 import { ADMIN_UID, fetchJson, firestore, readDoc, loadUser, persistUser, linkWrite, loadControl, saveControl, activeUsers, needsWork, checkAdmission, jsonWrite } from './store';
 import type { UserRecord } from './store';
 import { publicCompanion, publicPlayerNames, sharedMarket } from './companion';
+import { hourlyAlertWindow } from '../shared/market-schedule';
 declare const PropertiesService:any, ScriptApp:any, Session:any, UrlFetchApp:any,
   Utilities:any, LockService:any, ContentService:any, CacheService:any, MailApp:any;
 const PROJECT='bazaarsignal', SENDER='bazaarsignal@gmail.com';
@@ -169,14 +170,14 @@ export function scheduledPoll() {
     return locked(()=>{
       const legacy=loadUser(ADMIN_UID);if(legacy.legacy)persistUser(legacy);
       const control=loadControl(),c=control.state,m=c.monitor;
-      m.enabled=ScriptApp.getProjectTriggers().some((t:any)=>t.getHandlerFunction()==='scheduledPoll');
+      m.enabled=ScriptApp.getProjectTriggers().some((t:any)=>['scheduledPoll','scheduledMinuteTick'].includes(t.getHandlerFunction()));
       m.lastAttempt=Date.now();m.quota=MailApp.getRemainingDailyQuota();
       if(Date.now()-c.runtimeWindow>=86400000){c.runtimeWindow=Date.now();c.runtimeMs=0;}
       // Reserve a margin under Google's 90-minute consumer trigger budget.
       if(c.runtimeMs>=70*60000){m.error='Free monitoring runtime is exhausted; checks resume when the budget resets.';saveControl(control);return {ok:false};}
       saveControl(control);
       let snapshot:Market|null=null;
-      if(m.nextAttempt<=Date.now()) {
+      if(cachedMarket || m.nextAttempt<=Date.now()) {
         try {if(!cachedMarket)throw new Error('Market cache unavailable');snapshot=cachedMarket;m.lastSuccess=Date.now();m.lastUpdated=snapshot.timestamp;m.error=null;m.failures=0;m.nextAttempt=0;}
         catch {m.failures++;m.nextAttempt=Date.now()+retryDelay(m.failures);m.error='Market check failed or prices were stale. Alerts are waiting for fresh data.';}
       }
@@ -202,7 +203,25 @@ export function scheduledPoll() {
     },100);
   } catch {return {ok:false,error:'Worker did not complete. Check authorization, storage and trigger status.'};}
 }
+/** Minute timer is a cheap clock gate; off-slot ticks do no I/O or email work. */
+export function scheduledMinuteTick() {
+  const now=Date.now();
+  if(!hourlyAlertWindow(now) && Math.floor(now/60000)%5!==0)return {ok:true,skipped:true};
+  return scheduledPoll();
+}
+/** Owner-only migration; preserves the existing allowance and all user data. */
+export function installAlignedTrigger() {
+  settings();return locked(()=>{
+    const triggers=ScriptApp.getProjectTriggers();
+    const aligned=triggers.filter((t:any)=>t.getHandlerFunction()==='scheduledMinuteTick');
+    // Create before removing the old trigger so a creation failure leaves it working.
+    if(!aligned.length)ScriptApp.newTrigger('scheduledMinuteTick').timeBased().everyMinutes(1).create();
+    for(const t of [...aligned.slice(1),...triggers.filter((t:any)=>t.getHandlerFunction()==='scheduledPoll')])ScriptApp.deleteTrigger(t);
+    return {installed:true,clockMinutes:1,marketChecksPerHour:1,queuedMailMinutes:5};
+  });
+}
 export function installTrigger() {
+  if(props().getProperty('MARKET_OPERATING_MODE')==='free-tier')return installAlignedTrigger();
   settings();return locked(()=>{
     const triggers=ScriptApp.getProjectTriggers().filter((t:any)=>t.getHandlerFunction()==='scheduledPoll');
     if(!triggers.length)ScriptApp.newTrigger('scheduledPoll').timeBased().everyMinutes(5).create();
@@ -211,7 +230,7 @@ export function installTrigger() {
   });
 }
 export function diagnostics() {
-  settings();return {sender:SENDER,triggerCount:ScriptApp.getProjectTriggers().filter((t:any)=>t.getHandlerFunction()==='scheduledPoll').length,
+  settings();return {sender:SENDER,triggerCount:ScriptApp.getProjectTriggers().filter((t:any)=>['scheduledPoll','scheduledMinuteTick'].includes(t.getHandlerFunction())).length,
     remainingRecipients:MailApp.getRemainingDailyQuota(),monitoring:loadControl().state.monitor};
 }
 // Existing sender-authorized editor tests retain their original request IDs/links.

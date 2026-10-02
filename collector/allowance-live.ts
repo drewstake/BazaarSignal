@@ -140,7 +140,7 @@ export function createLiveRuntime(config: LiveConfig) {
         throw new TrialStopped('Live allowance report does not match this release');
       const store = config.store(session);
       const collector = new MarketCollector(store, livePolicy, session.network(config.network), now, Math.random,
-        (name, amount) => session!.count(name, amount));
+        (name, amount) => session!.count(name, amount), LIVE_HOUR);
       await work(session, collector, store);
       await session.finish();
       config.report?.({event:'market_live',kind,at:now(),observed:session.observed});

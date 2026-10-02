@@ -1,4 +1,5 @@
 import { applyPollingDirective, PAUSED_MESSAGE, pollingDirective, type PollDirective } from "./polling";
+import { marketReadSlot } from '../../shared/market-schedule';
 
 type Entry = { at: number; etag: string | null; body: any; bytes?: number };
 const memory = new Map<string, Entry>();
@@ -74,7 +75,10 @@ export async function cachedMarketRequest<T>(url: string, signal?: AbortSignal):
     }
     const sameRelease = import.meta.env.VITE_MARKET_OPERATING_MODE !== 'free-tier' || !policy.trialId ||
       (old?.body?.usage ?? old?.body?.status?.usage)?.trialId === policy.trialId;
-    if (old && sameRelease && Date.now() - old.at >= 0 && (Date.now() - old.at < policy.pollMs || firstRead)) return observe(old.body, true);
+    const sameSlot = import.meta.env.VITE_MARKET_OPERATING_MODE === 'free-tier'
+      ? marketReadSlot(old?.at ?? 0, policy.pollMs) === marketReadSlot(Date.now(), policy.pollMs)
+      : old && (Date.now() - old.at < policy.pollMs || firstRead);
+    if (old && sameRelease && Date.now() - old.at >= 0 && sameSlot) return observe(old.body, true);
     const response = await fetch(url, {
       credentials: "omit", signal: AbortSignal.any([
         AbortSignal.timeout(Math.max(1,Math.floor(Math.min(20_000,(policy.expiresAt ?? Infinity)-Date.now())))),

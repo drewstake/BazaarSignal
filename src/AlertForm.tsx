@@ -293,7 +293,7 @@ export default function AlertForm({
         {bookError && (
           <p className="error" role="alert">
             Prices unavailable. {bookError}
-            Prices update automatically.
+            {hourlyMarketMode ? ' Prices update at the scheduled hourly check.' : ' Prices update automatically.'}
           </p>
         )}
         <p className="quote-note">
@@ -331,7 +331,7 @@ export default function AlertForm({
           {!isLocal && (
             <>
               <br />
-              Checks about every five minutes can miss brief price movements.
+              {hourlyMarketMode ? 'Hourly price checks can miss changes between collections.' : 'Checks about every five minutes can miss brief price movements.'}
               <br />
               20 active alerts per account · Free service shares 40 new alerts
               per day. Delivery may queue.
@@ -347,3 +347,4 @@ export default function AlertForm({
     </form>
   );
 }
+import { hourlyMarketMode } from './companion/polling';

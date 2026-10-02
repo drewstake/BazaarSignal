@@ -68,11 +68,13 @@ import {
 import "./market.css";
 import { visiblePoll, pollingDirective, PAUSED_MESSAGE } from "./polling";
 import type { CacheResult, CacheStatus } from "./api";
+import UsageDashboard from './UsageDashboard';
+import { ownerCandidate } from './usage-access';
 
-type View = "bazaar" | "auctions" | "watchlist";
+type View = "bazaar" | "auctions" | "watchlist" | "usage";
 const currentView = (): View => {
   const v = new URLSearchParams(location.hash.slice(1)).get("market");
-  return v === "auctions" || v === "watchlist" ? v : "bazaar";
+  return v === "auctions" || v === "watchlist" || v === "usage" ? v : "bazaar";
 };
 function cleanPreferences<T extends object>(defaults: T, values: unknown): T {
   const out = { ...defaults };
@@ -164,6 +166,7 @@ export default function MarketApp() {
     let alive = true;
     setSaved([]);
     setPrivateError("");
+    if (view === 'usage') { setSavedLoading(false); return; }
     if (!user) {
       setSavedLoading(false);
       setBf(localPreferences("bazaar", defaultBazaarFilters));
@@ -197,7 +200,7 @@ export default function MarketApp() {
     return () => {
       alive = false;
     };
-  }, [user?.uid]);
+  }, [user?.uid, view === 'usage']);
   useEffect(() => {
     if (!user) {
       try {
@@ -212,7 +215,7 @@ export default function MarketApp() {
     }
   }, [bf, af, user]);
   useEffect(() => {
-    if (view === "auctions") return;
+    if (view === "auctions" || view === "usage") return;
     let version = "",
       alive = true;
     const stop = visiblePoll(async (signal) => {
@@ -555,13 +558,13 @@ export default function MarketApp() {
           : !lastUpdate
             ? "Automatic updates · waiting"
             : now - lastUpdate > 180000
-              ? "Stale · comparisons withheld · retrying automatically"
+              ? usage.pollMs >= 3600_000 ? "Stale · comparisons withheld until the scheduled check" : "Stale · comparisons withheld · retrying automatically"
               : (view === "auctions" ? auctionError : marketError)
                 ? "Update delayed · retrying automatically"
                 : cacheStatus?.refreshing && view === "auctions"
                   ? "Updating automatically…"
                   : "Automatic updates"}
-        {usage.mode !== "paused" && usage.pollMs >= 3600_000 ? " · hourly collection" : ""}
+        {usage.mode !== "paused" && usage.pollMs >= 3600_000 ? ` · next check ${new Date(nextMarketRead(now, usage.pollMs)).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}` : ""}
       </span>
     </span>
   );
@@ -635,8 +638,9 @@ export default function MarketApp() {
               <SkyIcon name="alert-bell" size={36} className="tab-icon" />
               <span>Price alerts</span>
             </a>
+            {ownerCandidate(user) && <button className={view==='usage'?'active tab-usage':'tab-usage'} onClick={()=>navigate('usage')} aria-current={view==='usage'?'page':undefined}><ShieldCheck size={25}/><span>Usage &amp; Costs</span></button>}
           </nav>
-          <label className="market-search">
+          {view !== 'usage' && <label className="market-search">
             <Search size={20} strokeWidth={2.4} />
             <input
               type="search"
@@ -672,7 +676,7 @@ export default function MarketApp() {
                 <X size={17} />
               </button>
             )}
-          </label>
+          </label>}
         </div>
       </header>
       <main id="market-content" className="market-main">
@@ -707,7 +711,7 @@ export default function MarketApp() {
               </button>
             </div>
           )}
-          {view === "watchlist" ? (
+          {view === 'usage' ? <UsageDashboard key={user?.uid??'signed-out'} user={user}/> : view === "watchlist" ? (
             <section className="watchlist-page">
               <div className="section-heading">
                 <div>
@@ -1410,3 +1414,4 @@ export default function MarketApp() {
     </div>
   );
 }
+import { nextMarketRead } from '../../shared/market-schedule';

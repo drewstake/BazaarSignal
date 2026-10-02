@@ -1,6 +1,6 @@
 import { describe,it,expect,vi,beforeEach } from 'vitest';
 import { createHash,createHmac } from 'node:crypto';
-import { doGet,doPost,scheduledPoll } from '../apps-script/backend';
+import { doGet,doPost,scheduledPoll,scheduledMinuteTick } from '../apps-script/backend';
 import { emptyState,createAlert,parseMarket } from '../apps-script/core';
 import { normalizeBazaar } from '../shared/companion/bazaar';
 import { ADMIN_UID,DOCUMENT,checkAdmission,loadControl } from '../apps-script/store';
@@ -155,6 +155,13 @@ describe('Public Apps Script access and isolation',()=>{
   });
 });
 describe('Multi-user scheduled worker',()=>{
+  it('minute ticks outside the alert and queued-mail slots do no I/O',()=>{
+    vi.spyOn(Date,'now').mockReturnValue(Date.parse('2026-10-02T03:04:20Z'));
+    const fetcher=vi.spyOn((globalThis as any).UrlFetchApp,'fetch');
+    expect(scheduledMinuteTick()).toEqual({ok:true,skipped:true});
+    expect(fetcher).not.toHaveBeenCalled();expect(sends).toBe(0);expect(writes).toBe(0);
+    vi.restoreAllMocks();
+  });
   it('edits the existing target, keeps links and mail intact, and checks the new target',()=>{
     doPost(req({action:'create',input,idToken:token()}));
     const before=stored(`backendUsers/${ADMIN_UID}`);

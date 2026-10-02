@@ -3,6 +3,7 @@ export type PollDirective = { mode: "normal" | "warning" | "slow" | "paused"; po
 const configuredEnd = Date.parse(import.meta.env.VITE_MARKET_TRIAL_END ?? "");
 const configuredTrialId = import.meta.env.VITE_MARKET_TRIAL_ID;
 const liveMode = import.meta.env.VITE_MARKET_OPERATING_MODE === "free-tier";
+export const hourlyMarketMode = liveMode;
 const maximumWindow = liveMode ? 32 * 86400_000 : 15 * 60_000;
 const boundedTrial = /^[a-zA-Z0-9_-]{1,100}$/.test(configuredTrialId ?? '') && Number.isFinite(configuredEnd) && configuredEnd > Date.now() && configuredEnd - Date.now() <= maximumWindow;
 export const configuredPause = import.meta.env.VITE_MARKET_UPDATES_PAUSED === "true" ||
@@ -22,6 +23,8 @@ function armDeadline() {
 }
 armDeadline();
 export const pollingDirective = () => { expire(); return directive; };
+export const nextScheduledMarketCheck = (after = Date.now()) =>
+  liveMode && pollingDirective().mode !== 'paused' ? nextMarketRead(after, directive.pollMs) : null;
 export function applyPollingDirective(next: PollDirective) {
   // A running tab cannot silently resume itself after a pause. Reload only after
   // an operator has verified all allowances and enabled a new release.
@@ -56,7 +59,8 @@ export function visiblePoll(
   const schedule = () => {
     clearTimeout(timer);
     if (!closed && !hidden() && !busy && !(attempted && paused()))
-      timer = setTimeout(run, completedAt ? Math.max(0, completedAt + delay() - Date.now()) : initialDelay);
+      timer = setTimeout(run, completedAt ? Math.max(0,
+        (market && liveMode ? nextMarketRead(completedAt, delay()) : completedAt + delay()) - Date.now()) : initialDelay);
   };
   const run = async () => {
     clearTimeout(timer);
@@ -70,7 +74,9 @@ export function visiblePoll(
     catch { /* Callers display errors; a rejection must never break cleanup. */ }
     finally {
       clearTimeout(timeout);
-      if (!current.signal.aborted) completedAt = Date.now();
+      // A timeout must not form an immediate retry loop. Visibility returns also
+      // retain this attempt's clock slot, even when its request was aborted.
+      completedAt = Date.now();
       busy = false;
       schedule();
     }
@@ -94,3 +100,4 @@ export function visiblePoll(
     if (typeof window !== "undefined") window.removeEventListener("market-usage-policy", policy);
   };
 }
+import { nextMarketRead } from '../../shared/market-schedule';

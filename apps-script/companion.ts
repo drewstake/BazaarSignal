@@ -1,4 +1,5 @@
 import { fetchJson } from "./store";
+import { hourlyAlertWindow } from '../shared/market-schedule';
 declare const PropertiesService: any, CacheService: any, LockService: any;
 
 /** Cache-only bridge. No public request, alert mutation or email job fetches Hypixel. */
@@ -19,7 +20,7 @@ export function sharedMarket(path: string) {
   if (!/^https:\/\/[A-Za-z0-9.-]+(?::\d+)?$/.test(base))
     throw new Error("Market data service is not configured. Set MARKET_API_URL to the shared collector HTTPS origin.");
   if (!live || path !== 'raw-bazaar') return fetchJson(`${base}/api/companion/${path}`);
-  // The existing five-minute email worker shares ONE hourly cloud download.
+  // The aligned alert check and queued-mail worker share ONE hourly download.
   // Only public market data enters this cache; freshness checks remain in core.
   const cache=CacheService.getScriptCache(),slot=Math.floor(Date.now()/3600_000);
   const prefix=`market:${properties.getProperty('MARKET_TRIAL_START')}:${slot}:`;
@@ -29,6 +30,9 @@ export function sharedMarket(path: string) {
     return keys.every(k=>typeof parts[k]==='string')?JSON.parse(keys.map(k=>parts[k]).join('')):null;
   };
   const hit=read();if(hit)return hit;
+  // Never spend the hour's download on the previous snapshot before publication,
+  // or on prices that cannot pass the existing three-minute freshness check.
+  if(!hourlyAlertWindow(Date.now()))throw new Error('Market data: waiting for the next hourly price check.');
   const lock=LockService.getScriptLock(),alreadyLocked=lock.hasLock();
   if(!alreadyLocked&&!lock.tryLock(5000))throw new Error('Market data: cached hourly update is busy.');
   try {

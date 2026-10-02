@@ -6,13 +6,14 @@ import {
   type SetStateAction,
 } from "react";
 import type { User } from "firebase/auth";
-import { LogOut, Mail } from "lucide-react";
+import { LogOut, Mail, ShieldCheck } from "lucide-react";
+import { ownerCandidate } from './companion/usage-access';
 import type { AppData } from "../shared/model";
 import { auth, backendReady, isDemo, isLocal, logout } from "./data";
 import AlertForm from "./AlertForm";
 import MyAlerts from "./MyAlerts";
 import { getBazaar } from "./companion/api";
-import { pollingDirective } from "./companion/polling";
+import { pollingDirective, hourlyMarketMode, nextScheduledMarketCheck } from "./companion/polling";
 import { ItemArt, SkyIcon } from "./companion/components";
 import "./companion/market.css";
 import "./price-alerts.css";
@@ -38,6 +39,14 @@ export default function PriceAlerts({
 }) {
   const [selected, setSelected] = useState(itemId ?? "");
   const [refresh, setRefresh] = useState(0);
+  const [clock, setClock] = useState(Date.now());
+  useEffect(() => {
+    const tick = () => setClock(Date.now());
+    const timer = setInterval(tick, 15000);
+    window.addEventListener('market-usage-policy', tick);
+    return () => { clearInterval(timer); window.removeEventListener('market-usage-policy', tick); };
+  }, []);
+  const nextCheck = nextScheduledMarketCheck(clock);
   const [rarities, setRarities] = useState<Record<string, string>>({});
   const selector = useRef<HTMLSelectElement>(null);
   const board = useRef<HTMLDivElement>(null);
@@ -135,6 +144,7 @@ export default function PriceAlerts({
               <SkyIcon name="alert-bell" size={36} className="tab-icon" />
               Price Alerts
             </a>
+            {ownerCandidate(user) && <a href="#market=usage" className="tab-usage"><ShieldCheck size={25}/><span>Usage &amp; Costs</span></a>}
           </nav>
         </div>
       </header>
@@ -158,12 +168,16 @@ export default function PriceAlerts({
                 Create alert ↓
               </button>
             </div>
+            {hourlyMarketMode && nextCheck !== null && <p role="status" className="market-schedule-notice">
+              Prices are sampled hourly. Next scheduled check: <strong>{new Date(nextCheck).toLocaleTimeString([], {hour:'numeric',minute:'2-digit',timeZoneName:'short'})}</strong>.
+              {' '}This tab updates automatically while visible. Alerts only evaluate fresh prices; changes between collections can be missed.
+            </p>}
             {error && (
               <p role="alert" className="error">
                 {error}{" "}
                 {pollingDirective().mode === "paused"
                   ? "Existing alerts and target editing remain available. Fresh prices and target checks are paused."
-                  : "Retrying automatically while this tab is visible."}
+                  : hourlyMarketMode ? "Waiting for the scheduled hourly check shown above." : "Retrying automatically while this tab is visible."}
               </p>
             )}
             {user || isLocal ? (

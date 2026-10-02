@@ -73,6 +73,7 @@ export class MarketCollector {
     public now = Date.now,
     private random = Math.random,
     private measure: CollectorMeasurement = () => {},
+    private refreshAlignmentMs = 0,
   ) {
     this.coordinator = new Coordinator(store, policy, now, random);
     this.now = this.coordinator.now;
@@ -291,7 +292,11 @@ export class MarketCollector {
       await this.coordinator.change((c) => {
         this.coordinator.assert(c);
         c.jobs[key] = {
-          nextAt: Math.max(started + interval, now + 1000),
+          // Live admission separately permits one collection per clock hour.
+          // Anchor successful due times so startup jitter cannot skip the next hour.
+          nextAt: Math.max(this.refreshAlignmentMs && interval % this.refreshAlignmentMs === 0
+            ? Math.floor(started / this.refreshAlignmentMs) * this.refreshAlignmentMs + interval
+            : started + interval, now + 1000),
           upstreamAt,
           observedAt: unchanged ? previous.observedAt : now,
           lastCheckedAt: now,

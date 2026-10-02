@@ -1,5 +1,24 @@
 import { afterEach, expect, it, vi } from "vitest";
 afterEach(()=>{vi.useRealTimers();vi.unstubAllGlobals();vi.unstubAllEnvs();vi.resetModules();});
+it('an hourly tab opened at :47 checks at :02, then keeps the same clock phase after hidden time',async()=>{
+  vi.stubEnv('VITE_MARKET_OPERATING_MODE','free-tier');
+  const {visiblePoll,doc}=await setup();vi.setSystemTime(new Date('2026-10-02T03:47:00Z'));
+  const task=vi.fn(async()=>{}),stop=visiblePoll(task);
+  await vi.advanceTimersByTimeAsync(0);expect(task).toHaveBeenCalledTimes(1);
+  await vi.advanceTimersByTimeAsync(15*60_000);expect(task).toHaveBeenCalledTimes(2);
+  doc.visibilityState='hidden';doc.dispatchEvent(new Event('visibilitychange'));
+  await vi.advanceTimersByTimeAsync(65*60_000);expect(task).toHaveBeenCalledTimes(2);
+  doc.visibilityState='visible';doc.dispatchEvent(new Event('visibilitychange'));
+  await vi.advanceTimersByTimeAsync(0);expect(task).toHaveBeenCalledTimes(3);
+  await vi.advanceTimersByTimeAsync(55*60_000);expect(task).toHaveBeenCalledTimes(4);stop();
+});
+it('hourly timeout waits for the next clock slot rather than retrying in a loop',async()=>{
+  vi.stubEnv('VITE_MARKET_OPERATING_MODE','free-tier');
+  const {visiblePoll}=await setup();vi.setSystemTime(new Date('2026-10-02T03:02:00Z'));
+  const task=vi.fn((signal:AbortSignal)=>new Promise<void>(resolve=>signal.addEventListener('abort',()=>resolve())));
+  const stop=visiblePoll(task);await vi.advanceTimersByTimeAsync(3599999);
+  expect(task).toHaveBeenCalledTimes(1);await vi.advanceTimersByTimeAsync(1);expect(task).toHaveBeenCalledTimes(2);stop();
+});
 async function setup() {
   vi.useFakeTimers();vi.stubEnv("VITE_MARKET_UPDATES_PAUSED","false");
   const doc=Object.assign(new EventTarget(),{visibilityState:"visible"});

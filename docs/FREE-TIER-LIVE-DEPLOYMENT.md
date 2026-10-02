@@ -1,6 +1,27 @@
 # Live deployment targeting Google’s free allowances
 
+## Owner usage dashboard — October 2
+
+See [Usage & Costs implementation and remaining billing setup](USAGE-AND-COSTS.md). The dashboard preserves this release's ledger, cadence, cleanup and fixed deadline. Actual spending is unavailable until actual billing export records and read permissions are connected. New Google Monitoring repository-size evidence reports 745,985,250 bytes, above the 0.5 GiB storage allowance; the earlier compressed-image inventory below is not a current billable-capacity meter. No dollar total or zero-charge guarantee is inferred from either figure.
+
 Verified October 2, 2026, 04:02:54 UTC (12:02 a.m. Eastern).
+
+## Timing correction — October 2
+
+Deployed the hourly timing fix after the user reported stale Price Alerts. The collection frequency, allowance identity `free-20261001`, accumulated reservations, cleanup rate and November 1 expiry are preserved.
+
+- Successful collector due times now align to the next UTC clock hour. Startup jitter no longer makes a successful hourly job miss the following Scheduler tick. Failures and provider cooldowns keep their existing backoff.
+- Visible browser polling runs at **two minutes past the hour**, or two minutes past even UTC hours under two-hour slowdown. Opening a page still loads cached data immediately. Cache reuse expires at this same boundary, so a recent response cannot hide the next generation. Aborted/timed-out calls wait for the next slot instead of forming a retry loop.
+- The existing Apps Script trigger was replaced by one `scheduledMinuteTick` trigger. Most ticks return after a clock check with **no network, storage or email work**. Queued-mail processing retains five-minute slots, while fresh-price evaluation runs in the **:01:30–:02:30** window. The raw-market bridge refuses downloads outside that window unless it already has the hour's cached snapshot. It still permits at most one download per hour, including failed attempts and cache eviction. Fresh data can bypass a previous stale-data backoff, but cannot bypass freshness validation.
+- Price Alerts displays the next scheduled check in the viewer's timezone and explains that hourly sampling can miss price changes. The original three-minute freshness limit has not been extended or backdated. This change makes checks align with new snapshots; it does not make hour-old prices current or guarantee that delayed upstream data will pass freshness validation.
+
+At 04:24:34 UTC both updated Cloud Run revisions were ready: `marketapi-00008-9rv` and `refreshmarket-00009-4bz`, image `sha256:cffd83d3f706f04858b4d4ae8625cea05ed12988af6c97c36e89fdfde3497d88`. Apps Script production is **version 11**; trigger migration completed at 04:25:13 UTC and its single new handler was verified in the trigger list. Hosting was published and the live page displayed **1:02 AM EDT** as its next check. Existing open tabs need one reload to load this new browser code.
+
+**193 tests passed**, covering shifted poll times, hidden tabs, aborts, shared cache expiry at the publication boundary, no premature Apps Script downloads, no I/O on off-slot timer ticks, successful collector cadence across startup jitter, and deployment refusal when an update would renew or reopen the allowance. TypeScript checks, production builds and both local image handler boot checks passed. Desktop and mobile page checks retained the schedule notice without horizontal overflow. No test alerts or forced extra collection were sent; the next full production cycle remains scheduled for 05:00 UTC, with the browser check at 05:02 UTC.
+
+The minute trigger adds lightweight Apps Script executions and up to 24 fresh-check worker passes/day; its existing 70-minute/day work guard and Google trigger-runtime quota still apply. The minute timer is not a minute cloud poll. Google supports [one-minute clock triggers](https://developers.google.com/apps-script/reference/script/clock-trigger-builder#everyMinutes(Integer)); actual delivery can be delayed, so stale data still fails closed. [Apps Script quotas](https://developers.google.com/apps-script/guides/services/quotas) remain applicable.
+
+Evidence: `.local/timing-fix-baseline.json`, `.local/live-timing-fix-release.json`, `.local/private-release-free-20261001-timing-fix-apply.json`, `.local/hourly-timing-live-desktop.jpg`, and `.local/hourly-timing-trigger.jpg`. The release utility's explicit `updateExistingLive` mode verifies the existing identity/deadline and active ledger, updates only code/configuration, and never initializes or resets usage counters. The measurements and versions below describe the initial release unless superseded here.
 
 The user authorized unpausing and deploying the site, and clarified that $0 is a preference rather than an absolute spending limit. Production is **https://bazaarsignal.web.app**. The following controls target free allowances; they are **not a Google-enforced spending cap**. No billing upgrade, purchase, project deletion, private-data migration or billing unlink was performed.
 

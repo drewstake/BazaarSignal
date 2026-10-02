@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 // Deployment script is directly executable without a separate production build.
 // @ts-expect-error JavaScript operator utility
-import { verifyReleasePlan, uploadLocation, releasePatch } from '../scripts/private-trial-release.mjs';
+import { verifyReleasePlan, uploadLocation, releasePatch, verifyLiveUpdate } from '../scripts/private-trial-release.mjs';
 
 const now = Date.parse('2026-10-01T16:50:00Z');
 const receipt = { imageDigest: `sha256:${'a'.repeat(64)}`, applicationOnly: true,
@@ -17,6 +17,25 @@ const plan = () => ({ project: 'bazaarsignal-510305', imageDigest: receipt.image
     logBytes: { used: 500000, hold: 16 * 1024 ** 2, headroom: 16 * 1024 ** 2, limit: 50 * 1024 ** 3 },
   } });
 describe('private release admission', () => {
+  it('discloses existing image overage only for bounded existing-live releases without changing free allowance',()=>{
+    const p={...plan(),operatingMode:'free-tier',updateExistingLive:true,startsAt:new Date(now-1000).toISOString(),
+      existingImageOverageDisclosed:true,artifactCapacityCeilingBytes:1024**3};
+    p.meters.artifactBytes.used=745985250;
+    expect(()=>verifyReleasePlan(p,receipt,now)).not.toThrow();
+    expect(()=>verifyReleasePlan({...p,existingImageOverageDisclosed:false},receipt,now)).toThrow(/headroom/);
+    expect(()=>verifyReleasePlan({...p,updateExistingLive:false},receipt,now)).toThrow(/headroom/);
+    p.meters.artifactBytes.used=1024**3;
+    expect(()=>verifyReleasePlan(p,receipt,now)).toThrow(/headroom/);
+  });
+  it('an existing-live code update cannot renew the allowance or reopen a stopped ledger',()=>{
+    const p={...plan(),operatingMode:'free-tier',releaseId:'timing-fix'};
+    const ledger={id:p.id,startsAt:Date.parse(p.startsAt),expiresAt:Date.parse(p.expiresAt),monthlyReserved:{cpuSeconds:500}};
+    const service={template:{containers:[{env:[{name:'MARKET_OPERATING_MODE',value:'free-tier'},{name:'MARKET_LIVE_ID',value:p.id},{name:'MARKET_LIVE_END',value:p.expiresAt}]}]}};
+    expect(()=>verifyLiveUpdate(p,ledger,service)).not.toThrow();
+    expect(()=>verifyLiveUpdate({...p,expiresAt:'2026-11-01T07:00:00Z'},ledger,service)).toThrow(/preserve/);
+    expect(()=>verifyLiveUpdate(p,{...ledger,stoppedAt:now},service)).toThrow(/preserve/);
+    expect(ledger.monthlyReserved.cpuSeconds).toBe(500);
+  });
   it('fits the bounded private release without admitting a live trial', () => {
     expect(verifyReleasePlan(plan(), receipt, now)).toEqual({ start: now + 600000, end: now + 1320000 });
   });

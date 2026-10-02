@@ -15,6 +15,7 @@ import {
 } from "../collector/policy";
 import { marketHandler } from "../collector/http";
 import { visiblePoll } from "../src/companion/polling";
+import { livePolicy, LIVE_HOUR } from '../collector/allowance-live';
 
 const dirs: string[] = [],
   stores: SqliteCache[] = [];
@@ -65,6 +66,15 @@ function upstream(now: () => number, pages = 4) {
     });
   });
 }
+it('hourly collection remains due on the next clock hour despite startup jitter',async()=>{
+  let now=Date.parse('2026-10-02T03:00:25Z');const store=connect(),fetcher=upstream(()=>now);
+  const c=new MarketCollector(store,livePolicy,fetcher,()=>now,()=>0,()=>{},LIVE_HOUR);
+  await c.tick();
+  expect((await c.coordinator.state()).jobs.bazaar.nextAt).toBe(Date.parse('2026-10-02T04:00:00Z'));
+  now=Date.parse('2026-10-02T04:00:02Z');await c.tick();
+  expect((await c.rawBazaar()).lastUpdated).toBe(now);
+  expect((await c.coordinator.state()).jobs.bazaar.nextAt).toBe(Date.parse('2026-10-02T05:00:00Z'));
+});
 async function get(c: MarketCollector, path: string) {
   let code = 200,
     body = "";

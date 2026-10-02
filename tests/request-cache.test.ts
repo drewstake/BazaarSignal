@@ -1,5 +1,15 @@
 import { afterEach, expect, it, vi } from "vitest";
 afterEach(()=>{vi.unstubAllGlobals();vi.unstubAllEnvs();vi.restoreAllMocks();vi.resetModules();});
+it('revalidates at the collection boundary even when an old cached response is only minutes old',async()=>{
+  vi.stubEnv('VITE_MARKET_UPDATES_PAUSED','false');vi.stubEnv('VITE_MARKET_OPERATING_MODE','free-tier');vi.stubGlobal('caches',undefined);
+  let now=Date.parse('2026-10-02T03:59:00Z');vi.spyOn(Date,'now').mockImplementation(()=>now);
+  const fetcher=vi.fn(async()=>Response.json({version:String(now),items:[]}));vi.stubGlobal('fetch',fetcher);
+  const {cachedMarketRequest}=await import('../src/companion/request-cache');const url='https://cache.example/api/companion/snapshot';
+  await cachedMarketRequest(url);now=Date.parse('2026-10-02T04:01:59Z');await cachedMarketRequest(url);
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  now+=1000;const responses=await Promise.all(Array.from({length:20},()=>cachedMarketRequest(url)));
+  expect(fetcher).toHaveBeenCalledTimes(2);expect(responses[0]).toMatchObject({version:String(now)});
+});
 it("shares parallel reads, reuses recent results and handles 304 without decoding an empty body",async()=>{
   vi.stubEnv("VITE_MARKET_UPDATES_PAUSED","false");vi.stubGlobal("caches",undefined);
   let now=Date.now();vi.spyOn(Date,"now").mockImplementation(()=>now);

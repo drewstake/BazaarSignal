@@ -5,6 +5,8 @@ import { trialGoogleStore } from "../../collector/trial-google";
 import { createTrialRuntime } from "../../collector/trial-runtime";
 import { stopTrialInfrastructure } from "../../collector/trial-shutdown";
 import { createLiveRuntime } from "../../collector/allowance-live";
+import { getAuth } from "firebase-admin/auth";
+import { cachedDashboard, measureDashboard, usageHandler } from "../../collector/usage-dashboard";
 
 // Source implementation only: the deployment guard still requires verified
 // preflight. Missing release deadlines or ledger always stop optional work.
@@ -13,6 +15,12 @@ process.env.COLLECTOR_ALLOWED_ORIGINS ??= "https://bazaarsignal.web.app";
 if (!getApps().length) initializeApp();
 const credential = applicationDefault();
 const token = async () => (await credential.getAccessToken()).access_token;
+const ownerApp = initializeApp({ credential, projectId: 'bazaarsignal' }, 'usage-owner');
+const usageStore = trialGoogleStore({ project, bucket: `${project}-market-cache`, token });
+const ownerUsage = usageHandler({
+  verify: idToken => getAuth(ownerApp).verifyIdToken(idToken, true),
+  dashboard: cachedDashboard(usageStore, () => measureDashboard({ store: usageStore, token })),
+});
 const live = process.env.MARKET_OPERATING_MODE === "free-tier";
 const runtime = live ? createLiveRuntime({
   id: process.env.MARKET_LIVE_ID ?? "",
@@ -44,7 +52,14 @@ export const marketApi = onRequest(
     invoker: "private",
     serviceAccount: `market-reader@${project}.iam.gserviceaccount.com`,
   },
-  async (req, res) => runtime.handle(req, res),
+  async (req, res) => {
+    // Route before market admission: dashboard reads can never collect, reserve market work or pause it.
+    if (new URL(req.url, 'http://localhost').pathname.startsWith('/api/owner/')) {
+      if (new URL(req.url, 'http://localhost').pathname === '/api/owner/usage') { await ownerUsage(req, res); return; }
+      res.setHeader('Cache-Control', 'no-store'); res.status(404).json({error:'Not found.'}); return;
+    }
+    await runtime.handle(req, res);
+  },
 );
 export const refreshMarket = onSchedule(
   {

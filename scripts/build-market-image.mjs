@@ -31,6 +31,7 @@ if (installed.error || installed.status !== 0) throw new Error('Local production
 // Refuse Windows/native binaries and links rather than calling this portable
 // merely because npm installed it successfully on the operator's workstation.
 const files = [];
+let excludedDeclarationFiles = 0, excludedDeclarationBytes = 0;
 async function inventory(directory) {
   for (const name of (await readdir(directory)).sort()) {
     const path = join(directory, name), stat = await lstat(path);
@@ -39,7 +40,12 @@ async function inventory(directory) {
     else {
       if (!stat.isFile() || /\.(node|dll|exe|so|dylib)$/i.test(name))
         throw new Error(`Platform-specific image content: ${relative(stage, path)}`);
-      files.push({ path: relative(stage, path).split(sep).join('/'), bytes: stat.size });
+      const imagePath = relative(stage, path).split(sep).join('/');
+      // Type declarations are build-time only. Keep all runtime files and source maps.
+      if (imagePath.startsWith('workspace/node_modules/') && /\.d\.(ts|cts|mts)$/.test(name)) {
+        excludedDeclarationFiles++; excludedDeclarationBytes += stat.size; continue;
+      }
+      files.push({ path: imagePath, bytes: stat.size });
     }
   }
 }
@@ -83,6 +89,7 @@ const receipt = {
   sourceSha256: sha(await readFile(join(workspace, 'lib/index.cjs'))),
   lockSha256: sha(await readFile(join(workspace, 'package-lock.json'))),
   unpackedBytes, layerTarBytes: layer.length, compressedLayerBytes: compressed.length,
+  excludedDeclarationFiles, excludedDeclarationBytes,
   registryUploadBytes: compressed.length + config.length + manifest.length,
   // Hold both serialized representations, with extra metadata, instead of
   // assuming registry billing counts only the smaller compressed representation.

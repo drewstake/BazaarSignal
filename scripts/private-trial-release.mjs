@@ -15,8 +15,9 @@ const read = path => JSON.parse(readFileSync(path, 'utf8'));
 const isPublic = policy => (policy.bindings ?? []).some(b =>
   b.members?.some(m => m === 'allUsers' || m === 'allAuthenticatedUsers'));
 
-/** This gate permits one private image release only. It cannot activate a trial,
- * invoke an application handler, create a build/job, or change billing or IAM. */
+/** Bounded image release, optionally updating an already-active live period.
+ * Cannot activate a period, invoke a handler, reset accounting, create a build/job,
+ * or change billing/IAM. Existing-live updates must preserve identity and expiry. */
 export function verifyReleasePlan(plan, receipt, now = Date.now()) {
   if (plan.project !== project || plan.imageDigest !== receipt.imageDigest ||
       !/^sha256:[a-f0-9]{64}$/.test(receipt.imageDigest) ||
@@ -35,9 +36,17 @@ export function verifyReleasePlan(plan, receipt, now = Date.now()) {
   const required = ['cpuSeconds', 'memoryGiBSeconds', 'artifactBytes', 'logBytes'];
   for (const key of required) {
     const m = plan.meters?.[key];
+    // Existing-live reporting releases may honestly disclose an already-exceeded
+    // image free allowance. This bounded exception does not alter runtime budgets,
+    // enable billing, delete rollback images, or claim that storage is free.
+    const disclosedImageOverage = key === 'artifactBytes' && plan.updateExistingLive === true &&
+      plan.operatingMode === 'free-tier' && plan.existingImageOverageDisclosed === true &&
+      m?.used >= m?.limit && m.limit === .5 * 1024 ** 3 &&
+      plan.artifactCapacityCeilingBytes === 1024 ** 3 &&
+      m.used + m.hold + m.headroom < plan.artifactCapacityCeilingBytes;
     if (!m || ![m.used, m.hold, m.headroom, m.limit].every(Number.isFinite) ||
         Math.min(m.used, m.hold, m.headroom) < 0 || m.limit <= 0 ||
-        (m.used + m.hold + m.headroom) / m.limit >= .75)
+        ((m.used + m.hold + m.headroom) / m.limit >= .75 && !disclosedImageOverage))
       throw new Error(`Private deployment lacks allowance headroom: ${key}`);
   }
   if (plan.meters.artifactBytes.hold < receipt.artifactStorageHoldBytes ||
@@ -56,6 +65,15 @@ export function uploadLocation(location) {
       url.username || url.password || url.hash)
     throw new Error('Untrusted registry upload destination');
   return url;
+}
+
+/** A code update may not renew an active period or reset its accounting. */
+export function verifyLiveUpdate(plan, ledger, service) {
+  const env=Object.fromEntries((service.template?.containers?.[0]?.env??[]).map(e=>[e.name,e.value]));
+  if(plan.operatingMode!=='free-tier' || !/^[a-zA-Z0-9_-]{1,100}$/.test(plan.releaseId??'') ||
+    ledger?.id!==plan.id || ledger?.startsAt!==Date.parse(plan.startsAt) || ledger?.expiresAt!==Date.parse(plan.expiresAt) ||
+    ledger.stoppedAt!==undefined || env.MARKET_LIVE_ID!==plan.id || env.MARKET_LIVE_END!==plan.expiresAt ||
+    env.MARKET_OPERATING_MODE!=='free-tier')throw new Error('Live update must preserve the existing active allowance');
 }
 
 export function releasePatch(service, name, plan) {
@@ -94,6 +112,12 @@ async function main() {
   if (args.length < 1 || args.length > 3 || args.slice(1).some(a => !['--apply', '--resume-empty-upload'].includes(a)))
     throw new Error('Usage: node scripts/private-trial-release.mjs <release-plan.json> [--apply] [--resume-empty-upload]');
   const apply = args.includes('--apply'), plan = read(args[0]);
+  const liveUpdate=plan.updateExistingLive===true;
+  const targets=plan.services??['marketapi','refreshmarket'];
+  if(!Array.isArray(targets)||!targets.length||new Set(targets).size!==targets.length||targets.some(n=>!['marketapi','refreshmarket'].includes(n))||
+    (plan.services && !liveUpdate))throw new Error('Selective updates require an existing live period');
+  if(liveUpdate && (!/^[a-zA-Z0-9_-]{1,100}$/.test(plan.releaseId??'') || plan.operatingMode!=='free-tier'))
+    throw new Error('Invalid existing-live update identity');
   const receipt = read(resolve(plan.imageDirectory, 'receipt.json'));
   verifyReleasePlan(plan, receipt);
   const blob = digest => {
@@ -108,7 +132,7 @@ async function main() {
   if (sha(readFileSync('market-functions/lib/index.cjs')) !== receipt.sourceSha256 ||
       sha(readFileSync('market-functions/package-lock.json')) !== receipt.lockSha256)
     throw new Error('Image no longer matches tested source/dependencies');
-  const reportPath = resolve(`.local/private-release-${plan.id}-${apply ? 'apply' : 'inspect'}.json`);
+  const reportPath = resolve(`.local/private-release-${liveUpdate ? plan.releaseId : plan.id}-${apply ? 'apply' : 'inspect'}.json`);
   const prior = existsSync(reportPath) ? read(reportPath) : undefined;
   if (prior && (!apply || !args.includes('--resume-empty-upload') || prior.resumedAt ||
       prior.error !== 'Untrusted registry upload destination' || prior.uploadedBytes !== 0 ||
@@ -136,7 +160,20 @@ async function main() {
   }
   const json = async (...args) => (await request(...args)).json();
   async function contained() {
-    if ((await json(`https://cloudscheduler.googleapis.com/v1/${job}`)).state !== 'PAUSED')
+    const schedule=await json(`https://cloudscheduler.googleapis.com/v1/${job}`);
+    if(liveUpdate) {
+      if(schedule.state!=='ENABLED'||schedule.schedule!=='0 * * * *')throw new Error('Live hourly schedule changed');
+      const doc=await json(`https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/documents/marketCache/live-allowance`);
+      const ledger=JSON.parse(doc.fields.value.stringValue);
+      for(const name of ['marketapi','refreshmarket']) {
+        const service=await json(`https://run.googleapis.com/v2/${root}/services/${name}`);
+        verifyLiveUpdate(plan,ledger,service);
+        const policy=await json(`https://run.googleapis.com/v1/${root}/services/${name}:getIamPolicy?options.requestedPolicyVersion=3`);
+        if(isPublic(policy)!==(name==='marketapi'))throw new Error('Live invocation permissions changed');
+      }
+      return;
+    }
+    if (schedule.state !== 'PAUSED')
       throw new Error('Collector is not paused');
     for (const name of ['marketapi', 'refreshmarket'])
       if (isPublic(await json(`https://run.googleapis.com/v1/${root}/services/${name}:getIamPolicy?options.requestedPolicyVersion=3`)))
@@ -145,11 +182,11 @@ async function main() {
   try {
     await contained();
     const services = {};
-    for (const name of ['marketapi', 'refreshmarket']) {
+    for (const name of targets) {
       services[name] = await json(`https://run.googleapis.com/v2/${root}/services/${name}`);
       releasePatch(services[name], name, plan);
     }
-    if (!apply) { report.result = 'private-release-ready'; return; }
+    if (!apply) { report.result = liveUpdate ? 'existing-live-update-ready' : 'private-release-ready'; return; }
     verifyReleasePlan(plan, receipt);
     // Reserve the entire image before any upload. A failure never refunds it.
     report.reservations = plan.meters;
@@ -172,7 +209,7 @@ async function main() {
     if (uploaded.headers.get('docker-content-digest') !== receipt.imageDigest) throw new Error('Uploaded digest unverified');
     report.imageUploaded = receipt.imageDigest;
     save();
-    for (const name of ['marketapi', 'refreshmarket']) {
+    for (const name of targets) {
       await contained();
       verifyReleasePlan(plan, receipt);
       const current = await json(`https://run.googleapis.com/v2/${root}/services/${name}`);
@@ -196,7 +233,7 @@ async function main() {
       save();
     }
     await contained();
-    report.result = 'privately-deployed-collector-paused';
+    report.result = liveUpdate ? 'existing-live-code-updated-counters-preserved' : 'privately-deployed-collector-paused';
   } catch (error) { report.error = error.message; throw error; }
   finally { report.finishedAt = new Date().toISOString(); save(); console.log(JSON.stringify({ reportPath, ...report }, null, 2)); }
 }
