@@ -1,4 +1,29 @@
 import { test, expect } from "@playwright/test";
+test("name search reveals filtered items and keeps trade inputs explicit", async ({page}, info) => {
+  await page.goto('/?fixtures=1');
+  await page.getByText('More filters', {exact:true}).click();
+  await page.getByLabel('Budget · coins', {exact:true}).fill('1');
+  await page.getByText('More filters', {exact:true}).click();
+  await page.getByRole('searchbox', {name:'Search Bazaar items'}).fill('Summoning Eye');
+  const card = page.getByRole('article', {name:'Summoning Eye opportunity'});
+  await expect(card).toBeVisible();
+  await expect(card).toContainText('exceeds your budget');
+  await expect(card).toContainText('64 items');
+  await expect(card).toContainText('Sell before tax');
+  await expect(page.getByLabel('Quantity', {exact:true})).toHaveValue('64');
+  await card.getByRole('button', {name:'Inspect Summoning Eye',exact:true}).click();
+  const inspector = info.project.name === 'mobile' ? page.getByRole('dialog') : page.getByRole('complementary', {name:'Item details'});
+  await inspector.getByLabel('Inspector quantity').fill('1');
+  await expect(inspector).toContainText('Totals for 1 item');
+  await expect(inspector).toContainText('1.25% sale tax');
+  await inspector.getByText('Liquidity & order book', {exact:false}).click();
+  await expect(inspector.getByText('Highest buy order / item')).toBeVisible();
+  if (info.project.name === 'mobile') await page.getByRole('button', {name:'Close item details'}).click();
+  await expect(page.getByLabel('Quantity', {exact:true})).toHaveValue('1');
+  await page.getByRole('button', {name:'Clear search',exact:true}).click();
+  await expect(page.getByRole('article')).toHaveCount(0);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
 test("Bazaar budget, activity, quantity, views, filter persistence and responsive inspector", async ({
   page,
 }, info) => {
@@ -6,12 +31,14 @@ test("Bazaar budget, activity, quantity, views, filter persistence and responsiv
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/?fixtures=1");
   await expect(
-    page.getByRole("heading", { name: "Good loot. Better deals." }),
+    page.getByRole("heading", { name: "Bazaar" }),
   ).toBeVisible();
   await expect(
     page.getByText("DEVELOPMENT FIXTURES", { exact: false }),
   ).toBeVisible();
+  await page.getByText("More filters", { exact: true }).click();
   await page.getByLabel("Budget · coins", { exact: true }).fill("50000000");
+  await page.getByText("More filters", { exact: true }).click();
   await page.getByLabel("Quantity", { exact: true }).fill("16");
   await expect(
     page.getByRole("article", { name: "Summoning Eye opportunity" }),
@@ -23,7 +50,7 @@ test("Bazaar budget, activity, quantity, views, filter persistence and responsiv
     info.project.name === "mobile"
       ? page.getByRole("dialog", { name: "Item details" })
       : page.getByRole("complementary", { name: "Item details" });
-  await expect(inspector.getByText("Every coin accounted for")).toBeVisible();
+  await expect(inspector.getByText("Fees & calculation")).toBeVisible();
   await inspector.getByLabel("Inspector quantity").fill("8");
   await expect(inspector).toContainText("Profit / unit");
   await expect(inspector).toContainText("7-day units + sampled state");
@@ -45,8 +72,12 @@ test("Bazaar budget, activity, quantity, views, filter persistence and responsiv
       exact: true,
     }),
   ).toBeVisible();
+  await page.getByText("More filters", { exact: true }).click();
   await page.getByRole("button", { name: "Reset", exact: true }).click();
+  await page.getByText("More filters", { exact: true }).click();
+  await page.getByText("More filters", { exact: true }).click();
   await page.getByLabel("Budget · coins", { exact: true }).fill("50000000");
+  await page.getByText("More filters", { exact: true }).click();
   await page.getByLabel("Quantity", { exact: true }).fill("16");
   await page.reload();
   await expect(page.getByLabel("Quantity", { exact: true })).toHaveValue("16");
@@ -115,7 +146,7 @@ test("anonymous watchlist stays private and alerts remain reachable", async ({
   await expect(page.getByRole("alert")).toContainText("Sign in with Google");
   await page.getByRole("button", { name: "Watchlist", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Keep the good finds close" }),
+    page.getByRole("heading", { name: "Sign in to use Watchlist" }),
   ).toBeVisible();
   await page.getByRole("link", { name: "Price alerts" }).click();
   await expect(page).toHaveURL(/alerts=1/);

@@ -161,7 +161,17 @@ test("authenticated alerts refresh after creation, preserve revisions, recover f
   failAccount = false;
   await page.getByRole("button", { name: "Retry alerts" }).click();
   await expect(page.getByText("No alerts yet.", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Item", {exact:true})).toHaveValue("");
+  await page.getByLabel("Find an item", {exact:true}).fill("Summoning");
+  await page.getByLabel("Item", {exact:true}).selectOption("SUMMONING_EYE");
   const form = page.locator(".alert-form");
+  await expect(form.getByLabel("Target price", {exact:true})).toHaveValue("");
+  await form.getByLabel("Target price", {exact:true}).fill("90");
+  await form.getByRole("button", {name:"Sell above",exact:true}).click();
+  await expect(form.getByLabel("Target price", {exact:true})).toHaveValue("");
+  await expect(form.getByLabel("Sale tax (%)")).toBeVisible();
+  await form.getByRole("button", {name:"Buy below",exact:true}).click();
+  expect(requestIds).toHaveLength(0);
   await form.getByLabel("Target price", { exact: true }).fill("80");
   await form.getByLabel("Quantity", { exact: true }).fill("3");
   await expect(form.locator(".quote-note")).toContainText("110 coins / item");

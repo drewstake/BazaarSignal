@@ -1,9 +1,10 @@
 import { test, expect } from "@playwright/test";
 
 test("fresh live prices trigger once; stale data never triggers", async ({ page }) => {
+  await page.clock.install();
   let price = 1200000, stale = false;
   await page.route("**/api/market", async route => {
-    const stamp = Date.now() - (stale ? 240000 : 0);
+    const stamp = await page.evaluate(() => Date.now()) - (stale ? 240000 : 0);
     await route.fulfill({ json: {
       prices: [{ id: "SUMMONING_EYE", name: "Summoning Eye", buy: price, sell: 1000000, volume: 10000 }],
       books: { SUMMONING_EYE: { buy: [{amount: 1000, pricePerUnit: price, orders: 5}], sell: [{amount: 1000, pricePerUnit: 1000000, orders: 4}] } },
@@ -19,13 +20,13 @@ test("fresh live prices trigger once; stale data never triggers", async ({ page 
   const state = () => page.evaluate(() => JSON.parse(localStorage.getItem("bazaar-watch-live-v1")!));
   expect((await state()).workflows[0].stage).toBe("watching_buy");
   price = 1100000; stale = true;
-  await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+  await page.clock.runFor(61000);
   await expect(page.getByText("Awaiting prices", {exact: true})).toBeVisible();
   expect((await state()).workflows[0].stage).toBe("watching_buy");
   stale = false;
-  await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+  await page.clock.runFor(61000);
   await expect.poll(async () => (await state()).workflows[0].stage).toBe("completed");
-  await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+  await page.clock.runFor(61000);
   await expect.poll(async () => (await state()).events.filter((e: {side:string}) => e.side === "buy").length).toBe(1);
   expect((await state()).events.find((e: {side:string}) => e.side === "buy").message).toContain("no email");
 });

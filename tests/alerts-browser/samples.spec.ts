@@ -47,20 +47,20 @@ for (const scenario of ['fresh', 'aging', 'partial', 'missing', 'failed'] as con
     else {
       await expect(alert.locator('.current-quote')).toContainText('88.88');
       await expect(alert.locator('.current-quote')).toContainText('instant sell, after tax');
-      await expect(alert.locator('time')).toHaveAttribute('datetime',new Date(stamp).toISOString());
+      await expect(alert.locator('.current-quote > .sample-time time')).toHaveAttribute('datetime',new Date(stamp).toISOString());
       await expect(alert).toContainText(scenario==='fresh'?'Sampled estimate':'Last sampled');
     }
     if (scenario === 'failed') await expect(alert).toContainText('Collection failed: Upstream offline');
     await expect(page.getByText('Retrying automatically',{exact:true})).toHaveCount(0);
     if (scenario !== 'missing') {
       await page.getByRole('link',{name:'Bazaar',exact:true}).click();
-      await expect(page.getByRole('heading',{name:'Bazaar Samples',exact:true})).toBeVisible();
+      await expect(page.getByRole('heading',{name:'Bazaar',exact:true})).toBeVisible();
       await page.getByLabel('Quantity',{exact:true}).fill('3');
       await page.getByRole('searchbox',{name:'Search Bazaar items'}).fill('Summoning Eye');
       const card = page.getByRole('article',{name:'Summoning Eye opportunity'});
       await expect(card).toBeVisible();
       await expect(card.locator('.card-subtitle')).toBeVisible();
-      await expect(card).toContainText('totals for 3 units');
+      await expect(card).toContainText('3 items');
       const comparison = card.locator('.price-comparison');
       await expect(comparison).toContainText('270');
       if (scenario === 'partial') {

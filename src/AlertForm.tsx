@@ -50,7 +50,7 @@ export default function AlertForm({
 }) {
   const [quantity, setQuantity] = useState(initialQuantity),
     [side, setSide] = useState<"buy" | "sell">("buy");
-  const [target, setTarget] = useState(String(item.buy ?? "")),
+  const [target, setTarget] = useState(""),
     [tax, setTax] = useState("1.25");
   const [requestId, setRequestId] = useState(() => crypto.randomUUID());
   const [busy, setBusy] = useState(false),
@@ -205,7 +205,7 @@ export default function AlertForm({
             aria-pressed={side === "buy"}
             onClick={() => {
               setSide("buy");
-              setTarget(String(buy?.unit ?? item.buy ?? ""));
+              if (side !== "buy") setTarget("");
               resetRequest();
             }}
           >
@@ -216,7 +216,7 @@ export default function AlertForm({
             aria-pressed={side === "sell"}
             onClick={() => {
               setSide("sell");
-              setTarget(String(sell?.unit ?? ""));
+              if (side !== "sell") setTarget("");
               resetRequest();
             }}
           >
@@ -279,18 +279,18 @@ export default function AlertForm({
           </label>
         )}
         <div className="trigger-preview">
-          <strong>When it happens</strong>
+          <strong>Alert preview</strong>
           <p>
             <Mail size={24} />
             <span>
-              Email me when the estimated instant-{side}{" "}
+              {Number(target) > 0 ? <>Email me when the estimated instant-{side}{" "}
               {side === "buy" ? "cost" : "proceeds"} for{" "}
               <b>
                 {coins(qty)} × {item.name}
               </b>{" "}
               is {side === "buy" ? "at or below" : "at or above"}{" "}
               <b>{coins(Number(target))} coins each</b>
-              {side === "sell" ? ` after ${taxRate}% tax` : ""}.
+              {side === "sell" ? ` after ${taxRate}% tax` : ""}.</> : "Enter a target price to preview your alert."}
             </span>
           </p>
         </div>
@@ -302,16 +302,16 @@ export default function AlertForm({
         )}
         <p className="quote-note">
           {quote
-              ? `${stale ? 'Last sampled' : 'Sampled'} ${side === 'buy' ? 'instant-buy cost' : `instant-sell proceeds after ${taxRate}% tax`}: ${coins(quote.unit)} coins / item for ${coins(qty)} items.`
+              ? `${stale ? 'Last sampled' : 'Sampled'} ${side === 'buy' ? 'instant-buy cost' : `instant-sell proceeds after ${taxRate}% tax`}: ${coins(quote.unit)} coins / item for ${coins(qty)} ${qty === 1 ? 'item' : 'items'}.`
               : "Insufficient visible liquidity. The alert waits until your full quantity is available."}
-          {' '}<SampleTime timestamp={timestamp} observedAt={observedAt} />
+          {' '}<SampleTime timestamp={timestamp} compact />
           {stale && ' Alerts only trigger on fresh prices.'}
         </p>
         {compact && (
           <div className="email-delivery">
             <Mail size={22} />
             <span>
-              Email notification
+              Send to
               <small>
                 {isLocal ? "Preview only · No email sent" : user?.email}
               </small>
@@ -322,10 +322,13 @@ export default function AlertForm({
           {busy ? "Creating…" : "Create alert"}
           <SkyIcon name="alert-bell" size={30} />
         </button>
+        <details className="delivery-details">
+          <summary>Delivery &amp; limits</summary>
+          <p><SampleTime timestamp={timestamp} observedAt={observedAt} /></p>
         <p className="delivery-note">
           {isLocal
             ? "Preview only. No email will be sent."
-            : `Confirmation goes to ${user?.email}.`}
+            : compact ? "A confirmation email, then one target alert. Delivery may queue." : `A confirmation email, then one target alert to ${user?.email}. Delivery may queue.`}
           {(!compact || !isLocal) && (
             <>
               <br />
@@ -342,6 +345,7 @@ export default function AlertForm({
             </>
           )}
         </p>
+        </details>
         {error && (
           <p className="error" role="alert">
             {error}

@@ -9,7 +9,7 @@ test("production pause preserves navigation and sign-in gate without a market ne
   await page.getByRole("button",{name:"Auctions",exact:true}).click();
   await expect(page.getByText("Updates paused to protect the free allowance",{exact:false}).first()).toBeVisible();
   await page.getByRole("button",{name:"Watchlist",exact:true}).click();
-  await expect(page.getByRole("heading",{name:"Keep the good finds close"})).toBeVisible();
+  await expect(page.getByRole("heading",{name:"Sign in to use Watchlist"})).toBeVisible();
   await page.getByRole("link",{name:"Price alerts",exact:true}).click();
   await expect(page).toHaveURL(/alerts=1/);
   await page.clock.fastForward(120000);

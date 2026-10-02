@@ -588,6 +588,11 @@ input::-webkit-inner-spin-button {
   flex-direction: column;
   gap: 19px;
 }
+/* Let the shared alert form grow past one screen without covering its actions. */
+.minimal-app .item-page:has(.alert-form) {
+  height: auto;
+  min-height: calc(100dvh - 132px);
+}
 .form-intro p {
   font-size: 13px;
   margin-top: 5px;

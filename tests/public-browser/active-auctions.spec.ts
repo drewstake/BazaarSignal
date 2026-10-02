@@ -3,6 +3,8 @@ import { normalizeListing } from "../../collector/normalize";
 import { activePage } from "../../shared/companion/active-auctions";
 import { defaultAuctionFilters } from "../../shared/companion/auctions";
 import { gzipSync } from "node:zlib";
+import { productionUsage } from './policy';
+import { nextMarketRead } from '../../shared/market-schedule';
 function nbtItem() {
   const text = (s: string) => {
     const b = Buffer.from(s),
@@ -43,6 +45,7 @@ for (const unavailable of [false, true])
     page,
     context,
   }, info) => {
+    await page.clock.install();
     const now = Date.now(),
       seller = "a".repeat(32),
       upstreamRequests: string[] = [],
@@ -60,6 +63,7 @@ for (const unavailable of [false, true])
       checkedAt: now,
       explanation: "Standard",
     };
+    const usage = productionUsage();
     const listings = [1000000, 2000000, 4000000].map((price, i) => ({
       ...normalizeListing(
         {
@@ -80,22 +84,24 @@ for (const unavailable of [false, true])
     await context.route("**/api/companion/**", async (route) => {
       const url = new URL(route.request().url());
       if (url.pathname.endsWith("/bazaar"))
-        return route.fulfill({ json: { items: [], error: null } });
+        return route.fulfill({ json: { items: [], error: null, usage } });
       if (url.pathname.endsWith("/command"))
         return route.fulfill({
-          json: { command: "/ah TestSeller", seller: "TestSeller" },
+          json: { command: "/ah TestSeller", seller: "TestSeller", usage },
         });
       reads++;
       if (unavailable || fail)
         return route.fulfill({
           status: 503,
           json: {
+            usage,
             error: "Shared cache unavailable; automatic recovery pending.",
           },
         });
       const filters = JSON.parse(url.searchParams.get("filters") ?? "{}");
       return route.fulfill({
         json: {
+          usage,
           ...activePage(
             listings,
             { ...defaultAuctionFilters, ...filters },
@@ -162,9 +168,8 @@ for (const unavailable of [false, true])
       });
       // Repeated reads do not replace unchanged cards. A failed read retains them;
       // crossing the freshness deadline strips their comparisons locally.
-      await page.clock.install();
       fail = true;
-      await page.clock.runFor(6000);
+      await page.clock.runFor(nextMarketRead(Date.now(), usage.pollMs) - Date.now() + 5000);
       await expect(page.getByText(/Shared cache unavailable/)).toBeVisible();
       await expect(card).toBeVisible();
       await page.clock.runFor(180000);

@@ -203,6 +203,7 @@ export function ItemArt({
   );
 }
 export function RarityRibbon({ rarity }: { rarity: string }) {
+  if (rarity.toUpperCase() === "UNKNOWN") return null;
   return (
     <span className={`rarity rarity-${rarity.toLowerCase()}`}>
       {titleCase(rarity)}
@@ -308,9 +309,9 @@ export function Quantity({
   );
 }
 const comparisonLabels = {
-  card: ["Buy", "Sell", "Profit"],
-  feature: ["Buy cost", "Resale estimate", "Expected profit"],
-  detail: ["Buy cost", "Resale estimate", "Expected profit"],
+  card: ["Buy total", "Sell before tax", "Est. profit after fees"],
+  feature: ["Buy total", "Sell before tax", "Est. profit after fees"],
+  detail: ["Buy total", "Sell before tax", "Est. profit after fees"],
 } as const;
 export function PriceComparison({
   buy,
@@ -345,7 +346,7 @@ export function PriceComparison({
       <div
         className={`profit-line ${profit !== null && profit < 0 ? "negative" : ""}`}
       >
-        <span>{sampled ? 'Sampled profit' : profitLabel}</span>
+        <span>{sampled && !askingPrice ? 'Sampled profit after fees' : profitLabel}</span>
         <strong>
           <Coin value={profit} full={full} positive />
           {roi !== null && (

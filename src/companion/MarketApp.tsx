@@ -8,7 +8,6 @@ import {
   Grid2X2,
   List,
   LogOut,
-  Plus,
   Search,
   ShieldCheck,
   X,
@@ -22,8 +21,6 @@ import type {
 } from "../../shared/companion/types";
 import {
   defaultBazaarFilters,
-  filterBazaar,
-  quoteBazaar,
   bazaarTrade,
 } from "../../shared/companion/bazaar";
 import {
@@ -57,13 +54,10 @@ import {
 import {
   artGlow,
   SkyIcon,
-  compact,
   EmptyState,
   ItemArt,
   ItemCard,
   LoadingState,
-  PriceComparison,
-  RarityRibbon,
   SelectField,
   titleCase,
 } from "./components";
@@ -73,6 +67,7 @@ import type { CacheResult, CacheStatus } from "./api";
 import UsageDashboard from './UsageDashboard';
 import { ownerCandidate } from './usage-access';
 import { SampleTime } from '../SampleTime';
+import { bazaarResults } from "./bazaar-results";
 import { isFresh } from '../../shared/market';
 
 type View = "bazaar" | "auctions" | "watchlist" | "usage";
@@ -316,21 +311,10 @@ export default function MarketApp() {
     Number.isSafeInteger(bf.quantity) &&
     bf.budget >= 0 &&
     bf.maxActivityShare >= 0;
-  const opportunities = useMemo(
-    () =>
-      validBazaar
-        ? filterBazaar(bazaar, bf, now, true)
-        : [],
+  const rows = useMemo(
+    () => validBazaar ? bazaarResults(bazaar, bf, now) : [],
     [bazaar, bf, now, validBazaar],
   );
-  // Keep partial books discoverable without ranking an incomplete trade as profit.
-  const rows = useMemo(() => [
-    ...opportunities.map(quote => ({ item: quote.item, quote })),
-    ...bazaar.filter(item => validBazaar &&
-      `${item.name} ${item.id}`.toLowerCase().includes(bf.query.trim().toLowerCase()) &&
-      (bf.category === 'all' || item.category === bf.category) && !quoteBazaar(item, bf, now))
-      .map(item => ({ item, quote: null })),
-  ], [opportunities, bazaar, bf, now, validBazaar]);
   const pages = Math.max(1, Math.ceil(rows.length / 6)),
     safePage = Math.min(page, pages - 1),
     shown = rows.slice(safePage * 6, safePage * 6 + 6);
@@ -358,18 +342,6 @@ export default function MarketApp() {
       ),
     [auctions, now, af.durationHours],
   );
-  const deal = opportunities.find(
-      (q) => q.fresh && !marketError && !cacheStatus?.error && q.profit > 0 && q.concerns.length === 0,
-    ),
-    auctionDeal = visibleAuctions.find(
-      (o) =>
-        o.profit !== null &&
-        o.profit > 0 &&
-        ["medium", "high"].includes(o.valuation.confidence) &&
-        o.listing.status === "active" &&
-        now - o.listing.upstreamAt < 180000 &&
-        o.flags.length === 0,
-    );
   const selectedItem =
     bazaar.find((i) => i.id === selectedBazaar) ?? shown[0]?.item ?? null;
   const rawSelectedAh = selectedAuction ?? visibleAuctions[0] ?? null;
@@ -561,7 +533,7 @@ export default function MarketApp() {
       {fixtureMode
         ? "Illustrative fixtures"
         : lastUpdate
-          ? <SampleTime timestamp={lastUpdate} observedAt={cacheStatus?.observedAt} now={now} />
+          ? <SampleTime timestamp={lastUpdate} now={now} compact />
           : "Waiting for market data"}
       <span className="automatic-status" aria-live="polite">
         {usage.mode === "paused"
@@ -569,17 +541,16 @@ export default function MarketApp() {
           : !lastUpdate
             ? "Automatic updates · waiting"
             : now - lastUpdate > 180000
-              ? view === 'bazaar' ? "Historical estimates use the sampled prices and fee context" : "Stale · auction comparisons withheld until the scheduled check"
+              ? view === 'bazaar' ? "Historical estimates. Check in-game prices before trading." : "Stale sample. Comparisons and seller commands need fresh prices."
               : (view === "auctions" ? auctionError : marketError)
                 ? "Cached update failed · waiting for the next scheduled check"
                 : cacheStatus?.refreshing && view === "auctions"
                   ? "Updating automatically…"
                   : "Automatic updates"}
-        {usage.mode !== "paused" && usage.pollMs >= 3600_000 ? ` · next check ${new Date(nextMarketRead(now, usage.pollMs)).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}` : ""}
+        {usage.mode !== "paused" && usage.pollMs >= 3600_000 ? ` · next price check ${new Date(nextMarketRead(now, usage.pollMs)).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}` : ""}
       </span>
     </span>
   );
-  const watchSlots = saved.slice(0, 3);
   return (
     <div className="companion">
       <a href="#market-content" className="skip-link">
@@ -595,15 +566,7 @@ export default function MarketApp() {
             <SkyIcon name="emerald" size={72} className="brand-gem" />
             <span className="brand-word">BazaarSignal</span>
           </button>
-          <h1 className="tagline-sign">
-            Good loot. <span>Better deals.</span>
-          </h1>
           <div className="header-signs">
-            <span className="server-tag">
-              HYPIXEL
-              <br />
-              <b>SKYBLOCK</b>
-            </span>
             {user ? (
               <button
                 className="account-button"
@@ -622,7 +585,6 @@ export default function MarketApp() {
                 {authBusy ? "Connecting…" : "Sign in with Google"}
               </button>
             )}
-            <span className="lantern" aria-hidden="true" />
           </div>
           <nav className="market-tabs" aria-label="Main navigation">
             {(
@@ -651,7 +613,7 @@ export default function MarketApp() {
             </a>
             {ownerCandidate(user) && <button className={view==='usage'?'active tab-usage':'tab-usage'} onClick={()=>navigate('usage')} aria-current={view==='usage'?'page':undefined}><ShieldCheck size={25}/><span>Usage &amp; Costs</span></button>}
           </nav>
-          {view !== 'usage' && <label className="market-search">
+          {(view === 'bazaar' || view === 'auctions') && <label className="market-search">
             <Search size={20} strokeWidth={2.4} />
             <input
               type="search"
@@ -670,7 +632,6 @@ export default function MarketApp() {
                 if (view === "auctions")
                   patchAuction({ query: e.target.value });
                 else {
-                  if (view === "watchlist") navigate("bazaar");
                   patchBazaar({ query: e.target.value });
                 }
               }}
@@ -726,14 +687,14 @@ export default function MarketApp() {
             <section className="watchlist-page">
               <div className="section-heading">
                 <div>
-                  <h2>Your treasure chest</h2>
-                  <p>Saved opportunities, just for you.</p>
+                  <h2>Watchlist</h2>
+                  <p>Saved Bazaar items and auction listings. For email notifications, set a price alert.</p>
                 </div>
                 <SkyIcon name="watchlist-chest" size={96} />
               </div>
               {!user ? (
                 <EmptyState
-                  title="Keep the good finds close"
+                  title="Sign in to use Watchlist"
                   action={
                     <button
                       className="button green"
@@ -750,7 +711,7 @@ export default function MarketApp() {
                 <LoadingState />
               ) : !saved.length ? (
                 <EmptyState
-                  title="Room for your next great find"
+                  title="No saved items yet"
                   action={
                     <button
                       className="button blue"
@@ -760,7 +721,7 @@ export default function MarketApp() {
                     </button>
                   }
                 >
-                  Use the heart on an item to tuck it away here.
+                  Use the star on an item to save it here.
                 </EmptyState>
               ) : (
                 <div className="saved-items">
@@ -847,157 +808,19 @@ export default function MarketApp() {
                 </div>
               )}
               <div className="market-board">
-                <aside className="deal-column" aria-label="Deal of the day">
-                  <div className="deal-banner">
-                    <SkyIcon
-                      name="deal-crown"
-                      size={52}
-                      className="deal-crown"
-                    />
-                    <h2>DEAL OF THE DAY</h2>
-                  </div>
-                  <div className="deal-paper">
-                    {view === "bazaar" && deal ? (
-                      <>
-                        <div className="deal-art" style={artGlow(deal.item.id)}>
-                          <RarityRibbon rarity={deal.item.rarity} />
-                          <ItemArt id={deal.item.id} size="hero" />
-                          <span className="art-spark one" aria-hidden="true" />
-                          <span className="art-spark two" aria-hidden="true" />
-                          <span
-                            className="art-spark three"
-                            aria-hidden="true"
-                          />
-                        </div>
-                        <div className="deal-copy">
-                          <h2
-                            className={`rarity-ink-${deal.item.rarity.toLowerCase()}`}
-                          >
-                            {deal.item.name}
-                          </h2>
-                          <p>
-                            Fresh prices, active on both sides. A promising find
-                            for your next trade.
-                          </p>
-                          <PriceComparison
-                            buy={deal.acquisition}
-                            sell={deal.grossSale}
-                            profit={deal.profit}
-                            roi={deal.roi}
-                            variant="feature"
-                          />
-                          <button
-                            className="button green"
-                            onClick={() => openBazaar(deal.item.id)}
-                          >
-                            Inspect this deal{" "}
-                            <ChevronRight size={22} strokeWidth={3} />
-                          </button>
-                          <div className="deal-reason">
-                            <ShieldCheck size={16} />
-                            <span>
-                              Picked from your matches: positive net profit,
-                              fresh data and no liquidity flags. Quantity{" "}
-                              {deal.quantity}.
-                            </span>
-                          </div>
-                        </div>
-                      </>
-                    ) : view === "auctions" && auctionDeal ? (
-                      <>
-                        <div
-                          className="deal-art"
-                          style={artGlow(auctionDeal.listing.variant.itemId)}
-                        >
-                          <RarityRibbon
-                            rarity={auctionDeal.listing.variant.rarity}
-                          />
-                          <ItemArt
-                            id={auctionDeal.listing.variant.itemId}
-                            size="hero"
-                          />
-                          <span className="art-spark one" aria-hidden="true" />
-                          <span className="art-spark two" aria-hidden="true" />
-                          <span
-                            className="art-spark three"
-                            aria-hidden="true"
-                          />
-                        </div>
-                        <div className="deal-copy">
-                          <h2
-                            className={`rarity-ink-${auctionDeal.listing.variant.rarity.toLowerCase()}`}
-                          >
-                            {auctionDeal.listing.variant.name}
-                          </h2>
-                          <p>
-                            {auctionDeal.valuation.count} matching active
-                            listings support this estimate.
-                          </p>
-                          <PriceComparison
-                            buy={auctionDeal.listing.price}
-                            askingPrice
-                            sell={auctionDeal.valuation.estimate}
-                            profit={auctionDeal.profit}
-                            roi={auctionDeal.roi}
-                            variant="feature"
-                          />
-                          <button
-                            className="button green"
-                            onClick={() => copyAuction(auctionDeal)}
-                            disabled={copyingAuction !== null}
-                          >
-                            {auctionLabel(auctionDeal)}{" "}
-                            <ChevronRight size={22} strokeWidth={3} />
-                          </button>
-                          <button
-                            className="auction-details"
-                            onClick={() => openAuction(auctionDeal)}
-                          >
-                            View details
-                          </button>
-                          <div className="deal-reason">
-                            <ShieldCheck size={16} />
-                            <span>
-                              Fresh, positive after-fee asking-price gap and at
-                              least medium confidence. Recheck availability
-                              before trading.
-                            </span>
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <EmptyState title="Good deals take patience">
-                        {usage.mode === "paused"
-                          ? "Fresh comparisons are unavailable while market updates are paused."
-                          : view === "bazaar"
-                            ? "No fresh opportunities pass your filters without liquidity concerns. Try a smaller quantity or adjust your filters."
-                            : "This spot compares current asking prices for matching configurations. No matching listings meet your filters yet."}
-                      </EmptyState>
-                    )}
-                  </div>
-                </aside>
                 <section
                   className="opportunity-column"
                   aria-label="Market opportunities"
                 >
                   <div className="opportunities-heading">
                     <div>
-                      <h2>
-                        <SkyIcon
-                          name="hot-flame"
-                          size={40}
-                          className="hot-flame"
-                        />
-                        {view === "bazaar"
-                          ? "Bazaar Samples"
-                          : "Auction Finds"}
-                      </h2>
+                      <h1>{view === "bazaar" ? "Bazaar" : "Auctions"}</h1>
                       <p>
                         {view === "bazaar"
                           ? rows.length
                           : auctionTotal}{" "}
-                        matching {view === "bazaar" ? "items" : "listings"} from
-                        the {view === "bazaar" ? "Bazaar" : "Auction House"}.
+                        {view === "bazaar" ? (rows.length === 1 ? "item" : "items") : (auctionTotal === 1 ? "listing" : "listings")}
+                        {view === "auctions" && " · Compare matching Buy It Now asking prices."}
                       </p>
                     </div>
                     <div className="heading-tools">
@@ -1068,34 +891,9 @@ export default function MarketApp() {
                   </div>
                   <div className="result-status">
                     {freshness}
-                    <button
-                      className="how-it-works"
-                      onClick={() => setHelp((v) => !v)}
-                      aria-expanded={help}
-                    >
-                      <CircleHelp size={15} />
-                      How we find deals
-                    </button>
                   </div>
-                  {help && (
-                    <div className="method-note">
-                      <ShieldCheck size={24} />
-                      <div>
-                        <strong>
-                          Profit is an estimate. Evidence comes first.
-                        </strong>
-                        <p>
-                          Bazaar uses visible order-book depth, your quantity,
-                          and sale tax. Weekly activity is a sizing proxy, not
-                          an exact trade count or fill-time promise. Auctions
-                          use the arithmetic average of other active BIN
-                          listings with the exact configuration and stack
-                          quantity. Bidding auctions are excluded because bids
-                          are not executable purchase prices. Asking prices do
-                          not prove resale value.
-                        </p>
-                      </div>
-                    </div>
+                  {view === "bazaar" && bf.query.trim() && rows.some(row => row.outsideFilters) && (
+                    <p className="search-filter-note" role="status">Search includes items outside your filters. Estimates still use your strategy, quantity and fees.</p>
                   )}
                   {(view === "bazaar" ? bazaarLoading : auctionLoading) ? (
                     <>
@@ -1111,9 +909,9 @@ export default function MarketApp() {
                       <div
                         className={`item-grid ${bf.view === "list" ? "compact-list" : ""}`}
                       >
-                        {shown.map(({ item, quote: q }) => {
+                        {shown.map(({ item, quote: q, outsideFilters }) => {
                           const trade = bazaarTrade(item, bf, now);
-                          const stale = !isFresh(item.upstreamAt, now);
+                          const stale = !isFresh(item.upstreamAt, now) || q?.fresh === false;
                           return (
                           <ItemCard
                             key={item.id}
@@ -1126,28 +924,23 @@ export default function MarketApp() {
                             profit={q?.profit ?? null}
                             roi={q?.roi ?? null}
                             sampled={stale || Boolean(marketError)}
-                            actionLabel="View sample"
+                            actionLabel="View details"
                             badge={
-                              stale ? "Last sampled · Stale" : q ? titleCase(q.liquidity) : "Partial data"
+                              stale ? "Stale sample" : q ? "Sampled estimate" : "Partial data"
                             }
                             warning={
-                              !q ? "Profit unavailable: missing depth, invalid prices or incompatible fee evidence."
-                                : q.concerns[0]
+                              !q ? "Profit unavailable: missing prices, depth or fee data."
+                                : outsideFilters ? q.capital > bf.budget ? "Outside filters: this quantity exceeds your budget." : "Outside your profit, category or liquidity filters."
+                                : q.concerns.find(concern => !concern.startsWith("Last sampled estimate"))
                             }
                             subtitle={
                               <>
                                 {bf.strategy === "order-offer"
-                                  ? "Order → offer"
+                                  ? "Buy order → sell offer"
                                   : bf.strategy === "instant-offer"
-                                    ? "Instant buy → offer"
-                                    : "Order → instant sell"}{" "}
-                                · totals for {bf.quantity} units · sale before tax
-                                <br />
-                                <SampleTime timestamp={item.upstreamAt} observedAt={item.observedAt} now={now} />
-                                <br />
-                                {compact(item.instantBuyActivity7d)} buy /{" "}
-                                {compact(item.instantSellActivity7d)} sell ·
-                                7d proxy
+                                    ? "Instant buy → sell offer"
+                                    : "Buy order → instant sell"}{" "}
+                                · {bf.quantity} {bf.quantity === 1 ? "item" : "items"}
                               </>
                             }
                             selected={selectedItem?.id === item.id}
@@ -1169,7 +962,7 @@ export default function MarketApp() {
                               : "No matching opportunities"
                         }
                         action={
-                          usage.mode !== "paused" && (
+                            usage.mode !== "paused" && !marketError && (
                             <button
                               className="button paper"
                               onClick={() => {
@@ -1184,7 +977,9 @@ export default function MarketApp() {
                       >
                         {usage.mode === "paused"
                           ? "Fresh prices are unavailable. Your watchlist and existing Price Alerts remain available, and you can still edit alert targets."
-                          : "Try a lower quantity, a different strategy, or broader liquidity checks. Losing trades are excluded by the default minimum profit."}
+                          : marketError ? "Cached prices could not be loaded. The next scheduled check will try again."
+                          : bf.query.trim() ? "No item names match your search. Try a shorter name."
+                          : "No trades pass your filters. Try a smaller quantity or adjust More filters."}
                       </EmptyState>
                     )
                   ) : visibleAuctions.length ? (
@@ -1208,7 +1003,7 @@ export default function MarketApp() {
                               ? "Stale"
                               : `${titleCase(o.valuation.confidence)} confidence`
                           }
-                          subtitle={`${o.valuation.count} matching active listings`}
+                          subtitle={o.listing.status !== "active" ? "Comparison unavailable · stale or ended listing" : `${o.valuation.count} matching active listings`}
                           warning={
                             o.valuation.reasons.some((r) =>
                               r.includes("inflate"),
@@ -1218,11 +1013,11 @@ export default function MarketApp() {
                           }
                           selected={selectedAh?.listing.id === o.listing.id}
                           saved={isSaved("auction", o.listing.id)}
-                          onOpen={() => copyAuction(o)}
-                          actionLabel={auctionLabel(o)}
-                          actionAriaLabel={`Copy seller command for ${o.listing.variant.name}`}
+                          onOpen={() => o.listing.status === "active" ? copyAuction(o) : openAuction(o)}
+                          actionLabel={o.listing.status === "active" ? auctionLabel(o) : "View details"}
+                          actionAriaLabel={`${o.listing.status === "active" ? "Copy seller command for" : "View details for"} ${o.listing.variant.name}`}
                           actionBusy={copyingAuction !== null}
-                          onInspect={() => openAuction(o)}
+                          onInspect={o.listing.status === "active" ? () => openAuction(o) : undefined}
                           onSave={() =>
                             toggle(
                               "auction",
@@ -1301,12 +1096,40 @@ export default function MarketApp() {
                       <ChevronRight size={16} />
                     </button>
                   </div>
+                    <button
+                      className="how-it-works"
+                      onClick={() => setHelp((v) => !v)}
+                      aria-expanded={help}
+                    >
+                      <CircleHelp size={15} />
+                      How estimates work
+                    </button>
+                  {help && (
+                    <div className="method-note">
+                      <ShieldCheck size={24} />
+                      <div>
+                        <strong>
+                          Estimates are not guaranteed profit.
+                        </strong>
+                        <p>
+                          Bazaar uses visible order-book depth, your quantity,
+                          and sale tax. Weekly activity is a sizing proxy, not
+                          an exact trade count or fill-time promise. Auctions
+                          use the arithmetic average of other active BIN
+                          listings with the exact configuration and stack
+                          quantity. Bidding auctions are excluded because bids
+                          are not executable purchase prices. Asking prices do
+                          not prove resale value.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                   <div className="market-footnote">
                     <ShieldCheck size={16} />
                     <p>
                       {view === "bazaar"
-                        ? "After-tax estimates for your selected quantity. Activity is reported 7-day units + live state. Orders can take time to fill."
-                        : `Current active BIN asking prices. Snapshot ${health?.activeUpstreamAt ? new Date(health.activeUpstreamAt).toLocaleTimeString() : "loading"}. Averages exclude the selected listing. After-fee gaps are hypothetical, not proven profit.`}
+                        ? "Profit includes sale tax and additional costs. Orders may not fill; check prices in-game."
+                        : `Sampled BIN asking prices. Snapshot ${health?.activeUpstreamAt ? new Date(health.activeUpstreamAt).toLocaleTimeString() : "loading"}. Averages exclude the selected listing. After-fee gaps are hypothetical, not proven profit.`}
                     </p>
                   </div>
                 </section>
@@ -1347,71 +1170,6 @@ export default function MarketApp() {
                       <BlankInspector />
                     )}
                   </InspectorShell>
-                  <section className="watch-chest" aria-label="My watchlist">
-                    <div className="watch-chest-heading">
-                      <h2>
-                        <SkyIcon
-                          name="watchlist-chest"
-                          size={40}
-                          className="chest-heading-icon"
-                        />
-                        My Watchlist{" "}
-                        <span>({user ? saved.length : 0}/100)</span>
-                      </h2>
-                      <button
-                        className="view-all"
-                        onClick={() => navigate("watchlist")}
-                      >
-                        View all <ArrowRight size={15} strokeWidth={2.6} />
-                      </button>
-                    </div>
-                    <div className="chest-box">
-                      <div className="chest-slots">
-                        {[0, 1, 2].map((i) => {
-                          const s = watchSlots[i];
-                          return s ? (
-                            <button
-                              key={s.key}
-                              className="chest-slot"
-                              aria-label={`Reopen ${s.name}`}
-                              title={s.name}
-                              style={artGlow(
-                                s.kind === "bazaar" ? s.itemId : "CHEST",
-                              )}
-                              onClick={() => reopen(s)}
-                            >
-                              {s.kind === "bazaar" ? (
-                                <ItemArt id={s.itemId} size="small" />
-                              ) : (
-                                <SkyIcon name="watchlist-chest" size={48} />
-                              )}
-                            </button>
-                          ) : (
-                            <span
-                              key={`empty-${i}`}
-                              className="chest-slot empty"
-                              aria-hidden="true"
-                            />
-                          );
-                        })}
-                        <button
-                          className="chest-slot add"
-                          aria-label={
-                            user ? "Open watchlist" : "Sign in to save finds"
-                          }
-                          onClick={() =>
-                            user ? navigate("watchlist") : signIn()
-                          }
-                          disabled={authBusy}
-                        >
-                          <Plus size={30} strokeWidth={3} />
-                        </button>
-                      </div>
-                      {!user && (
-                        <p>Sign in to keep your best finds in this chest.</p>
-                      )}
-                    </div>
-                  </section>
                 </div>
               </div>
             </>
@@ -1421,10 +1179,6 @@ export default function MarketApp() {
           <span>
             <SkyIcon name="emerald" size={26} /> BazaarSignal{" "}
             <span>· An independent SkyBlock companion</span>
-          </span>
-          <span>
-            Happy flipping. Trade thoughtfully.{" "}
-            <SkyIcon name="favorite-heart" size={18} className="pixel-heart" />
           </span>
         </footer>
       </main>

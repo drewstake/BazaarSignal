@@ -15,7 +15,6 @@ import { estimate } from "../shared/market";
 import { Coin, ItemArt, RarityRibbon, artGlow } from "./companion/components";
 import { useAlertBook } from "./useAlertBook";
 import { SampleTime } from './SampleTime';
-import { nextScheduledMarketCheck, pollingDirective } from './companion/polling';
 
 const coins = (value: number) =>
   value.toLocaleString("en-US", { maximumFractionDigits: 6 });
@@ -240,8 +239,8 @@ export default function MyAlerts({
         </div>
       )}
       {board && !loading && !error && (
-        <section className="recent-triggers" aria-label="Recent triggers">
-          <h2>Recently triggered</h2>
+        <details className="recent-triggers" aria-label="Recent triggers">
+          <summary>Recent delivery history</summary>
           {triggers.length ? (
             triggers.map((event) => (
               <div className="trigger-row" key={event.id}>
@@ -264,7 +263,7 @@ export default function MyAlerts({
               here when reported.
             </p>
           )}
-        </section>
+        </details>
       )}
       {board && !isLocal && (
         <button
@@ -364,12 +363,12 @@ function SavedAlert({
             ) : null)}
           <span>
             {side === "buy"
-              ? "Instant buy at or below"
+              ? `Buy ${coins(w.quantity)} ${w.quantity === 1 ? 'item' : 'items'} at ≤`
               : side === "sell"
-                ? "Instant sell at or above"
+                ? `Sell ${coins(w.quantity)} ${w.quantity === 1 ? 'item' : 'items'} at ≥`
                 : "Target"}{" "}
-            <strong>{coins(target)}</strong> coins / item
-            {side === "sell" ? ", after tax" : ""}
+            <strong>{coins(target)}</strong> coins each
+            {side === "sell" ? ` (instant sell, after ${w.taxRate ?? 1.25}% tax).` : side === "buy" ? " (instant buy)." : ""}
           </span>
         </p>
         <div className="alert-card-details">
@@ -388,36 +387,18 @@ function SavedAlert({
                     <Coin value={quote.unit} full />
                   )}
                 </strong>
-                {quote && <span>coins / item · full quantity estimate</span>}
-                <SampleTime timestamp={timestamp} observedAt={observedAt} />
+                {quote && <span>coins each · priced for {coins(w.quantity)} {w.quantity === 1 ? 'item' : 'items'}</span>}
+                <SampleTime timestamp={timestamp} compact />
                 {stale && <span>Target checks wait for a fresh sample.</span>}
                 {priceError && <span>{collectionError ? 'Collection failed' : 'Cached price read failed'}: {priceError}</span>}
-                {!isLocal && <span>{pollingDirective().mode === 'paused' ? 'Scheduled updates are paused.' :
-                  nextScheduledMarketCheck() !== null ? `Next scheduled cache check: ${new Date(nextScheduledMarketCheck()!).toLocaleTimeString([], {hour:'numeric', minute:'2-digit',timeZoneName:'short'})}.` : 'Cached prices update automatically while this tab is visible.'}</span>}
-              </div>
-              <div>
-                <span>Target</span>
-                <strong className="target-coins">
-                  <Coin value={target} full />
-                </strong>
+                <details className="sample-details"><summary>Sample details</summary><SampleTime timestamp={timestamp} observedAt={observedAt} /></details>
               </div>
             </>
           )}
-          <p className="delivery-note">
+          {!board && <p className="delivery-note">
             Quantity: <b>{coins(w.quantity)}</b>
-          </p>
-          {board ? (
-            <p className="delivery-note">
-              {side === "sell" ? (
-                `After ${w.taxRate ?? 1.25}% tax`
-              ) : (
-                <>
-                  <Mail size={18} />
-                  Email notification
-                </>
-              )}
-            </p>
-          ) : (
+          </p>}
+          {!board && (
             side === "sell" && (
               <p className="delivery-note">Sale tax: {w.taxRate ?? 1.25}%</p>
             )

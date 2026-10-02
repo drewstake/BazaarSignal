@@ -1,0 +1,195 @@
+/* Shared reading layout. Keep the item artwork; give prices and controls the space. */
+.companion {
+  --muted: #655744;
+  background: #eee9dc;
+  font-size: 15px;
+}
+.companion .market-header { padding: 0 24px; background: #f9f5eb; border-bottom: 1px solid #d6c9ae; }
+.companion .market-header-inner {
+  max-width: 1500px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "brand signs" "tabs search";
+  gap: 8px 20px;
+  padding: 12px 0;
+  align-items: center;
+}
+.companion.price-alerts-app .market-header-inner { grid-template-areas: "brand signs" "tabs tabs"; }
+.companion .market-brand {
+  display: inline-flex; align-items: center; justify-self: start;
+  padding: 0; gap: 6px; border: 0; border-radius: 0; background: none; box-shadow: none;
+  text-decoration: none;
+}
+.companion .market-brand .brand-gem { width: 36px; height: 40px; margin: 0; filter: none; }
+.companion .brand-word { font-size: 27px; color: #382919; background: none; filter: none; padding: 0; letter-spacing: -0.5px; }
+.companion .market-header::before, .companion .market-header::after,
+.companion .market-brand::before, .companion .market-brand::after,
+.companion .market-frame::before, .companion .market-frame::after,
+.companion .market-tabs > .active::after, .companion .paper-pin,
+.companion .art-spark, .companion .card-art::after { display: none; }
+.companion .header-signs { justify-self: end; align-items: center; gap: 8px; }
+.companion .account-button { min-height: 40px; margin: 0; padding: 8px 12px; border: 1px solid #cabb9c; border-radius: 5px; background: #fffaf0; box-shadow: none; color: var(--ink); text-shadow: none; }
+.companion .market-tabs { margin: 0; gap: 4px; align-self: center; justify-content: start; }
+.companion .market-tabs > button, .companion .market-tabs > a {
+  flex: 0 1 auto; min-height: 44px; height: auto; padding: 10px 15px; border: 0;
+  border-radius: 5px; background: none; color: #5a4632; box-shadow: none; text-shadow: none; font-size: 16px;
+}
+.companion .market-tabs .tab-icon, .companion .market-tabs .tab-usage > svg { display: none; }
+.companion .market-tabs > .active { background: #e4ecd9; color: #275322; box-shadow: inset 0 -3px #48773a; }
+.companion .market-search { width: 310px; max-width: 100%; height: 44px; margin: 0; background: #fffdf7; border: 1px solid #baaa8d; box-shadow: none; border-radius: 5px; }
+.companion .market-main { max-width: 1548px; padding: 20px 24px; }
+.companion .market-frame { padding: 0; background: none; border: 0; box-shadow: none; }
+.companion .filter-panel, .companion .opportunity-column, .companion .inspector,
+.companion .parchment, .companion .watchlist-page {
+  border: 1px solid #d6c9ae; border-radius: 8px; background: #fffaf0; box-shadow: none;
+}
+.companion .filter-panel { padding: 12px 16px; margin-bottom: 16px; }
+.companion .quick-filters { gap: 12px; width: 100%; }
+.companion .quick-filters > .field { width: 240px; }
+.companion .quick-filters > .field:nth-child(2) { width: 110px; }
+.companion .field > span { font-size: 13px; }
+.companion select, .companion .field input { min-height: 42px; height: 42px; border-width: 1px; font-size: 15px; box-shadow: none; }
+.companion .advanced-filters > summary { min-height: 42px; background: #f1eadb; border: 1px solid #cabb9c; color: var(--ink); text-shadow: none; box-shadow: none; }
+.companion .advanced-filters[open] > summary { background: #e4ecd9; }
+.companion .advanced-grid { border: 1px solid #cabb9c; border-radius: 8px; }
+.companion .filter-actions { grid-column: 1 / -1; justify-content: end; margin: 0; }
+.companion .filter-actions button { min-height: 44px; }
+.companion .market-board { grid-template-columns: minmax(0, 1fr) 360px; grid-template-areas: "cards side"; gap: 20px; }
+.companion .opportunity-column { padding: 18px; }
+.companion .opportunities-heading h1 { margin: 0; font: 750 28px/1.2 var(--display); }
+.companion .heading-tools, .companion .view-toggle, .companion .heading-tools .field { min-height: 44px; height: 44px; }
+.companion .view-toggle button { width: 40px; }
+.companion .result-status { margin: 14px 0; font-size: 14px; }
+.companion .freshness { gap: 6px; }
+.companion .automatic-status { flex-basis: 100%; font-size: 14px; font-weight: 500; }
+.companion .how-it-works { min-height: 36px; }
+.companion .search-filter-note { padding: 10px 12px; background: #f5eddb; border-radius: 5px; margin-bottom: 12px; }
+.companion .item-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.companion .market-card { padding: 10px; border-width: 1px; box-shadow: none; background: #fffdf7; }
+.companion .market-card:hover { transform: none; }
+.companion .market-card.selected { box-shadow: 0 0 0 1px #3b86d6; }
+.companion .card-art { height: 72px; border: 0; border-radius: 4px; justify-items: start; padding-left: 8px; background: #eee9df; }
+.companion .card-art .item-art, .companion .card-art img.item-art.pack { width: 62px; height: 62px; filter: none; }
+.companion .card-art .rarity { display: none; }
+.companion .art-badge { left: 78px; bottom: 24px; background: #fff8e9; color: #6b4d26; border: 1px solid #cebb96; font-size: 12px; }
+.companion .card-content { padding-top: 12px; }
+.companion .card-content h3 { font: 700 19px/1.25 "Barlow", sans-serif; margin-bottom: 4px; }
+.companion .card-subtitle, .companion .compact-list .card-subtitle { display: block; margin: 0 0 10px; font-size: 14px; line-height: 1.4; }
+.companion .price-comparison.card { font-size: 15px; }
+.companion .price-comparison.card .profit-line { margin-top: 8px; }
+.companion .price-comparison .profit-line > span { font-size: 14px; }
+.companion .price-comparison .profit-line { gap: 6px; flex-wrap: wrap; }
+.companion .market-card .button { min-height: 44px; box-shadow: none; border-width: 1px; }
+.companion .compact-list { grid-template-columns: 1fr; }
+.companion .compact-list .market-card { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 12px; }
+.companion .compact-list .card-art { height: 92px; padding: 0; justify-items: center; }
+.companion .compact-list .card-art .item-art { width: 64px; height: 64px; }
+.companion .compact-list .card-content { display: flex; padding: 0; }
+.companion .compact-list .card-content > * { grid-column: auto; grid-row: auto; }
+.companion .compact-list .item-category { display: none; }
+.companion .compact-list .card-content .price-comparison { width: 100%; }
+.companion .inspector { padding: 16px; }
+.companion .inspector-heading h2 { font-size: 20px; }
+.companion .inspector-item { margin-bottom: 12px; }
+.companion .inspector-icon { width: 64px; height: 64px; }
+.companion .inspector-icon .item-art { width: 60px; height: 60px; filter: none; }
+.companion .inspector-controls { gap: 10px; }
+.companion .inspector-controls { grid-template-columns: minmax(0, 1fr); }
+.companion .inspector-controls .quantity-control { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
+.companion .inspector-controls .stepper { width: 170px; }
+.companion .inspector-item h3 { font: 750 21px/1.3 "Barlow", sans-serif; }
+.companion .inspector-controls .inspector-strategy { grid-row: 1; }
+.companion .inspector .data-time { font-size: 13px; text-align: left; margin: 12px 0; }
+.companion .inspector .estimate-fees { font-size: 13px; margin: 8px 0; }
+.companion .inspector .wait-note { margin: 10px 0; }
+.companion .inspector-section > summary { padding: 12px 0; }
+.companion .inspector-section > summary::after, .companion .delivery-details > summary::after,
+.companion .recent-triggers > summary::after { content: " +"; }
+.companion .inspector-section[open] > summary::after, .companion .delivery-details[open] > summary::after,
+.companion .recent-triggers[open] > summary::after { content: " −"; }
+.companion .inspector-alert { min-height: 44px; }
+.companion .market-footnote { margin-top: 12px; }
+.companion .market-footer { padding-top: 16px; }
+.companion .empty-state { min-height: 0; padding: 28px 16px; }
+.companion .empty-state .empty-chest { display: none; }
+.companion .watchlist-page .section-heading > .sky-icon { display: none; }
+
+/* Alerts share navigation and favour the saved target over repeated metadata. */
+.companion.price-alerts-app .alerts-frame { grid-template-columns: minmax(0, 1fr) 370px; padding: 0; gap: 20px; }
+.price-alerts-app .alerts-title { align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.price-alerts-app .alerts-title h1 { font-size: 28px; }
+.price-alerts-app .alerts-title p { font-size: 15px; font-weight: 500; margin-top: 6px; }
+.price-alerts-app .create-shortcut { display: inline-flex; font-size: 14px; white-space: nowrap; }
+.price-alerts-app .alerts-context { position: static; margin: 0; }
+.price-alerts-app .alerts-context:has(span:empty) { display: none; }
+.price-alerts-app .market-schedule-notice { padding: 10px 12px; font-size: 14px; margin: 0 0 16px; }
+.price-alerts-app .saved-alert { grid-template-columns: 64px minmax(0, 1fr); align-items: start; padding: 14px; gap: 14px; }
+.price-alerts-app .alert-art { width: 64px; height: 64px; border: 1px solid #cabb9c; border-radius: 5px; outline: 0; box-shadow: none; }
+.price-alerts-app .alert-art .item-art { width: 60px; height: 60px; }
+.price-alerts-app .saved-alert h3 { font: 750 21px/1.25 "Barlow", sans-serif; }
+.price-alerts-app .saved-alert-heading { margin-bottom: 8px; }
+.price-alerts-app .alert-card-details { padding: 0; margin-top: 10px; }
+.price-alerts-app .saved-alert-body > .text-button { position: static; margin-top: 12px; min-height: 44px; }
+.price-alerts-app .current-quote { font-size: 14px; }
+.price-alerts-app .sample-details > summary { min-height: 36px; padding: 7px 0; color: #4b6580; }
+.price-alerts-app .recent-triggers > summary { min-height: 44px; padding: 10px 0; }
+.price-alerts-app .alerts-create { padding: 18px; }
+.price-alerts-app .alerts-create > h2 { font-size: 22px; }
+.price-alerts-app .alerts-create > h2 .sky-icon { width: 32px; height: 32px; }
+.price-alerts-app #alert-item-search { width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid #cabb9c; border-radius: 5px; background: #fffdf7; margin-bottom: 8px; }
+.price-alerts-app .alert-item-select { padding: 0 8px; }
+.price-alerts-app .alert-item-select .item-art { width: 40px; height: 40px; }
+.price-alerts-app .alert-item-select select { font-size: 15px; }
+.price-alerts-app .delivery-details { font-size: 13px; }
+.price-alerts-app .delivery-details > summary { min-height: 44px; padding: 10px 0; }
+.price-alerts-app .alert-form .delivery-note { text-align: left; font-size: 13px; }
+.price-alerts-app .trigger-preview > strong { font-size: 15px; }
+.price-alerts-app .trigger-preview { padding: 10px 12px; }
+.price-alerts-app .email-delivery { font-size: 14px; padding: 8px 0; border: 0; background: none; }
+
+@media (max-width: 1100px) {
+  .companion .market-board { grid-template-columns: minmax(0, 1fr); grid-template-areas: "cards" "side"; }
+  .companion .side-column { max-width: none; }
+  .companion .inspector-sheet { padding: 16px; height: 92dvh; max-height: 92dvh; }
+  .companion .inspector-sheet .inspector-heading { position: sticky; top: -16px; background: #fffaf0; z-index: 2; padding: 10px 0; }
+}
+@media (max-width: 820px) {
+  .companion .market-header { padding: 0 12px; }
+  .companion .market-header-inner, .companion.price-alerts-app .market-header-inner { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "brand signs" "tabs tabs" "search search"; gap: 8px; padding: 8px 0; }
+  .companion.price-alerts-app .market-header-inner { grid-template-areas: "brand signs" "tabs tabs"; }
+  .companion .brand-word { font-size: 22px; }
+  .companion .market-brand .brand-gem { width: 26px; height: 34px; }
+  .companion .account-button { font-size: 12px; padding: 6px 8px; max-width: 120px; }
+  .companion .account-button svg { display: none; }
+  .companion .market-tabs { width: 100%; gap: 2px; }
+  .companion .market-tabs > button, .companion .market-tabs > a { flex: 1 1 0; min-width: 0; padding: 7px 4px; font-size: 13px; line-height: 1.2; white-space: normal; flex-direction: row; }
+  .companion .market-search { width: 100%; }
+  .companion .market-main { padding: 12px; }
+  .companion .filter-panel { padding: 10px; margin-bottom: 12px; }
+  .companion .quick-filters { display: grid; grid-template-columns: minmax(0, 1fr) 110px; gap: 10px; }
+  .companion .quick-filters > .field, .companion .quick-filters > .field:nth-child(2) { width: auto; }
+  .companion .quick-filters > .field:first-child { grid-column: 1 / -1; }
+  .companion .advanced-filters { align-self: end; grid-column: auto; width: auto; }
+  .companion .advanced-filters > summary { padding: 0 8px; justify-content: center; }
+  .companion .advanced-grid { grid-template-columns: minmax(0, 1fr); max-height: 65dvh; overflow-y: auto; }
+  .companion .opportunity-column { padding: 14px; }
+  .companion .opportunities-heading { gap: 10px; }
+  .companion .opportunities-heading > div:first-child { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .companion .opportunities-heading > div:first-child p { margin: 0; }
+  .companion .result-status { margin: 10px 0; }
+  .companion .heading-tools { width: 100%; justify-content: space-between; }
+  .companion .item-grid { grid-template-columns: minmax(0, 1fr); }
+  .companion .card-art { height: 64px; }
+  .companion .art-badge { bottom: 20px; }
+  .companion .compact-list .market-card { grid-template-columns: 64px minmax(0, 1fr); gap: 8px; }
+  .companion .compact-list .card-art { height: 64px; }
+  .companion .compact-list .price-comparison { font-size: 13px; }
+  .companion.price-alerts-app .alerts-frame { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .price-alerts-app .alerts-board { padding: 14px 12px; }
+  .price-alerts-app .alerts-title { flex-wrap: wrap; gap: 4px; }
+  .price-alerts-app .saved-alert { grid-template-columns: minmax(0, 1fr); padding: 12px; }
+  .price-alerts-app .alert-art { display: none; }
+  .price-alerts-app .saved-alert-body > .text-button { width: auto; }
+  .price-alerts-app .alert-filters { min-width: 0; width: 100%; }
+  .price-alerts-app .alert-filters button { padding: 8px 6px; font-size: 13px; }
+  .price-alerts-app .alerts-create { padding: 16px; }
+}

@@ -22,16 +22,6 @@ export function BazaarFilterBar({
     <section className="filter-panel" aria-label="Bazaar filters">
       <div className="quick-filters">
         <SelectField
-          label="Category"
-          value={f.category}
-          onChange={(category) => set({ category })}
-        >
-          <option value="all">All categories</option>
-          {categories.map((c) => (
-            <option key={c}>{c}</option>
-          ))}
-        </SelectField>
-        <SelectField
           label="Strategy"
           value={f.strategy}
           onChange={(strategy) =>
@@ -45,11 +35,6 @@ export function BazaarFilterBar({
           ))}
         </SelectField>
         <NumberField
-          label="Budget · coins"
-          value={f.budget}
-          onChange={(budget) => set({ budget })}
-        />
-        <NumberField
           label="Quantity"
           value={f.quantity}
           min={1}
@@ -61,6 +46,22 @@ export function BazaarFilterBar({
             <SlidersHorizontal size={16} /> More filters
           </summary>
           <div className="advanced-grid">
+        <SelectField
+          label="Category"
+          value={f.category}
+          onChange={(category) => set({ category })}
+        >
+          <option value="all">All categories</option>
+          {categories.map((c) => (
+            <option key={c} value={c}>{titleCase(c)}</option>
+          ))}
+        </SelectField>
+        <NumberField
+          label="Budget · coins"
+          value={f.budget}
+          onChange={(budget) => set({ budget })}
+        />
+
             <NumberField
               label="Minimum net profit"
               value={f.minProfit}
@@ -132,17 +133,6 @@ export function BazaarFilterBar({
               onChange={(executionCost) => set({ executionCost })}
               tip="Optional total cost, in coins, on top of order-book slippage and sale tax."
             />
-          </div>
-        </details>
-      </div>
-      <div className="filter-foot">
-        <span className="active-chip">
-          {f.minBothActivity.toLocaleString()}+ activity / side
-        </span>
-        <span className="active-chip">
-          ≤ {f.maxActivityShare}% market share
-        </span>
-        <span className="active-chip">{f.taxPercent}% sale tax</span>
         <div className="filter-actions">
           <button onClick={save}>
             <Save size={13} />
@@ -153,6 +143,8 @@ export function BazaarFilterBar({
             Reset
           </button>
         </div>
+          </div>
+        </details>
       </div>
     </section>
   );

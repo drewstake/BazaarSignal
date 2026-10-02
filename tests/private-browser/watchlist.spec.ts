@@ -30,7 +30,7 @@ test("save, reload, reopen, remove and switch user without leaking private data"
   await emulatorSignIn(page, alice);
   await page.getByRole("button", { name: /^Watchlist/ }).click();
   await expect(
-    page.getByRole("heading", { name: "Room for your next great find" }),
+    page.getByRole("heading", { name: "No saved items yet" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Bazaar", exact: true }).click();
   const card = page.getByRole("article").first();
@@ -57,6 +57,7 @@ test("save, reload, reopen, remove and switch user without leaking private data"
   ).toBeVisible();
   if (info.project.name === "mobile")
     await page.getByRole("button", { name: "Close item details" }).click();
+  await page.getByText("More filters", { exact: true }).click();
   await page.getByLabel("Budget · coins", { exact: true }).fill("23456789");
   await page.getByRole("button", { name: "Save filters", exact: true }).click();
   await expect(page.getByRole("status")).toContainText(
@@ -69,11 +70,11 @@ test("save, reload, reopen, remove and switch user without leaking private data"
   await page.getByRole("button", { name: "Sign out" }).click();
   await page.getByRole("button", { name: /^Watchlist/ }).click();
   await expect(
-    page.getByRole("heading", { name: "Keep the good finds close" }),
+    page.getByRole("heading", { name: "Sign in to use Watchlist" }),
   ).toBeVisible();
   await emulatorSignIn(page, `bob-${info.project.name}-${Date.now()}`);
   await expect(
-    page.getByRole("heading", { name: "Room for your next great find" }),
+    page.getByRole("heading", { name: "No saved items yet" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Sign out" }).click();
   await emulatorSignIn(page, alice);
@@ -84,6 +85,6 @@ test("save, reload, reopen, remove and switch user without leaking private data"
     .getByRole("button", { name: `Remove ${name}`, exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Room for your next great find" }),
+    page.getByRole("heading", { name: "No saved items yet" }),
   ).toBeVisible();
 });

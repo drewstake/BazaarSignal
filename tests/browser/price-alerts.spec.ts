@@ -43,6 +43,7 @@ test("the alerts route reports an unavailable live item feed and retries", async
   failed = false;
   await page.clock.runFor(61000);
   await expect(page.getByLabel("Item", { exact: true })).toBeEnabled();
+  await page.getByLabel("Item", { exact: true }).selectOption("SUMMONING_EYE");
   await expect(page.locator(".quote-note")).toContainText("100 coins / item");
 });
 
@@ -76,7 +77,7 @@ test("alert board filters real saved alerts, searches, edits, and renders its ar
   ).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator(".saved-alert")).toHaveCount(3);
   await expect(page.locator(".saved-alert").nth(1)).toContainText(
-    "After 1.25% tax",
+    "after 1.25% tax",
   );
   await page.getByLabel("Find an alert").fill("diamond");
   await expect(page.locator(".saved-alert")).toHaveCount(1);
@@ -101,6 +102,7 @@ test("alert board filters real saved alerts, searches, edits, and renders its ar
   await expect(eye.getByRole("status")).toHaveText("Target updated.");
   await page.reload();
   await expect(eye).toContainText("1,000,000");
+  await page.getByLabel("Item", { exact: true }).selectOption("SUMMONING_EYE");
   await page.getByLabel("Quantity", { exact: true }).fill("8");
   await page.getByLabel("Target price", { exact: true }).fill("1000000");
   await expect(page.locator(".alerts-create .trigger-preview")).toContainText(
@@ -163,7 +165,7 @@ test("alert board filters real saved alerts, searches, edits, and renders its ar
   }
   if (info.project.name === "mobile") {
     await page.getByRole("button", { name: "Create alert ↓" }).click();
-    await expect(page.getByLabel("Item", { exact: true })).toBeFocused();
+    await expect(page.getByLabel("Find an item", { exact: true })).toBeFocused();
   }
   await eye.getByRole("link", { name: "Summoning Eye", exact: true }).click();
   await expect(
@@ -198,7 +200,7 @@ test("both alert entry points create and retain quantity and sell tax semantics"
   const card = page.getByRole("article", {
     name: "Enchanted Diamond Block alert",
   });
-  await expect(card).toContainText("After 10% tax");
+  await expect(card).toContainText("after 10% tax");
   await expect(card.locator(".current-quote")).toContainText("182,457.83");
   await page.getByRole("link", { name: "Price Alerts", exact: true }).click();
   await expect(card).toBeVisible();
@@ -218,6 +220,7 @@ test("depth and stale states never display a fabricated current quote", async ({
   page,
 }) => {
   await page.goto("/?demo=1&fixtures=1#alerts=1");
+  await page.getByLabel("Item", { exact: true }).selectOption("SUMMONING_EYE");
   const form = page.locator(".alert-form");
   await form.getByLabel("Quantity", { exact: true }).fill("3001");
   await expect(form.locator(".quote-note")).toContainText(
@@ -234,8 +237,8 @@ test("depth and stale states never display a fabricated current quote", async ({
     localStorage.setItem("bazaar-watch-demo-v1", JSON.stringify(data));
   });
   await page.reload();
-  await expect(page.locator(".current-quote")).toContainText("Stale price");
-  await expect(page.locator(".quote-note")).toContainText(
-    "Waiting for fresh market data",
-  );
+  await expect(page.locator(".current-quote")).toContainText("Target checks wait for a fresh sample.");
+  await expect(page.locator(".current-quote")).toContainText("Insufficient depth");
+  await page.getByLabel("Item", { exact: true }).selectOption("SUMMONING_EYE");
+  await expect(page.locator(".quote-note")).toContainText("Alerts only trigger on fresh prices.");
 });

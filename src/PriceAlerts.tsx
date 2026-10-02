@@ -38,6 +38,7 @@ export default function PriceAlerts({
   itemId: string | null;
 }) {
   const [selected, setSelected] = useState(itemId ?? "");
+  const [itemQuery, setItemQuery] = useState("");
   const [refresh, setRefresh] = useState(0);
   const [clock, setClock] = useState(Date.now());
   useEffect(() => {
@@ -48,7 +49,7 @@ export default function PriceAlerts({
   }, []);
   const nextCheck = nextScheduledMarketCheck(clock);
   const [rarities, setRarities] = useState<Record<string, string>>({});
-  const selector = useRef<HTMLSelectElement>(null);
+  const selector = useRef<HTMLInputElement>(null);
   const board = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (itemId) setSelected(itemId);
@@ -76,9 +77,9 @@ export default function PriceAlerts({
       });
     return () => controller.abort();
   }, []);
-  const item =
-    data.prices.find((p) => p.id === selected) ??
-    (!selected ? data.prices[0] : undefined);
+  const item = data.prices.find((p) => p.id === selected);
+  const itemOptions = data.prices.filter(p => p.id === selected ||
+    `${p.name} ${p.id}`.toLowerCase().includes(itemQuery.trim().toLowerCase()));
   const canCreate = isLocal || Boolean(user && backendReady);
   const create = () => {
     selector.current?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -96,15 +97,7 @@ export default function PriceAlerts({
             <SkyIcon name="emerald" size={72} className="brand-gem" />
             <span className="brand-word">BazaarSignal</span>
           </a>
-          <p className="tagline-sign">
-            Good loot. <span>Better deals.</span>
-          </p>
           <div className="header-signs">
-            <span className="server-tag">
-              HYPIXEL
-              <br />
-              <b>SKYBLOCK</b>
-            </span>
             {user ? (
               <button
                 className="account-button"
@@ -125,7 +118,6 @@ export default function PriceAlerts({
                 </button>
               )
             )}
-            <span className="lantern" aria-hidden="true" />
           </div>
           <nav className="market-tabs" aria-label="Main navigation">
             {(
@@ -152,26 +144,24 @@ export default function PriceAlerts({
         <div className="market-frame alerts-frame">
           <div className="alerts-board parchment" ref={board} tabIndex={-1}>
             <div className="alerts-title">
-              <SkyIcon name="alert-bell" size={96} />
               <div>
                 <h1>Price Alerts</h1>
-                <p>Your target price. Your next good deal.</p>
+                <p>Email alerts for your buy or sell target.</p>
               </div>
+              <button className="create-shortcut" onClick={create}>Create alert ↓</button>
             </div>
             <div className="alerts-context">
               <span>
                 {isLocal
                   ? `${isDemo ? "Demo" : "Local preview"} · No emails are sent`
-                  : "One email when your target is reached."}
+                  : ""}
               </span>
-              <button className="create-shortcut" onClick={create}>
-                Create alert ↓
-              </button>
             </div>
             {hourlyMarketMode && nextCheck !== null && <p role="status" className="market-schedule-notice">
-              Prices are sampled hourly. Next scheduled check: <strong>{new Date(nextCheck).toLocaleTimeString([], {hour:'numeric',minute:'2-digit',timeZoneName:'short'})}</strong>.
-              {' '}This tab updates automatically while visible. Alerts only evaluate fresh prices; changes between collections can be missed.
+              Hourly samples · Next price check: <strong>{new Date(nextCheck).toLocaleTimeString([], {hour:'numeric',minute:'2-digit',timeZoneName:'short'})}</strong>.
+              {' '}Alerts need fresh prices and can miss changes between samples.
             </p>}
+            {!isLocal && pollingDirective().mode === "paused" && <p role="status" className="market-schedule-notice">Scheduled price checks are paused. Saved alerts remain available; targets wait for fresh prices.</p>}
             {error && (
               <p role="alert" className="error">
                 {error}{" "}
@@ -220,34 +210,28 @@ export default function PriceAlerts({
               <SkyIcon name="alert-bell" size={54} />
               Create alert
             </h2>
-            <label className="alert-item-label" htmlFor="alert-item">
-              Item
+            <label className="alert-item-label" htmlFor="alert-item-search">
+              Find an item
             </label>
+            <input id="alert-item-search" ref={selector} type="search" placeholder="Search items…" value={itemQuery} onChange={e => setItemQuery(e.target.value)} />
             <div className="alert-item-select">
               {item && <ItemArt id={item.id} size="small" />}
               <select
                 id="alert-item"
-                ref={selector}
+                aria-label="Item"
                 value={item?.id ?? ""}
                 onChange={(e) => setSelected(e.target.value)}
                 disabled={!data.prices.length}
               >
-                {!item && (
-                  <option value="">
-                    {selected
-                      ? "Choose an available item"
-                      : error
-                        ? "Items unavailable"
-                        : "Loading items…"}
-                  </option>
-                )}
-                {data.prices.map((p) => (
+                <option value="">{data.prices.length ? "Choose an item" : error ? "Items unavailable" : "Loading items…"}</option>
+                {itemOptions.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
                   </option>
                 ))}
               </select>
             </div>
+            {itemQuery && !itemOptions.length && <p role="status">No items match your search.</p>}
             {selected && !item && data.prices.length > 0 && (
               <p role="status">
                 This item is unavailable. Choose another item.
@@ -277,14 +261,9 @@ export default function PriceAlerts({
                   ? "Sign in to send alerts to your verified email address."
                   : !backendReady && !isLocal
                     ? "Email alerts are not connected yet."
-                    : "The creation form will appear when item prices are available."}
+                    : "Choose an item to set its target price."}
               </p>
             )}
-            <div className="alert-desk" aria-hidden="true">
-              <SkyIcon name="watchlist-chest" size={116} />
-              <SkyIcon name="gold-coin" size={36} />
-              <span className="desk-paper" />
-            </div>
           </aside>
         </div>
         <footer className="alerts-footer">

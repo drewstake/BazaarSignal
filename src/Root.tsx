@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import App from "./App";
 import MarketApp from "./companion/MarketApp";
+import "./companion/simplified.css";
 export default function Root() {
   const [hash, setHash] = useState(location.hash);
   useEffect(() => {

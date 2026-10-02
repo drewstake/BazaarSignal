@@ -71,9 +71,6 @@ test("auction actions copy the seller command directly and expose a manual fallb
   await page.evaluate(() => {
     (window as any).denyCopy = false;
   });
-  await page
-    .locator(".deal-copy")
-    .getByRole("button", { name: "/ah Sky_Player7", exact: true })
-    .click();
+  await copy.click();
   await expect.poll(() => page.evaluate(() => (window as any).copiedText)).toBe("/ah Sky_Player7");
 });

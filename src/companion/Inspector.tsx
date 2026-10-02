@@ -135,7 +135,7 @@ export function BazaarInspector({
         id={item.id}
         name={item.name}
         rarity={item.rarity}
-        detail={`${titleCase(item.category)} · Bazaar item${q ? ` · ${titleCase(q.liquidity)} liquidity` : ""}`}
+        detail={`${titleCase(item.category)} · Bazaar item`}
         saved={saved}
         save={save}
       />
@@ -160,52 +160,20 @@ export function BazaarInspector({
           </select>
         </label>
       </div>
-      <p className="data-time"><SampleTime timestamp={item.upstreamAt} observedAt={item.observedAt} /></p>
-      <div className="inspector-block">
-        <h4>Sampled strategy prices <span>(coins / unit)</span></h4>
+      <p className="data-time"><SampleTime timestamp={item.upstreamAt} compact /></p>
+      {!q && <div className="inspector-block">
+        <h4>Price per item <span>(sampled)</span></h4>
         <dl className="price-table">
-          <div><dt>Your buy price</dt><dd><Coin value={trade.buy?.unit} full /></dd></div>
-          <div><dt>Your sell price, before tax</dt><dd><Coin value={trade.sale?.unit} full /></dd></div>
+          <div><dt>Buy</dt><dd><Coin value={trade.buy?.unit} full /></dd></div>
+          <div><dt>Sell before tax</dt><dd><Coin value={trade.sale?.unit} full /></dd></div>
         </dl>
-      </div>
+      </div>}
       {q ? (
         <>
           <p className="wait-note">{q.waits}</p>
           <div className="inspector-block">
             <h4>
-              Unit prices <span>(sampled order book)</span>
-            </h4>
-            <dl className="price-table">
-              <div>
-                <dt>Highest buy order</dt>
-                <dd>
-                  <Coin value={item.bids[0]?.pricePerUnit} full />
-                </dd>
-              </div>
-              <div>
-                <dt>Your buy price</dt>
-                <dd>
-                  <Coin value={q.acquisitionUnit} full />
-                </dd>
-              </div>
-              <div>
-                <dt>Your sell price</dt>
-                <dd>
-                  <Coin value={q.exitUnit} full />
-                </dd>
-              </div>
-              <div>
-                <dt>Lowest sell offer</dt>
-                <dd>
-                  <Coin value={item.asks[0]?.pricePerUnit} full />
-                </dd>
-              </div>
-            </dl>
-          </div>
-          <div className="inspector-block">
-            <h4>
-              Buy <span className="arrow">→</span> Bazaar sale estimate{" "}
-              <span>(×{q.quantity})</span>
+              Totals for {q.quantity} {q.quantity === 1 ? "item" : "items"}
             </h4>
             <PriceComparison
               buy={q.acquisition}
@@ -216,9 +184,10 @@ export function BazaarInspector({
               sampled={!q.fresh}
             />
           </div>
-          {q.concerns.length > 0 && (
+          <p className="estimate-fees">Includes {filters.taxPercent * (item.feeContext?.multiplier ?? 1)}% sale tax{q.executionCost > 0 ? ` and ${exact(q.executionCost)} coins in additional costs` : ""}. {!q.fresh && "Historical estimate; check in-game prices. "}Fills and profit are not guaranteed.</p>
+          {q.concerns.some(c => !c.startsWith("Last sampled estimate")) && (
             <ul className="concerns">
-              {q.concerns.map((c) => (
+              {q.concerns.filter(c => !c.startsWith("Last sampled estimate")).map((c) => (
                 <li key={c}>{c}</li>
               ))}
             </ul>
@@ -247,17 +216,17 @@ export function BazaarInspector({
         <>
           <details className="inspector-section">
             <summary>
-              <h4>Every coin accounted for</h4>
+              <h4>Fees & calculation</h4>
             </summary>
             <dl>
               <div>
-                <dt>Acquisition / unit</dt>
+                <dt>Buy / item</dt>
                 <dd>
                   <Coin value={q.acquisitionUnit} full />
                 </dd>
               </div>
               <div>
-                <dt>Exit / unit</dt>
+                <dt>Sell / item</dt>
                 <dd>
                   <Coin value={q.exitUnit} full />
                 </dd>
@@ -296,13 +265,15 @@ export function BazaarInspector({
           <details className="inspector-section">
             <summary>
               <h4>
-                Will it trade?{" "}
+                Liquidity & order book{" "}
                 <span className={`liquidity ${q.liquidity}`}>
                   {titleCase(q.liquidity)}
                 </span>
               </h4>
             </summary>
             <dl>
+              <div><dt>Highest buy order / item</dt><dd><Coin value={item.bids[0]?.pricePerUnit} full /></dd></div>
+              <div><dt>Lowest sell offer / item</dt><dd><Coin value={item.asks[0]?.pricePerUnit} full /></dd></div>
               <div>
                 <dt>Instant-buy activity</dt>
                 <dd>{compact(item.instantBuyActivity7d)}</dd>
@@ -354,10 +325,10 @@ export function BazaarInspector({
           </details>
         </>
       )}
-      <p className="data-time">
-        Source updated {new Date(item.upstreamAt).toLocaleTimeString()} ·
-        observed {new Date(item.observedAt).toLocaleTimeString()}
-      </p>
+      <details className="inspector-section">
+        <summary>Sample timestamps</summary>
+        <p><SampleTime timestamp={item.upstreamAt} observedAt={item.observedAt} /></p>
+      </details>
     </>
   );
 }
@@ -607,8 +578,8 @@ export function AuctionInspector({
 }
 export function BlankInspector() {
   return (
-    <EmptyState title="A closer look at your loot">
-      Select an item to inspect its prices, liquidity, and profit calculation.
+    <EmptyState title="Select an item">
+      Open a result for prices, fees and liquidity.
     </EmptyState>
   );
 }

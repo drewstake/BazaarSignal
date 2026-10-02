@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { productionUsage } from './policy';
 test.beforeEach(async ({ page }) => {
   await page.route(
     /\/api\/companion\/(snapshot|book)(?:\?|$)/,
@@ -35,7 +36,7 @@ test.beforeEach(async ({ page }) => {
               error: null,
             },
           };
-      await route.fulfill({ json: data });
+      await route.fulfill({ json: { ...data, usage: productionUsage() } });
     },
   );
   await page.route("https://script.google.com/macros/s/**/exec", () => {
