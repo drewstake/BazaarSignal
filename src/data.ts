@@ -14,7 +14,8 @@ import {
   onSnapshot,
   doc,
 } from "firebase/firestore";
-import { backendUrl, requestBackend, validBackendUrl } from './backend';
+import { backendUrl, validBackendUrl } from './backend';
+import { readAccount } from './account';
 import { marketRequest } from './companion/api';
 import { visiblePoll } from './companion/polling';
 import {
@@ -320,6 +321,16 @@ export function subscribe(
   async function refresh(signal: AbortSignal) {
     if (pending || closed) return;
     pending = true;
+    // Start private reads alongside the cache request so MyAlerts can share
+    // the same in-flight read. Neither request triggers market collection.
+    const account = (async () => {
+      if (!closed && current && uid && auth?.currentUser?.uid === uid) {
+        try {
+          const patch = await readAccount(current, signal);
+          if (!closed && auth?.currentUser?.uid === uid) onData(patch);
+        } catch(e) { if (!closed && !signal.aborted) onError(e instanceof Error ? e.message : 'Your alert status is unavailable.', false); }
+      }
+    })();
     try {
       const patch = await marketRequest<Partial<AppData>>('snapshot', signal);
       if (uid) delete patch.monitoring; // Signed-in users need their own worker progress.
@@ -329,12 +340,7 @@ export function subscribe(
       marketVersion = "";
       if (!closed) onError(e instanceof Error ? e.message : 'Prices unavailable.', true);
     }
-    if (!closed && current && uid && auth?.currentUser?.uid === uid) {
-      try {
-        const patch=await requestBackend<Partial<AppData>>({action:'account'},await current.getIdToken(),signal);
-        if (!closed && auth?.currentUser?.uid === uid) onData(patch);
-      } catch(e) { if (!closed) onError(e instanceof Error ? e.message : 'Your alert status is unavailable.', false); }
-    }
+    await account;
     pending = false;
   }
   const stopPolling = visiblePoll(refresh, 60000);

@@ -2,6 +2,7 @@ import type { AppData, Book, PriceAlertInput, Workflow } from "../shared/model";
 import { confirmation, newPriceAlert } from "../shared/price-alert";
 import { auth, isDemo } from "./data";
 import { requestBackend } from './backend';
+import { readAccount } from './account';
 import { marketRequest } from './companion/api';
 import type { CacheStatus } from './companion/api';
 
@@ -63,9 +64,9 @@ export async function createCloudAlert(input: PriceAlertInput) {
   if (!auth?.currentUser) throw new Error('Sign in first.');
   return requestBackend<{id:string;emailStatus:string}>({action:'create',input},await auth.currentUser.getIdToken());
 }
-export async function fetchCloudAlerts() {
+export async function fetchCloudAlerts(signal?: AbortSignal) {
   if (!auth?.currentUser) throw new Error('Sign in first.');
-  return requestBackend<{workflows:Workflow[]}>({action:'account'},await auth.currentUser.getIdToken());
+  return readAccount(auth.currentUser, signal);
 }
 export async function updateCloudAlert(workflow: Workflow, target: number) {
   if (!auth?.currentUser) throw new Error('Sign in first.');

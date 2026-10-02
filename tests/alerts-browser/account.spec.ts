@@ -199,3 +199,67 @@ test("authenticated alerts refresh after creation, preserve revisions, recover f
   await expect(page.getByText("No alerts yet.", { exact: true })).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test('temporary saved-alert failures recover independently of hourly market sampling', async ({ page }, info) => {
+  const stamp = Date.now() - 30 * 60000;
+  const workflow = newPriceAlert('12345678-1234-4234-8234-123456789012', 'Summoning Eye',
+    {requestId:'12345678-1234-4234-8234-123456789012',itemId:'SUMMONING_EYE',side:'buy',quantity:1,target:80,taxRate:1.25},stamp);
+  let accountReads = 0, marketReads = 0, failure: 'once' | 'always' | 'none' = 'once';
+  await page.route('**/api/companion/**', async route => {
+    marketReads++;
+    expect(route.request().method()).toBe('GET');
+    const path = new URL(route.request().url()).pathname;
+    const data = path.endsWith('/bazaar') ? {items:[]} : path.endsWith('/book')
+      ? {book:{buy:[{amount:20,pricePerUnit:100,orders:1}],sell:[{amount:20,pricePerUnit:90,orders:1}]},timestamp:stamp,observedAt:stamp+1000}
+      : {prices:[{id:'SUMMONING_EYE',name:'Summoning Eye',buy:100,sell:90,volume:100}],status:{lastUpdated:stamp,lastSuccess:stamp+1000,lastAttempt:stamp+1000,error:null}};
+    await route.fulfill({json:data});
+  });
+  await page.route('https://script.google.com/macros/s/test-alerts/exec', async route => {
+    expect(route.request().postDataJSON().action).toBe('account');
+    expect(route.request().postDataJSON().idToken).toBeTruthy();
+    accountReads++;
+    if (failure !== 'none') {
+      if (failure === 'once') failure = 'none';
+      return route.fulfill({status:503,body:'Service temporarily unavailable'});
+    }
+    await route.fulfill({json:{ok:true,data:{workflows:[workflow],events:[]}}});
+  });
+  await page.goto('/#alerts=1');
+  await signIn(page, `retry-${info.project.name}-${Date.now()}`);
+  const card = page.getByRole('article',{name:'Summoning Eye alert'});
+  await expect(card).toBeVisible();
+  expect(accountReads).toBe(2); // One shared read plus one bounded retry.
+  await expect(card).toContainText('Last sampled');
+  await expect(page.locator('.alerts-board > .error')).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'Active 1',exact:true})).toBeVisible();
+
+  const cachedReads = marketReads;
+  failure = 'always';
+  await page.getByRole('button',{name:'Refresh alerts',exact:true}).click();
+  await expect(page.getByRole('alert')).toContainText('HTTP 503');
+  await expect(page.getByRole('alert')).toContainText('Showing last loaded alerts');
+  await expect(card).toBeVisible();
+  await expect(page.getByRole('button',{name:'Active 1',exact:true})).toBeVisible();
+  expect(accountReads).toBe(4);
+  expect(marketReads).toBe(cachedReads);
+  await expect(page.locator('.alerts-board > .error')).toHaveCount(0);
+  failure = 'none';
+  await page.getByRole('button',{name:'Refresh alerts',exact:true}).click();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+
+  // A new page with no successful account read must show unknown counts, never zero.
+  failure = 'always';
+  await page.reload();
+  await expect(page.getByRole('button',{name:'Retry alerts',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Active —',exact:true})).toBeVisible();
+  await expect(page.getByRole('alert')).toContainText('HTTP 503');
+  await expect(page.locator('.alerts-board > .error')).toHaveCount(0);
+  const readsBeforeRecovery = marketReads;
+  failure = 'none';
+  await page.getByRole('button',{name:'Retry alerts',exact:true}).click();
+  await expect(card).toBeVisible();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  // Rendering the recovered card reads its cached book once, with no market collection.
+  expect(marketReads - readsBeforeRecovery).toBeLessThanOrEqual(1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});

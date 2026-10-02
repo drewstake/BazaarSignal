@@ -9,6 +9,7 @@ import type { AppData, Workflow } from "../shared/model";
 import { updatePriceAlertTarget } from "../shared/price-alert";
 import { fetchCloudAlerts, updateCloudAlert } from "./alerts";
 import { auth, isLocal } from "./data";
+import { watchAccountReads } from './account';
 import { ArrowDown, ArrowUp, Mail, Search } from "lucide-react";
 import { estimate } from "../shared/market";
 import { Coin, ItemArt, RarityRibbon, artGlow } from "./companion/components";
@@ -47,16 +48,26 @@ export default function MyAlerts({
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(!isLocal);
   const [error, setError] = useState("");
+  const [loaded, setLoaded] = useState(isLocal);
   const [refresh, setRefresh] = useState(0);
   useEffect(() => {
     if (isLocal || !uid) return;
     let closed = false;
+    const controller = new AbortController();
+    const owner = auth?.currentUser;
+    const stop = owner?.uid === uid ? watchAccountReads(owner, (failure) => {
+      if (closed) return;
+      setError(failure ? message(failure) : '');
+      if (!failure) setLoaded(true);
+    }) : () => {};
     setLoading(true);
     setError("");
-    fetchCloudAlerts()
+    fetchCloudAlerts(controller.signal)
       .then((result) => {
-        if (!closed && auth?.currentUser?.uid === uid)
-          update((current) => ({ ...current, workflows: result.workflows }));
+        if (!closed && auth?.currentUser?.uid === uid) {
+          update((current) => ({ ...current, ...result }));
+          setLoaded(true);
+        }
       })
       .catch((e) => {
         if (!closed) setError(message(e));
@@ -66,6 +77,8 @@ export default function MyAlerts({
       });
     return () => {
       closed = true;
+      stop();
+      controller.abort();
     };
   }, [uid, refresh, refreshKey, update]);
 
@@ -138,7 +151,7 @@ export default function MyAlerts({
               >
                 {status}
                 <span>
-                  {loading || error
+                  {!loaded
                     ? "—"
                     : alerts.filter((w) => statusOf(w) === status).length}
                 </span>
@@ -157,11 +170,12 @@ export default function MyAlerts({
           </label>
         </div>
       )}
-      {loading ? (
+      {error && loaded && <p className="error" role="alert">{error} Showing last loaded alerts; refresh to check for changes.</p>}
+      {loading && !loaded ? (
         <p className="alerts-empty" role="status">
           Loading your alerts…
         </p>
-      ) : error ? (
+      ) : error && !loaded ? (
         <div className="alerts-empty">
           <p className="error" role="alert">
             {error}

@@ -110,7 +110,9 @@ export default function App() {
     return subscribe(
       user?.uid ?? null,
       (patch) => { setData((d) => ({ ...d, ...patch })); if (patch.prices) setError(""); },
-      (message, market) => { setError(message); if (market) setData((d) => ({ ...d, status: { ...d.status, error: message } })); },
+      // MyAlerts owns saved-account read errors and recovery. Only market
+      // failures belong beside the market collection schedule.
+      (message, market) => { if (market) { setError(message); setData((d) => ({ ...d, status: { ...d.status, error: message } })); } },
     );
   }, [user]);
   useEffect(() => {
