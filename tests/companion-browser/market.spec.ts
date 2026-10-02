@@ -105,7 +105,7 @@ test("auction evidence, enchantment exclusion and availability checks", async ({
       : page.getByRole("complementary", { name: "Item details" });
   await expect(inspector.getByText("The comparison evidence")).toBeVisible();
   await expect(
-    inspector.getByText("Sharpness", { exact: false }),
+    inspector.locator(".enchantments").getByText("Sharpness", { exact: false }),
   ).toBeVisible();
   await inspector.getByRole("button", { name: "Recheck availability" }).click();
   await expect(

@@ -347,8 +347,15 @@ export function PriceComparison({
   askingPrice?: boolean;
   sampled?: boolean;
 }) {
-  const [buyLabel, sellLabel, profitLabel] = askingPrice ? ["Buy", "AH average", "After-fee gap"] : comparisonLabels[variant];
-  const profitDescription = sampled && !askingPrice ? 'Sampled profit after fees' : profitLabel;
+  const [buyLabel, sellLabel, profitLabel] = askingPrice
+    ? [
+        "Buy",
+        "Conservative resale estimate",
+        sampled ? "Sampled after-fee gap" : "After-fee gap",
+      ]
+    : comparisonLabels[variant];
+  const profitDescription =
+    sampled && !askingPrice ? "Sampled profit after fees" : profitLabel;
   const compactProfit = variant === "card" && !askingPrice;
   return (
     <div className={`price-comparison ${variant}`}>
@@ -364,7 +371,9 @@ export function PriceComparison({
         className={`profit-line ${profit !== null && profit < 0 ? "negative" : ""}`}
         title={compactProfit ? profitDescription : undefined}
       >
-        <span className={compactProfit ? "sr-only" : undefined}>{profitDescription}</span>
+        <span className={compactProfit ? "sr-only" : undefined}>
+          {profitDescription}
+        </span>
         <strong>
           <Coin value={profit} full={full} positive />
           {roi !== null && (

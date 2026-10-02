@@ -1,4 +1,4 @@
-import { auctionFees } from "./fees";
+import { auctionFees, verifiedSnapshotFees } from "./fees";
 import type {
   AuctionFilters,
   AuctionOpportunity,
@@ -27,7 +27,7 @@ export const defaultAuctionFilters: AuctionFilters = {
   hideFlagged: false,
   showInsufficient: true,
   durationHours: 24,
-  sort: "profit",
+  sort: "supported",
   view: "cards",
 };
 export const confidenceRank: Record<Confidence, number> = {
@@ -248,6 +248,7 @@ export function auctionOpportunity(
   hasGaps = false,
   precomputed?: Valuation,
   feeContext?: FeeContext,
+  sampledValuation?: Valuation,
 ): AuctionOpportunity {
   let valuation =
     precomputed ??
@@ -285,8 +286,9 @@ export function auctionOpportunity(
     };
   }
   const feeReady =
-    !feeContext ||
-    (feeContext.multiplier !== null && now - feeContext.checkedAt < 600000);
+    valuation.basis === "active-listings"
+      ? verifiedSnapshotFees(feeContext, listing.observedAt, now)
+      : !feeContext || verifiedSnapshotFees(feeContext, listing.observedAt, now);
   const fees =
     valuation.estimate === null || !feeReady
       ? null
@@ -300,6 +302,7 @@ export function auctionOpportunity(
   return {
     listing,
     valuation,
+    ...(sampledValuation ? { sampledValuation } : {}),
     fees,
     capital,
     profit,

@@ -2,9 +2,10 @@ import { test, expect } from "@playwright/test";
 import { normalizeListing } from "../../collector/normalize";
 import { activePage } from "../../shared/companion/active-auctions";
 import { defaultAuctionFilters } from "../../shared/companion/auctions";
+import { auctionFees } from "../../shared/companion/fees";
 import { gzipSync } from "node:zlib";
-import { productionUsage } from './policy';
-import { nextMarketRead } from '../../shared/market-schedule';
+import { productionUsage } from "./policy";
+import { nextMarketRead } from "../../shared/market-schedule";
 function nbtItem() {
   const text = (s: string) => {
     const b = Buffer.from(s),
@@ -40,13 +41,14 @@ function nbtItem() {
     ]),
   ).toString("base64");
 }
-for (const unavailable of [false, true])
-  test(`production shared cache ${unavailable ? "shows an unavailable cache" : "averages active asks and copies seller command"}`, async ({
+for (const scenario of ["fresh", "sampled", "unavailable"])
+  test(`production shared cache ${scenario === "unavailable" ? "shows an unavailable cache" : scenario === "sampled" ? "shows hourly sampled comparisons with stale commands disabled" : "groups active asks with conservative comparisons and copies seller command"}`, async ({
     page,
     context,
   }, info) => {
     await page.clock.install();
     const now = Date.now(),
+      sampledAt = now - (scenario === "sampled" ? 30 * 60000 : 0),
       seller = "a".repeat(32),
       upstreamRequests: string[] = [],
       errors: string[] = [];
@@ -60,7 +62,7 @@ for (const unavailable of [false, true])
     const fees = {
       mayor: "Normal",
       multiplier: 1,
-      checkedAt: now,
+      checkedAt: sampledAt,
       explanation: "Standard",
     };
     const usage = productionUsage();
@@ -71,12 +73,12 @@ for (const unavailable of [false, true])
           auctioneer: seller,
           bin: true,
           starting_bid: price,
-          start: now - 10000,
+          start: sampledAt - 10000,
           end: now + 3600000,
           item_bytes: nbtItem(),
         },
-        now,
-        now,
+        sampledAt,
+        sampledAt,
         { TEST_SWORD: { name: "Test Sword", tier: "RARE", category: "SWORD" } },
       )!,
       sellerName: "TestSeller",
@@ -90,7 +92,7 @@ for (const unavailable of [false, true])
           json: { command: "/ah TestSeller", seller: "TestSeller", usage },
         });
       reads++;
-      if (unavailable || fail)
+      if (scenario === "unavailable" || fail)
         return route.fulfill({
           status: 503,
           json: {
@@ -110,7 +112,7 @@ for (const unavailable of [false, true])
             fees,
           ),
           version: String(now),
-          health: { activeUpstreamAt: now, listingCount: 3, error: null },
+          health: { activeUpstreamAt: sampledAt, listingCount: 3, error: null },
         },
       });
     });
@@ -127,31 +129,63 @@ for (const unavailable of [false, true])
     await expect(
       page.getByRole("button", { name: "Refresh market" }),
     ).toHaveCount(0);
-    if (unavailable) {
+    if (scenario === "unavailable") {
       await expect(page.getByText(/Shared cache unavailable/)).toBeVisible();
       await expect(page.locator(".market-card")).toHaveCount(0);
     } else {
       const card = page.locator(".market-card").first();
-      await expect(card.getByText("AH average", { exact: true })).toBeVisible();
-      await expect(card.getByText("3,000,000", { exact: true })).toBeVisible();
-      await expect(card.getByText("2 matching active listings")).toBeVisible();
-      await card
-        .getByRole("button", { name: "Copy seller command for Test Sword" })
-        .click();
-      await expect
-        .poll(() => page.evaluate(() => (window as any).copiedCommand))
-        .toBe("/ah TestSeller");
-      await expect(card.getByText("View details", { exact: true })).toHaveCount(0);
+      await expect(
+        card.getByText("Conservative resale estimate", { exact: true }),
+      ).toBeVisible();
+      await expect(card.getByText("2,000,000", { exact: true })).toBeVisible();
+      const expectedGap = Math.round(
+        1000000 - auctionFees(2000000, 24, 1).total,
+      ).toLocaleString("en-US");
+      await expect(card.locator(".profit-line .coin-value")).toContainText(
+        expectedGap,
+      );
+      if (scenario === "sampled") {
+        await expect(
+          card.getByText("Sampled after-fee gap", { exact: true }),
+        ).toBeVisible();
+        await expect(
+          card.getByText("Stale sample", { exact: true }),
+        ).toBeVisible();
+        await expect(card.getByText(/1 matching listings/)).toBeVisible();
+        await expect(
+          card.getByRole("button", {
+            name: "Copy seller command for Test Sword",
+          }),
+        ).toHaveCount(0);
+      } else {
+        await expect(card.getByText(/1 matching listings/)).toBeVisible();
+        await card
+          .getByRole("button", { name: "Copy seller command for Test Sword" })
+          .click();
+        await expect
+          .poll(() => page.evaluate(() => (window as any).copiedCommand))
+          .toBe("/ah TestSeller");
+      }
+      await expect(card.getByText("View details", { exact: true })).toHaveCount(
+        0,
+      );
       await card.click();
       const inspector =
         info.project.name === "mobile"
           ? page.getByRole("dialog")
           : page.getByRole("complementary", { name: "Item details" });
       await expect(
-        inspector.getByText("Current AH average", { exact: true }),
+        inspector
+          .getByText("Arithmetic AH average (context only)", { exact: true })
+          .last(),
       ).toBeVisible();
       await inspector
-        .getByText("Comparable active listings", { exact: true })
+        .getByText(
+          scenario === "sampled"
+            ? "Comparable listings in snapshot"
+            : "Comparable active listings",
+          { exact: true },
+        )
         .click();
       await expect(inspector.getByRole("table")).toBeVisible();
       if (info.project.name === "mobile")
@@ -162,19 +196,30 @@ for (const unavailable of [false, true])
         ),
       ).toBe(true);
       await page.screenshot({
-        path: `.local/previews/shared-cache-${info.project.name}.png`,
+        path: `.local/previews/shared-cache-${scenario}-${info.project.name}.png`,
         fullPage: true,
       });
       // Repeated reads do not replace unchanged cards. A failed read retains them;
-      // crossing the freshness deadline strips their comparisons locally.
+      // crossing the freshness deadline keeps labeled snapshot comparisons,
+      // while seller commands remain unavailable.
       fail = true;
-      await page.clock.runFor(nextMarketRead(Date.now(), usage.pollMs) - Date.now() + 5000);
+      await page.clock.fastForward(
+        nextMarketRead(Date.now(), usage.pollMs) - Date.now() + 5000,
+      );
       await expect(page.getByText(/Shared cache unavailable/)).toBeVisible();
       await expect(card).toBeVisible();
-      await page.clock.runFor(180000);
+      await page.clock.fastForward(180000);
       await expect(page.locator(".automatic-status")).toContainText("Stale");
-      await expect(card.getByText("3,000,000", { exact: true })).toHaveCount(0);
-      await expect(card.getByText("Stale", { exact: true })).toBeVisible();
+      await expect(card.getByText("2,000,000", { exact: true })).toBeVisible();
+      await expect(card.locator(".profit-line .coin-value")).toContainText(
+        expectedGap,
+      );
+      await expect(card.getByText(/sample|Sample/).first()).toBeVisible();
+      await expect(
+        card.getByRole("button", {
+          name: "Copy seller command for Test Sword",
+        }),
+      ).toHaveCount(0);
       await page.screenshot({
         path: `.local/previews/shared-cache-stale-${info.project.name}.png`,
         fullPage: true,

@@ -1,0 +1,1594 @@
+{
+  "version": "1790920089014:1790874480016:e39f3fb7d8a59369e749fe1b3f1d2730775b1526734ab506b7dd2208e111b1c8",
+  "upstreamAt": 1790920089014,
+  "observedAt": 1790920133799,
+  "data": {
+    "fees": {
+      "mayor": "Diana",
+      "multiplier": 1,
+      "checkedAt": 1790920129577,
+      "explanation": "Current mayor Diana: no tax-affecting active perk reported by the election API. Standard fees with your selected account tier."
+    },
+    "listings": [
+      {
+        "id": "e5079e46c2cc46d68497355cef1a9667",
+        "seller": "489e9f9df79b49a0bdc59041b9e44162",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1210000,
+        "start": 1790918325617,
+        "end": 1790939925617,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920131842,
+        "status": "active"
+      },
+      {
+        "id": "9eb89c8c1ce54f168a3e83d6a0221196",
+        "seller": "33aa07caa9024dd8be19505cf822212b",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1300000,
+        "start": 1790918008042,
+        "end": 1791004408042,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920131854,
+        "status": "active"
+      },
+      {
+        "id": "7ee9e99ae1354622bf50bc93fecc3cb6",
+        "seller": "022c9e99b0ea41a4a79fcb538cf98ec9",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1399998,
+        "start": 1790916234409,
+        "end": 1790937834409,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920131932,
+        "status": "active"
+      },
+      {
+        "id": "ce60aa87da834d1cbfc1c09289393e8b",
+        "seller": "900ace992e7c416795672efd418a6d1b",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1399999,
+        "start": 1790916046051,
+        "end": 1790937646051,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920131969,
+        "status": "active"
+      },
+      {
+        "id": "17cf3751b7be4669ae3fca1389dfbe03",
+        "seller": "022c9e99b0ea41a4a79fcb538cf98ec9",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1399999,
+        "start": 1790915670102,
+        "end": 1790937270102,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920131990,
+        "status": "active"
+      },
+      {
+        "id": "53c9980b03a840199a2d27e8a73332e6",
+        "seller": "a94e7828fce04ac69c7b42e9d07cd909",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1400000,
+        "start": 1790914231097,
+        "end": 1790935831097,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132034,
+        "status": "active"
+      },
+      {
+        "id": "3c671ee0cec44d64b620ec9416fd662f",
+        "seller": "a94e7828fce04ac69c7b42e9d07cd909",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1400000,
+        "start": 1790914226209,
+        "end": 1790935826209,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132034,
+        "status": "active"
+      },
+      {
+        "id": "fce2db34a8a1421a937153ca82355a3f",
+        "seller": "a94e7828fce04ac69c7b42e9d07cd909",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1400000,
+        "start": 1790914221978,
+        "end": 1790935821978,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132034,
+        "status": "active"
+      },
+      {
+        "id": "302bf796336646749b697a2ae075fb1f",
+        "seller": "a94e7828fce04ac69c7b42e9d07cd909",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1400000,
+        "start": 1790914217909,
+        "end": 1790935817909,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132034,
+        "status": "active"
+      },
+      {
+        "id": "b256a8b5974f486dba11e0e292526fef",
+        "seller": "a94e7828fce04ac69c7b42e9d07cd909",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1400000,
+        "start": 1790914213060,
+        "end": 1790935813060,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132034,
+        "status": "active"
+      },
+      {
+        "id": "f3f556b31f234e46bf3c0b1a94cb24de",
+        "seller": "a94e7828fce04ac69c7b42e9d07cd909",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1400000,
+        "start": 1790914207412,
+        "end": 1790935807412,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132034,
+        "status": "active"
+      },
+      {
+        "id": "c63f41cb3a724220b48a5a69abd230d8",
+        "seller": "a94e7828fce04ac69c7b42e9d07cd909",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1400000,
+        "start": 1790914202739,
+        "end": 1790935802739,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132034,
+        "status": "active"
+      },
+      {
+        "id": "5c54382ca8ad40a7ae16b2c4f275ee40",
+        "seller": "191ea8e0ba0c4526bb958e720f03ad79",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1500000,
+        "start": 1790914124162,
+        "end": 1791086924162,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132036,
+        "status": "active"
+      },
+      {
+        "id": "46a34fc940304712bee9e2689d67036c",
+        "seller": "352baada5aff44b887cb0d29d4f12b44",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1500000,
+        "start": 1790912546917,
+        "end": 1790934146917,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132076,
+        "status": "active"
+      },
+      {
+        "id": "57d94c59a1f14bc5a1e240f6181795e5",
+        "seller": "352baada5aff44b887cb0d29d4f12b44",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1500000,
+        "start": 1790912115839,
+        "end": 1790933715839,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132088,
+        "status": "active"
+      },
+      {
+        "id": "347ade7605624424aee244c72008adc9",
+        "seller": "fa441a2b6e3e4fc7b7e8b65a0314332b",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1600000,
+        "start": 1790911278560,
+        "end": 1790932878560,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132112,
+        "status": "active"
+      },
+      {
+        "id": "8b7573a40bf14a2a9992f6b32116bf74",
+        "seller": "ca79eb9db87b4b7681fa1a70984e986e",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1600000,
+        "start": 1790909867012,
+        "end": 1791082667012,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132176,
+        "status": "active"
+      },
+      {
+        "id": "5131bf9d0b49452e82c74eece64237fa",
+        "seller": "31d2a6e240b242048a46066003b1a76e",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1649999,
+        "start": 1790904355864,
+        "end": 1790925955864,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132277,
+        "status": "active"
+      },
+      {
+        "id": "19c46f2c3eff44e399c26e8beb7d137a",
+        "seller": "31d2a6e240b242048a46066003b1a76e",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1649999,
+        "start": 1790904352105,
+        "end": 1790925952105,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132278,
+        "status": "active"
+      },
+      {
+        "id": "6d32ec6aa6d04bc4b8cde25d0a3b4319",
+        "seller": "31d2a6e240b242048a46066003b1a76e",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1649999,
+        "start": 1790904344795,
+        "end": 1790925944795,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132278,
+        "status": "active"
+      },
+      {
+        "id": "743b90af562340cbbf89c29fc0dea02e",
+        "seller": "31d2a6e240b242048a46066003b1a76e",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1649999,
+        "start": 1790904338182,
+        "end": 1790925938182,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132278,
+        "status": "active"
+      },
+      {
+        "id": "9c96f94dc6f3465ab3a09bc806fbf56e",
+        "seller": "1bad460d6a0a433a8d4bcb3a01afd18b",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1749999,
+        "start": 1790884803111,
+        "end": 1791057603111,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132603,
+        "status": "active"
+      },
+      {
+        "id": "28943b1eebb9464d8b3eb2b66d9377d6",
+        "seller": "1bad460d6a0a433a8d4bcb3a01afd18b",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1749999,
+        "start": 1790884796503,
+        "end": 1791057596503,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132603,
+        "status": "active"
+      },
+      {
+        "id": "228bd109058a4fb5a29cbb139ce8bdb0",
+        "seller": "1bad460d6a0a433a8d4bcb3a01afd18b",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1749999,
+        "start": 1790884791892,
+        "end": 1791057591892,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132603,
+        "status": "active"
+      },
+      {
+        "id": "108127b85a404159b14c1d9606973666",
+        "seller": "1bad460d6a0a433a8d4bcb3a01afd18b",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1749999,
+        "start": 1790884787226,
+        "end": 1791057587226,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132603,
+        "status": "active"
+      },
+      {
+        "id": "264c98482e494239b4c107b880fc27f8",
+        "seller": "1bad460d6a0a433a8d4bcb3a01afd18b",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1749999,
+        "start": 1790884778218,
+        "end": 1791057578218,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132604,
+        "status": "active"
+      },
+      {
+        "id": "6fd830d5607b46ebbb34b629b5272aae",
+        "seller": "1bad460d6a0a433a8d4bcb3a01afd18b",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1749999,
+        "start": 1790884773570,
+        "end": 1791057573570,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132604,
+        "status": "active"
+      },
+      {
+        "id": "b74451acaed5492a8d05fdac83c8d645",
+        "seller": "1bad460d6a0a433a8d4bcb3a01afd18b",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1749999,
+        "start": 1790884768930,
+        "end": 1791057568930,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132604,
+        "status": "active"
+      },
+      {
+        "id": "7f39bdf689674d4a82f7fa850d18604a",
+        "seller": "1bad460d6a0a433a8d4bcb3a01afd18b",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1749999,
+        "start": 1790884764369,
+        "end": 1791057564369,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132604,
+        "status": "active"
+      },
+      {
+        "id": "406dd182349f44b69b378c66eead9bf5",
+        "seller": "1bad460d6a0a433a8d4bcb3a01afd18b",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1749999,
+        "start": 1790884759543,
+        "end": 1791057559543,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132604,
+        "status": "active"
+      },
+      {
+        "id": "39f4fa52267340769c715ed76155f1b0",
+        "seller": "1bad460d6a0a433a8d4bcb3a01afd18b",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1749999,
+        "start": 1790884754420,
+        "end": 1791057554420,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132604,
+        "status": "active"
+      },
+      {
+        "id": "ece342d8050e4b47a5085aad57af956b",
+        "seller": "1bad460d6a0a433a8d4bcb3a01afd18b",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1749999,
+        "start": 1790884616005,
+        "end": 1791057416005,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132605,
+        "status": "active"
+      },
+      {
+        "id": "3ea46ca91b0545fd80cbe7a2efa3aed9",
+        "seller": "1bad460d6a0a433a8d4bcb3a01afd18b",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1749999,
+        "start": 1790884605007,
+        "end": 1791057405007,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132606,
+        "status": "active"
+      },
+      {
+        "id": "320b9303ed0c464395bd0c031ae9ed00",
+        "seller": "88f058bef67a47c08c7c3c94ca7de212",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1750000,
+        "start": 1790887744137,
+        "end": 1791060544137,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132569,
+        "status": "active"
+      },
+      {
+        "id": "12b38fac65024cd7b144231f7f8ee0b7",
+        "seller": "88f058bef67a47c08c7c3c94ca7de212",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1750000,
+        "start": 1790887740113,
+        "end": 1791060540113,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132569,
+        "status": "active"
+      },
+      {
+        "id": "1c9585f1cecd45fba16e99075848dd47",
+        "seller": "88f058bef67a47c08c7c3c94ca7de212",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1750000,
+        "start": 1790887735951,
+        "end": 1791060535951,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132569,
+        "status": "active"
+      },
+      {
+        "id": "79b846d7c7744934b4b924cf11b15a5e",
+        "seller": "88f058bef67a47c08c7c3c94ca7de212",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1750000,
+        "start": 1790887732056,
+        "end": 1791060532056,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132569,
+        "status": "active"
+      },
+      {
+        "id": "6785dc15bf0b4df6911a8628f6324253",
+        "seller": "88f058bef67a47c08c7c3c94ca7de212",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1750000,
+        "start": 1790877688484,
+        "end": 1791050488484,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132691,
+        "status": "active"
+      },
+      {
+        "id": "44d00905516d45f9a8524133f3e8d868",
+        "seller": "88f058bef67a47c08c7c3c94ca7de212",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1750000,
+        "start": 1790877681016,
+        "end": 1791050481016,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132691,
+        "status": "active"
+      },
+      {
+        "id": "f0e28f7d782f4bee8deb4ccd3903cdba",
+        "seller": "88f058bef67a47c08c7c3c94ca7de212",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1750000,
+        "start": 1790873092320,
+        "end": 1791045892320,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132742,
+        "status": "active"
+      },
+      {
+        "id": "e9503fd71fdf48f0ab72b0d7db6f8b40",
+        "seller": "88f058bef67a47c08c7c3c94ca7de212",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1750123,
+        "start": 1790849270404,
+        "end": 1791022070404,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132936,
+        "status": "active"
+      },
+      {
+        "id": "f56ae9295af741ee9e552a95618637a1",
+        "seller": "88f058bef67a47c08c7c3c94ca7de212",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 1750123,
+        "start": 1790849263849,
+        "end": 1791022063849,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132936,
+        "status": "active"
+      },
+      {
+        "id": "fdba29e035c44afdab97461a0f3923a5",
+        "seller": "f031ae18042e4fc4994caee25ba1b68e",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 2000000,
+        "start": 1790877961652,
+        "end": 1791050761652,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132689,
+        "status": "active"
+      },
+      {
+        "id": "dd64ec99a3f1419f829db51724ec708c",
+        "seller": "17d18c718a594745b125796193a4565d",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "LEGENDARY",
+          "enchantments": {},
+          "modifiers": {
+            "rarity_upgrades": 1,
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_07f48c8ce2f5545015e40c8fba46d0ccfcd15b28bda09cda6ecc6c10684dc5d4",
+          "complete": true,
+          "issues": []
+        },
+        "price": 14000000,
+        "start": 1790835426518,
+        "end": 1791008226518,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920132994,
+        "status": "active"
+      },
+      {
+        "id": "2be1cf963ad94832b9d7435d0212ccd2",
+        "seller": "12600c04c95445119c3716ce53453b6c",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "LEGENDARY",
+          "enchantments": {},
+          "modifiers": {
+            "rarity_upgrades": 1,
+            "talisman_enrichment": "magic_find",
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_f0c4065fb2863ff3c05d27ba7ce9dd6da885b7ad99d6a16a0c219a718724c730",
+          "complete": true,
+          "issues": []
+        },
+        "price": 15000000,
+        "start": 1790796327428,
+        "end": 1792005927428,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920133183,
+        "status": "active"
+      },
+      {
+        "id": "548e2de8a54442b9960a1326acef4935",
+        "seller": "12600c04c95445119c3716ce53453b6c",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "LEGENDARY",
+          "enchantments": {},
+          "modifiers": {
+            "rarity_upgrades": 1,
+            "talisman_enrichment": "magic_find",
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_f0c4065fb2863ff3c05d27ba7ce9dd6da885b7ad99d6a16a0c219a718724c730",
+          "complete": true,
+          "issues": []
+        },
+        "price": 15000000,
+        "start": 1790796317619,
+        "end": 1792005917619,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920133183,
+        "status": "active"
+      },
+      {
+        "id": "d106d4b48ff64342bf7c123b21e7c33a",
+        "seller": "b941990241f0447989c192fd693b74cf",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "LEGENDARY",
+          "enchantments": {},
+          "modifiers": {
+            "rarity_upgrades": 1,
+            "talisman_enrichment": "magic_find",
+            "modifier": "none",
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_2e24f6386424948d46a32a5c3da111b686521f2a9e6a0b7a26c30ee2c45d406f",
+          "complete": true,
+          "issues": []
+        },
+        "price": 16000000,
+        "start": 1790714104402,
+        "end": 1791923704402,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920133394,
+        "status": "active"
+      },
+      {
+        "id": "f7bd7cad833c4bada29499afa6e75372",
+        "seller": "0f4e6fd11b3c4435aa30357a847336ad",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "LEGENDARY",
+          "enchantments": {},
+          "modifiers": {
+            "rarity_upgrades": 1,
+            "talisman_enrichment": "critical_chance",
+            "modifier": "strange",
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_10aebe79a8d816a4d49ded0d752e612038e4e379684eaf4a35aecb1e51b059b5",
+          "complete": true,
+          "issues": []
+        },
+        "price": 16000000,
+        "start": 1790669618829,
+        "end": 1791879218829,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920133436,
+        "status": "active"
+      },
+      {
+        "id": "9200d22a4a534a9996b877ad6234f9ae",
+        "seller": "fe95843f6ef740579e55e3d3ad28f85b",
+        "variant": {
+          "version": 1,
+          "itemId": "CANDY_ARTIFACT",
+          "quantity": 1,
+          "rarity": "EPIC",
+          "enchantments": {},
+          "modifiers": {
+            "vanillaDamage": 3,
+            "headTextures": [
+              {
+                "SKIN": {
+                  "url": "http://textures.minecraft.net/texture/b797add1b3ae64d510bcc6ac16c2fa1dd69369edf59821239c955f7f11e1177b"
+                }
+              }
+            ]
+          },
+          "name": "Candy Artifact",
+          "category": "accessory",
+          "fingerprint": "v1_23ecdf8c35f46e2b7aa207758484209c839f3ee5308c052707e935511eb36bfd",
+          "complete": true,
+          "issues": []
+        },
+        "price": 15432000000,
+        "start": 1790281863114,
+        "end": 1791491463114,
+        "upstreamAt": 1790920089014,
+        "observedAt": 1790920133656,
+        "status": "active"
+      }
+    ]
+  }
+}

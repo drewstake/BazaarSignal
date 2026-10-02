@@ -1526,7 +1526,8 @@ img.item-art.pack.hero {
   transform: translateY(-2px);
 }
 /* The native button covers the card, with independent actions above it. */
-.market-card .card-details-trigger {
+.market-card .card-details-trigger,
+.saved-items .card-details-trigger {
   position: absolute;
   inset: 0;
   z-index: 3;
@@ -2477,8 +2478,10 @@ details.inspector-section[open] > summary::after {
   gap: 12px;
 }
 .saved-items article {
+  position: relative;
+  isolation: isolate;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
   padding: 10px;
@@ -2510,6 +2513,8 @@ details.inspector-section[open] > summary::after {
   font-size: 12px;
 }
 .saved-items article .save-icon {
+  position: relative;
+  z-index: 4;
   border: 2px solid #ecc2c2 !important;
   background: #fff4f2;
 }
@@ -2911,10 +2916,6 @@ details.inspector-section[open] > summary::after {
   .saved-items article {
     grid-template-columns: auto minmax(0, 1fr) auto;
   }
-  .saved-items article .button {
-    grid-column: 2 / -1;
-    justify-self: start;
-  }
   .saved-items article .save-icon {
     grid-column: 3;
     grid-row: 1;
@@ -2947,3 +2948,15 @@ details.inspector-section[open] > summary::after {
   overflow-wrap: anywhere;
 }
 .sample-time { overflow-wrap: anywhere; }
+.auction-group-list, .auction-evidence-scroll { max-height: 330px; overflow: auto; overscroll-behavior: contain; }
+.auction-listing-row { display: flex; align-items: flex-start; border-bottom: 1px solid #bdab85; padding: 8px 0; gap: 4px; }
+.companion .auction-listing-select { display: block; flex: 1; min-width: 0; text-align: left; background: transparent; border: 1px solid transparent; padding: 8px; color: inherit; border-radius: 6px; cursor: pointer; }
+.companion .auction-listing-select[aria-pressed="true"] { background: #ddcea8; border-color: #9b8053; }
+.auction-listing-select > span { display: block; font-size: 12px; margin-top: 5px; overflow-wrap: anywhere; }
+.auction-listing-select > strong { display: block; font-size: 13px; }
+.auction-listing-row > .save-icon { position: static; flex: none; }
+.auction-evidence-scroll td { overflow-wrap: anywhere; min-width: 65px; vertical-align: top; }
+.auction-evidence-scroll table { table-layout: fixed; width: 100%; }
+.auction-evidence-scroll .fingerprint { display: block; }
+.auction-group h3 { margin: 0 0 8px; }
+.asking-price-card .price-comparison > div > span { overflow-wrap: normal; }

@@ -34,7 +34,10 @@ export async function marketRequest<T>(
     throw new Error(
       "The shared market collector is not connected. Market data updates automatically once the shared service is configured.",
     );
-  return cachedMarketRequest<T>(new URL(`${base}/api/companion/${path}`, location.origin).href, signal);
+  return cachedMarketRequest<T>(
+    new URL(`${base}/api/companion/${path}`, location.origin).href,
+    signal,
+  );
 }
 export async function getBazaar(signal?: AbortSignal) {
   if (fixtureMode)
@@ -53,7 +56,7 @@ export async function getAuctions(
 ) {
   if (fixtureMode)
     return (await import("./fixtures")).auctionFixtures(filters, page);
-  return marketRequest<
+  const result = await marketRequest<
     CacheResult & {
       items: AuctionOpportunity[];
       total: number;
@@ -61,9 +64,27 @@ export async function getAuctions(
       health: CollectorHealth;
     }
   >(
-    `auctions?filters=${encodeURIComponent(JSON.stringify(filters))}&page=${page}`,
+    // The response shape and meaning changed. A distinct, stable cache key avoids
+    // replaying hourly cached per-auction arithmetic averages under the new UI.
+    `auctions?filters=${encodeURIComponent(JSON.stringify(filters))}&page=${page}&format=grouped-conservative-v1`,
     signal,
   );
+  if (
+    !Array.isArray(result.items) ||
+    result.items.some(
+      (o) =>
+        !o.group ||
+        !Array.isArray(o.group.matchingListings) ||
+        !o.group.matchingListings.length ||
+        !Array.isArray(o.group.comparisonPool) ||
+        o.valuation.arithmeticMean === undefined,
+    )
+  ) {
+    throw new Error(
+      "Auction service is using an older comparison format. Updated grouped comparisons are required.",
+    );
+  }
+  return result;
 }
 export async function checkAuction(id: string) {
   if (fixtureMode)
@@ -87,7 +108,16 @@ export async function getAuctionCommand(id: string) {
   );
 }
 export async function getAuctionDetail(id: string, duration = 24) {
-  return marketRequest<AuctionOpportunity>(
+  const result = await marketRequest<AuctionOpportunity>(
     `auctions/${id}?duration=${duration}`,
   );
+  if (
+    result.valuation.basis === "active-listings" &&
+    result.valuation.arithmeticMean === undefined
+  ) {
+    throw new Error(
+      "Auction service is using an older comparison format. Conservative estimate unavailable.",
+    );
+  }
+  return result;
 }

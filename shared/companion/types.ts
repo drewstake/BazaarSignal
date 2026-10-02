@@ -109,7 +109,17 @@ export interface Listing {
 }
 export interface Valuation {
   basis?: "active-listings";
-  listings?: { id: string; price: number; end: number }[];
+  listings?: {
+    id: string;
+    price: number;
+    end: number;
+    seller?: string;
+    sellerName?: string;
+    excluded?: string;
+  }[];
+  arithmeticMean?: number | null;
+  sellerCount?: number;
+  largestSellerShare?: number;
   confidence: Confidence;
   reasons: string[];
   estimate: number | null;
@@ -128,8 +138,12 @@ export interface Valuation {
   match: "exact" | "none";
 }
 export interface AuctionOpportunity {
+  /** Filtered candidates and unfiltered cached evidence for this canonical item. */
+  group?: { matchingListings: Listing[]; comparisonPool: Listing[] };
   listing: Listing;
   valuation: Valuation;
+  /** Exact-match asking prices evaluated when the cached snapshot was observed. */
+  sampledValuation?: Valuation;
   fees: {
     listing: number;
     duration: number;
@@ -159,7 +173,7 @@ export interface AuctionFilters {
   hideFlagged: boolean;
   showInsufficient: boolean;
   durationHours: number;
-  sort: "profit" | "roi" | "capital" | "confidence" | "recent";
+  sort: "supported" | "profit" | "roi" | "capital" | "confidence" | "recent";
   view: "cards" | "list";
 }
 export interface CollectorHealth {

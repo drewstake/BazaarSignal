@@ -1,9 +1,6 @@
-import { activeOpportunity } from "../../shared/companion/active-auctions";
+import { activePage } from "../../shared/companion/active-auctions";
 // Explicit development fixtures only. Never used after a failed live request.
 import { normalizeBazaar } from "../../shared/companion/bazaar";
-import {
-  matchesAuction,
-} from "../../shared/companion/auctions";
 import type {
   AuctionFilters,
   CollectorHealth,
@@ -95,8 +92,8 @@ const rows = [
   ],
 ] as const;
 export function bazaarFixtures() {
-  return rows.map(([id, name, category, tier, bid, ask, activity]) =>
-    ({ ...normalizeBazaar(
+  return rows.map(([id, name, category, tier, bid, ask, activity]) => ({
+    ...normalizeBazaar(
       id,
       {
         buy_summary: [
@@ -119,8 +116,14 @@ export function bazaarFixtures() {
       Date.now() - 15000,
       Date.now(),
       { name, category, tier },
-    ), feeContext: { mayor: "Fixture", multiplier: 1, checkedAt: Date.now(), explanation: "Explicit fixture standard-tax assumption." } }),
-  );
+    ),
+    feeContext: {
+      mayor: "Fixture",
+      multiplier: 1,
+      checkedAt: Date.now(),
+      explanation: "Explicit fixture standard-tax assumption.",
+    },
+  }));
 }
 export function auctionFixtures(f: AuctionFilters, page: number) {
   const now = Date.now();
@@ -148,10 +151,12 @@ export function auctionFixtures(f: AuctionFilters, page: number) {
     observedAt: now,
     status: "active",
   };
-  const peers: Listing[] = Array.from({ length: 16 }, (_, i) => ({...listing,id:('fixture-'+i),seller:'seller-'+i,price:3200000+i*5000}));
-  const items = [
-    activeOpportunity(listing, peers, now, f.durationHours),
-  ].filter((o) => matchesAuction(o, f, now));
+  const peers: Listing[] = Array.from({ length: 16 }, (_, i) => ({
+    ...listing,
+    id: "fixture-" + i,
+    seller: "seller-" + i,
+    price: 3200000 + i * 5000,
+  }));
   const health: CollectorHealth = {
     mode: "local",
     startedAt: now - 86400000,
@@ -171,9 +176,12 @@ export function auctionFixtures(f: AuctionFilters, page: number) {
     writeLimit: 12000,
   };
   return {
-    items: items.slice(page * 6, page * 6 + 6),
-    total: items.length,
-    page,
+    ...activePage([listing, ...peers], f, page, now, {
+      mayor: "Fixture",
+      multiplier: 1,
+      checkedAt: now,
+      explanation: "Explicit fixture standard-tax assumption.",
+    }),
     health,
   };
 }

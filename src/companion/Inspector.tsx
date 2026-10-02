@@ -4,10 +4,17 @@ import type {
   AuctionOpportunity,
   BazaarFilters,
   BazaarItem,
+  Listing,
 } from "../../shared/companion/types";
-import { bazaarTrade, quoteBazaar, strategyLabels } from "../../shared/companion/bazaar";
-import { SampleTime } from '../SampleTime';
-import { BazaarOrderBook } from './OrderBook';
+import {
+  bazaarTrade,
+  quoteBazaar,
+  strategyLabels,
+} from "../../shared/companion/bazaar";
+import { auctionComparison } from "../../shared/companion/auction-comparison";
+import { activeOpportunity } from "../../shared/companion/active-auctions";
+import { SampleTime } from "../SampleTime";
+import { BazaarOrderBook } from "./OrderBook";
 import {
   artGlow,
   SkyIcon,
@@ -132,10 +139,14 @@ export function BazaarInspector({
   saved: boolean;
   save: () => void;
 }) {
-  const q = quoteBazaar(item, filters), trade = bazaarTrade(item, filters);
-  const visibleConcerns = q?.concerns.filter(c =>
-    !c.startsWith("Last sampled estimate") &&
-    !c.startsWith("Price moved more than 15%")) ?? [];
+  const q = quoteBazaar(item, filters),
+    trade = bazaarTrade(item, filters);
+  const visibleConcerns =
+    q?.concerns.filter(
+      (c) =>
+        !c.startsWith("Last sampled estimate") &&
+        !c.startsWith("Price moved more than 15%"),
+    ) ?? [];
   return (
     <>
       <InspectorItem
@@ -167,14 +178,30 @@ export function BazaarInspector({
           </select>
         </label>
       </div>
-      <p className="data-time"><SampleTime timestamp={item.upstreamAt} compact /></p>
-      {!q && <div className="inspector-block">
-        <h4>Price per item <span>(sampled)</span></h4>
-        <dl className="price-table">
-          <div><dt>Buy</dt><dd><Coin value={trade.buy?.unit} full /></dd></div>
-          <div><dt>Sell before tax</dt><dd><Coin value={trade.sale?.unit} full /></dd></div>
-        </dl>
-      </div>}
+      <p className="data-time">
+        <SampleTime timestamp={item.upstreamAt} compact />
+      </p>
+      {!q && (
+        <div className="inspector-block">
+          <h4>
+            Price per item <span>(sampled)</span>
+          </h4>
+          <dl className="price-table">
+            <div>
+              <dt>Buy</dt>
+              <dd>
+                <Coin value={trade.buy?.unit} full />
+              </dd>
+            </div>
+            <div>
+              <dt>Sell before tax</dt>
+              <dd>
+                <Coin value={trade.sale?.unit} full />
+              </dd>
+            </div>
+          </dl>
+        </div>
+      )}
       {q ? (
         <>
           <p className="wait-note">{q.waits}</p>
@@ -191,7 +218,15 @@ export function BazaarInspector({
               sampled={!q.fresh}
             />
           </div>
-          <p className="estimate-fees">Includes {filters.taxPercent * (item.feeContext?.multiplier ?? 1)}% sale tax{q.executionCost > 0 ? ` and ${exact(q.executionCost)} coins in additional costs` : ""}. {!q.fresh && "Historical estimate; check in-game prices. "}Fills and profit are not guaranteed.</p>
+          <p className="estimate-fees">
+            Includes {filters.taxPercent * (item.feeContext?.multiplier ?? 1)}%
+            sale tax
+            {q.executionCost > 0
+              ? ` and ${exact(q.executionCost)} coins in additional costs`
+              : ""}
+            . {!q.fresh && "Historical estimate; check in-game prices. "}Fills
+            and profit are not guaranteed.
+          </p>
           {visibleConcerns.length > 0 && (
             <ul className="concerns">
               {visibleConcerns.map((c) => (
@@ -205,7 +240,8 @@ export function BazaarInspector({
         </>
       ) : (
         <p className="notice warning">
-          Profit unavailable: the full quantity needs valid prices on both sides and fee evidence from the same collection period.
+          Profit unavailable: the full quantity needs valid prices on both sides
+          and fee evidence from the same collection period.
         </p>
       )}
       <BazaarOrderBook key={item.id} item={item} />
@@ -240,7 +276,10 @@ export function BazaarInspector({
                 </dd>
               </div>
               <div>
-                <dt>Sale tax ({filters.taxPercent * (item.feeContext?.multiplier ?? 1)}%)</dt>
+                <dt>
+                  Sale tax (
+                  {filters.taxPercent * (item.feeContext?.multiplier ?? 1)}%)
+                </dt>
                 <dd>−{exact(q.tax)}</dd>
               </div>
               <div>
@@ -265,8 +304,9 @@ export function BazaarInspector({
               </div>
             </dl>
             <p>
-              {item.feeContext ? `Fee evidence sampled ${new Date(item.feeContext.checkedAt).toLocaleString()}. ${item.feeContext.explanation.replace('Current mayor', 'Sampled mayor')}` :
-                "Fixture assumption: standard taxes with your selected Bazaar Flipper tier."}{" "}
+              {item.feeContext
+                ? `Fee evidence sampled ${new Date(item.feeContext.checkedAt).toLocaleString()}. ${item.feeContext.explanation.replace("Current mayor", "Sampled mayor")}`
+                : "Fixture assumption: standard taxes with your selected Bazaar Flipper tier."}{" "}
               Passive prices join the best bid/ask without outbidding.
             </p>
           </details>
@@ -280,8 +320,18 @@ export function BazaarInspector({
               </h4>
             </summary>
             <dl>
-              <div><dt>Highest buy order / item</dt><dd><Coin value={item.bids[0]?.pricePerUnit} full /></dd></div>
-              <div><dt>Lowest sell offer / item</dt><dd><Coin value={item.asks[0]?.pricePerUnit} full /></dd></div>
+              <div>
+                <dt>Highest buy order / item</dt>
+                <dd>
+                  <Coin value={item.bids[0]?.pricePerUnit} full />
+                </dd>
+              </div>
+              <div>
+                <dt>Lowest sell offer / item</dt>
+                <dd>
+                  <Coin value={item.asks[0]?.pricePerUnit} full />
+                </dd>
+              </div>
               <div>
                 <dt>Instant-buy activity</dt>
                 <dd>{compact(item.instantBuyActivity7d)}</dd>
@@ -335,8 +385,171 @@ export function BazaarInspector({
       )}
       <details className="inspector-section">
         <summary>Sample timestamps</summary>
-        <p><SampleTime timestamp={item.upstreamAt} observedAt={item.observedAt} /></p>
+        <p>
+          <SampleTime
+            timestamp={item.upstreamAt}
+            observedAt={item.observedAt}
+          />
+        </p>
       </details>
+    </>
+  );
+}
+export function AuctionGroupInspector({
+  opportunity,
+  duration,
+  now,
+  isSaved,
+  save,
+  copySeller,
+  sellerLabel,
+  copyBusy,
+}: {
+  opportunity: AuctionOpportunity;
+  duration: number;
+  now: number;
+  isSaved: (id: string) => boolean;
+  save: (listing: Listing) => void;
+  copySeller: (o: AuctionOpportunity) => void;
+  sellerLabel: (o: AuctionOpportunity) => string;
+  copyBusy: boolean;
+}) {
+  const [selected, setSelected] = useState(opportunity.listing.id);
+  const [descending, setDescending] = useState(false);
+  const group = opportunity.group;
+  const listings = group?.matchingListings ?? [opportunity.listing];
+  const listing = listings.find((l) => l.id === selected) ?? listings[0];
+  const o = group
+    ? activeOpportunity(
+        listing,
+        group.comparisonPool,
+        now,
+        duration,
+        opportunity.feeContext,
+      )
+    : opportunity;
+  return (
+    <>
+      {group && (
+        <section
+          className="auction-group inspector-section"
+          aria-label="Matching auctions"
+        >
+          <h3>{opportunity.listing.variant.name}</h3>
+          <p>
+            {listings.length} matching auctions ·{" "}
+            {new Set(listings.map((l) => l.variant.fingerprint)).size}{" "}
+            configurations
+          </p>
+          <label className="field">
+            <span>Sort matching auctions</span>
+            <select
+              value={descending ? "desc" : "asc"}
+              onChange={(e) => setDescending(e.target.value === "desc")}
+            >
+              <option value="asc">Price: low to high</option>
+              <option value="desc">Price: high to low</option>
+            </select>
+          </label>
+          <p>
+            Purchase filters apply here. The selected listing’s evidence
+            includes all exact matches in the cached snapshot, including asks
+            outside your budget.
+          </p>
+          <div
+            className="auction-group-list"
+            tabIndex={0}
+            aria-label="All matching listings"
+          >
+            {[...listings]
+              .sort(
+                (a, b) =>
+                  (descending ? b.price - a.price : a.price - b.price) ||
+                  a.id.localeCompare(b.id),
+              )
+              .map((l) => {
+                const status =
+                  l.status !== "active"
+                    ? l.status
+                    : l.end <= now
+                      ? "expired"
+                      : now - l.upstreamAt > 180000
+                        ? "stale"
+                        : "active in snapshot";
+                return (
+                  <article
+                    key={l.id}
+                    className="auction-listing-row"
+                    data-listing-id={l.id}
+                  >
+                    <button
+                      className="auction-listing-select"
+                      aria-pressed={l.id === o.listing.id}
+                      onClick={() => setSelected(l.id)}
+                      aria-label={`Select auction ${l.id}`}
+                    >
+                      <strong>
+                        <Coin value={l.price} full /> · {l.variant.quantity} ×{" "}
+                        {titleCase(l.variant.rarity)}
+                      </strong>
+                      <span>
+                        Seller: {l.sellerName ?? l.seller ?? "unavailable"}
+                      </span>
+                      <span>
+                        Enchantments:{" "}
+                        {Object.entries(l.variant.enchantments)
+                          .map(([k, v]) => `${titleCase(k)} ${v}`)
+                          .join(", ") || "none"}
+                      </span>
+                      <span>
+                        Upgrades:{" "}
+                        {Object.entries(l.variant.modifiers)
+                          .filter(([k]) => k !== "headTextures")
+                          .map(
+                            ([k, v]) =>
+                              `${titleCase(k)}: ${typeof v === "object" ? JSON.stringify(v) : v}`,
+                          )
+                          .join(" · ") || "none"}
+                      </span>
+                      <span className="fingerprint">
+                        Configuration {l.variant.fingerprint}
+                      </span>
+                      <span>
+                        <SampleTime timestamp={l.upstreamAt} compact /> ·{" "}
+                        {status}
+                      </span>
+                    </button>
+                    <button
+                      className={`save-icon ${isSaved(l.id) ? "is-saved" : ""}`}
+                      onClick={() => save(l)}
+                      aria-label={`${isSaved(l.id) ? "Remove" : "Save"} auction ${l.id}`}
+                      aria-pressed={isSaved(l.id)}
+                    >
+                      <SkyIcon name="favorite-star" size={26} />
+                    </button>
+                  </article>
+                );
+              })}
+          </div>
+        </section>
+      )}
+      <AuctionInspector
+        key={o.listing.id}
+        opportunity={o}
+        duration={duration}
+        saved={isSaved(o.listing.id)}
+        save={() => save(o.listing)}
+      />
+      {o.listing.status === "active" && (
+        <button
+          className="button blue watch-button"
+          onClick={() => copySeller(o)}
+          disabled={copyBusy}
+          aria-label={`Copy seller command for selected ${o.listing.variant.name}`}
+        >
+          {sellerLabel(o)}
+        </button>
+      )}
     </>
   );
 }
@@ -360,8 +573,9 @@ export function AuctionInspector({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [copied, setCopied] = useState(false);
+  const comparison = auctionComparison(o, duration);
   const v = o.listing.variant,
-    val = o.valuation;
+    val = comparison.valuation;
   useEffect(() => {
     setCheck(null);
     setCopied(false);
@@ -406,19 +620,28 @@ export function AuctionInspector({
       />
       <span className={`confidence ${val.confidence}`}>
         {titleCase(val.confidence)} confidence · {val.count} matching listings
+        {comparison.sampled && " in snapshot"}
       </span>
       <div className="inspector-block">
         <h4>
-          Buy <span className="arrow">→</span> AH Average
+          Buy <span className="arrow">→</span> Conservative resale estimate
         </h4>
         <PriceComparison
           buy={o.listing.price}
           askingPrice
+          sampled={comparison.sampled}
           sell={val.estimate}
-          profit={o.profit}
-          roi={o.roi}
+          profit={comparison.profit}
+          roi={comparison.roi}
           full
         />
+        {comparison.sampled && (
+          <p>
+            <SampleTime timestamp={o.listing.upstreamAt} compact /> · Historical
+            asking prices and snapshot fees. Check in-game prices and
+            availability before trading.
+          </p>
+        )}
       </div>
       <div className="inspector-section">
         <h4>The comparison evidence</h4>
@@ -434,8 +657,16 @@ export function AuctionInspector({
             <dd>{exact(val.median)}</dd>
           </div>
           <div>
-            <dt>Current AH average</dt>
-            <dd>{exact(val.estimate)}</dd>
+            <dt>Arithmetic AH average (context only)</dt>
+            <dd>{exact(val.arithmeticMean)}</dd>
+          </div>
+          <div>
+            <dt>Known comparison sellers</dt>
+            <dd>{val.sellerCount ?? "—"}</dd>
+          </div>
+          <div>
+            <dt>Excluded upper outliers</dt>
+            <dd>{val.excludedCount}</dd>
           </div>
           <div>
             <dt>Dispersion (IQR / median)</dt>
@@ -446,37 +677,58 @@ export function AuctionInspector({
             </dd>
           </div>
           <div>
-            <dt>Matching active listings</dt>
+            <dt>
+              {comparison.sampled
+                ? "Matching listings in snapshot"
+                : "Matching active listings"}
+            </dt>
             <dd>{val.count}</dd>
           </div>
         </dl>
         <p>
-          Snapshot {new Date(val.windowStart).toLocaleTimeString()} · active BIN
+          Snapshot {new Date(val.windowStart).toLocaleString()} · sampled BIN
           asking prices.
         </p>
         {val.reasons.map((r) => (
           <p key={r}>{r}</p>
         ))}
         <details>
-          <summary>Comparable active listings</summary>
+          <summary>
+            {comparison.sampled
+              ? "Comparable listings in snapshot"
+              : "Comparable active listings"}
+          </summary>
           {(val.listings ?? []).length ? (
-            <table>
-              <caption>Exact configuration matches</caption>
-              <thead>
-                <tr>
-                  <th>Ends</th>
-                  <th>Price</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(val.listings ?? []).map((s) => (
-                  <tr key={s.id}>
-                    <td>{new Date(s.end).toLocaleString()}</td>
-                    <td>{exact(s.price)}</td>
+            <div
+              className="auction-evidence-scroll"
+              tabIndex={0}
+              aria-label="All comparison evidence"
+            >
+              <table>
+                <caption>Exact configuration matches</caption>
+                <thead>
+                  <tr>
+                    <th>Ends</th>
+                    <th>Price</th>
+                    <th>Seller / evidence</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {(val.listings ?? []).map((s) => (
+                    <tr key={s.id}>
+                      <td>{new Date(s.end).toLocaleString()}</td>
+                      <td>{exact(s.price)}</td>
+                      <td>
+                        {s.sellerName ?? s.seller ?? "Seller unavailable"}
+                        <br />
+                        {s.excluded ?? "Included"}
+                        <small className="fingerprint">{s.id}</small>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : (
             <p>No matching active listings.</p>
           )}
@@ -499,42 +751,46 @@ export function AuctionInspector({
           ))}
         </dl>
         <p>
-          Comparison differences: none for exact matches. Scarce exact matches
-          lead to insufficient evidence; clean and upgraded items are never
-          pooled.
+          Comparison differences: none for exact matches. Few exact matches
+          reduce confidence; no matches means no estimate. Clean and upgraded
+          items are never pooled.
         </p>
         <small className="fingerprint">Fingerprint {v.fingerprint}</small>
       </div>
-      {o.flags.length > 0 && (
+      {comparison.flags.length > 0 && (
         <ul className="concerns">
-          {o.flags.map((flag) => (
+          {comparison.flags.map((flag) => (
             <li key={flag}>{flag}</li>
           ))}
         </ul>
       )}
       <div className="inspector-section">
-        <h4>Resale fees · {duration} hours</h4>
+        <h4>
+          {comparison.sampled ? "Sampled resale fees" : "Resale fees"} ·{" "}
+          {duration} hours
+        </h4>
         <dl>
           <div>
             <dt>BIN listing fee</dt>
-            <dd>{exact(o.fees?.listing)}</dd>
+            <dd>{exact(comparison.fees?.listing)}</dd>
           </div>
           <div>
             <dt>Duration fee</dt>
-            <dd>{exact(o.fees?.duration)}</dd>
+            <dd>{exact(comparison.fees?.duration)}</dd>
           </div>
           <div>
             <dt>Collection tax</dt>
-            <dd>{exact(o.fees?.claim)}</dd>
+            <dd>{exact(comparison.fees?.claim)}</dd>
           </div>
           <div>
             <dt>Required capital incl. listing</dt>
-            <dd>{exact(o.capital)}</dd>
+            <dd>{exact(comparison.capital)}</dd>
           </div>
         </dl>
         <p>
-          {o.feeContext?.explanation ??
-            "Fixture assumption: standard fee schedule."}{" "}
+          {o.feeContext
+            ? `Fee evidence sampled ${new Date(o.feeContext.checkedAt).toLocaleString()}. ${o.feeContext.explanation.replace("Current mayor", "Sampled mayor")}`
+            : "Snapshot fee evidence unavailable; after-fee gap withheld."}{" "}
           Fees include one listing attempt. Re-listing adds costs.
         </p>
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { User } from "firebase/auth";
 import {
   ArrowRight,
@@ -27,6 +27,7 @@ import {
   auctionOpportunity,
   defaultAuctionFilters,
 } from "../../shared/companion/auctions";
+import { auctionComparison } from "../../shared/companion/auction-comparison";
 import { auth, login, logout, watchAuth } from "../data";
 import { signInErrorMessage } from "../sign-in-error";
 import {
@@ -46,7 +47,7 @@ import {
 } from "./private";
 import { AuctionFilterBar, BazaarFilterBar } from "./Filters";
 import {
-  AuctionInspector,
+  AuctionGroupInspector,
   BazaarInspector,
   BlankInspector,
   InspectorShell,
@@ -64,11 +65,11 @@ import {
 import "./market.css";
 import { visiblePoll, pollingDirective, PAUSED_MESSAGE } from "./polling";
 import type { CacheResult, CacheStatus } from "./api";
-import UsageDashboard from './UsageDashboard';
-import { ownerCandidate } from './usage-access';
-import { SampleTime } from '../SampleTime';
+import UsageDashboard from "./UsageDashboard";
+import { ownerCandidate } from "./usage-access";
+import { SampleTime } from "../SampleTime";
 import { bazaarResults } from "./bazaar-results";
-import { isFresh } from '../../shared/market';
+import { isFresh } from "../../shared/market";
 
 type View = "bazaar" | "auctions" | "watchlist" | "usage";
 const currentView = (): View => {
@@ -101,6 +102,7 @@ function localPreferences<T extends object>(market: string, defaults: T) {
   }
 }
 export default function MarketApp() {
+  const inspectAfterNavigation = useRef(false);
   const [copyingAuction, setCopyingAuction] = useState<string | null>(null);
   const [auctionNames, setAuctionNames] = useState<Record<string, string>>({});
   const [view, setView] = useState<View>(currentView),
@@ -147,7 +149,10 @@ export default function MarketApp() {
   useEffect(() => {
     const update = () => {
       setView(currentView());
-      setSheetOpen(false);
+      // A cached watchlist result can open before hashchange is delivered.
+      // Keep that explicitly requested inspector open on mobile navigation.
+      if (!inspectAfterNavigation.current) setSheetOpen(false);
+      inspectAfterNavigation.current = false;
     };
     window.addEventListener("hashchange", update);
     return () => window.removeEventListener("hashchange", update);
@@ -165,7 +170,10 @@ export default function MarketApp() {
     let alive = true;
     setSaved([]);
     setPrivateError("");
-    if (view === 'usage') { setSavedLoading(false); return; }
+    if (view === "usage") {
+      setSavedLoading(false);
+      return;
+    }
     if (!user) {
       setSavedLoading(false);
       setBf(localPreferences("bazaar", defaultBazaarFilters));
@@ -199,7 +207,7 @@ export default function MarketApp() {
     return () => {
       alive = false;
     };
-  }, [user?.uid, view === 'usage']);
+  }, [user?.uid, view === "usage"]);
   useEffect(() => {
     if (!user) {
       try {
@@ -273,10 +281,14 @@ export default function MarketApp() {
             version = nextVersion;
             setAuctions(r.items);
             setAuctionTotal(r.total);
+            setAuctionPage(r.page);
             setHealth(r.health);
             setSelectedAuction(
               (prev) =>
-                r.items.find((x) => x.listing.id === prev?.listing.id) ?? prev,
+                r.items.find(
+                  (x) =>
+                    x.listing.variant.itemId === prev?.listing.variant.itemId,
+                ) ?? (prev?.group ? null : prev),
             );
           }
           setCacheStatus((prev) =>
@@ -312,17 +324,20 @@ export default function MarketApp() {
     bf.budget >= 0 &&
     bf.maxActivityShare >= 0;
   const rows = useMemo(
-    () => validBazaar ? bazaarResults(bazaar, bf, now) : [],
+    () => (validBazaar ? bazaarResults(bazaar, bf, now) : []),
     [bazaar, bf, now, validBazaar],
   );
   const bazaarPageSize = 21;
   const pages = Math.max(1, Math.ceil(rows.length / bazaarPageSize)),
     safePage = Math.min(page, pages - 1),
-    shown = rows.slice(safePage * bazaarPageSize, (safePage + 1) * bazaarPageSize);
+    shown = rows.slice(
+      safePage * bazaarPageSize,
+      (safePage + 1) * bazaarPageSize,
+    );
   const visibleAuctions = useMemo(
     () =>
-      auctions.map((o) =>
-        auctionOpportunity(
+      auctions.map((o) => ({
+        ...auctionOpportunity(
           {
             ...o.listing,
             status:
@@ -339,35 +354,42 @@ export default function MarketApp() {
           false,
           o.valuation,
           o.feeContext,
+          o.sampledValuation,
         ),
-      ),
+        group: o.group,
+      })),
     [auctions, now, af.durationHours],
   );
   const selectedItem =
     bazaar.find((i) => i.id === selectedBazaar) ?? shown[0]?.item ?? null;
   const rawSelectedAh = selectedAuction ?? visibleAuctions[0] ?? null;
   const selectedAh = rawSelectedAh
-    ? auctionOpportunity(
-        {
-          ...rawSelectedAh.listing,
-          status:
-            rawSelectedAh.listing.end <= now
-              ? "expired"
-              : now - rawSelectedAh.listing.upstreamAt > 180000
-                ? "stale"
-                : rawSelectedAh.listing.status,
-        },
-        [],
-        [],
-        now,
-        af.durationHours,
-        false,
-        rawSelectedAh.valuation,
-        rawSelectedAh.feeContext,
-      )
+    ? {
+        ...auctionOpportunity(
+          {
+            ...rawSelectedAh.listing,
+            status:
+              rawSelectedAh.listing.end <= now
+                ? "expired"
+                : now - rawSelectedAh.listing.upstreamAt > 180000
+                  ? "stale"
+                  : rawSelectedAh.listing.status,
+          },
+          [],
+          [],
+          now,
+          af.durationHours,
+          false,
+          rawSelectedAh.valuation,
+          rawSelectedAh.feeContext,
+          rawSelectedAh.sampledValuation,
+        ),
+        group: rawSelectedAh.group,
+      }
     : null;
   const categories = [...new Set(bazaar.map((x) => x.category))].sort();
-  const navigate = (target: View) => {
+  const navigate = (target: View, inspect = false) => {
+    inspectAfterNavigation.current = inspect;
     location.hash = `market=${target}`;
   };
   const patchBazaar = (patch: Partial<BazaarFilters>) => {
@@ -504,13 +526,13 @@ export default function MarketApp() {
   }
   async function reopen(item: SavedItem) {
     if (item.kind === "bazaar") {
-      navigate("bazaar");
+      navigate("bazaar", true);
       setSelectedBazaar(item.itemId);
       setTimeout(() => setSheetOpen(true), 0);
       if (!bazaar.some((b) => b.id === item.itemId))
         setToast("Saved item is currently unavailable in the Bazaar feed.");
     } else {
-      navigate("auctions");
+      navigate("auctions", true);
       try {
         const result =
           auctions.find((a) => a.listing.id === item.itemId) ??
@@ -531,24 +553,30 @@ export default function MarketApp() {
       <span
         className={`status-dot ${!lastUpdate || now - lastUpdate > 180000 ? "stale" : ""}`}
       />
-      {fixtureMode
-        ? "Illustrative fixtures"
-        : lastUpdate
-          ? <SampleTime timestamp={lastUpdate} now={now} compact />
-          : "Waiting for market data"}
+      {fixtureMode ? (
+        "Illustrative fixtures"
+      ) : lastUpdate ? (
+        <SampleTime timestamp={lastUpdate} now={now} compact />
+      ) : (
+        "Waiting for market data"
+      )}
       <span className="automatic-status" aria-live="polite">
         {usage.mode === "paused"
           ? `${PAUSED_MESSAGE} · ${lastUpdate ? `data from ${new Date(lastUpdate).toLocaleString()}` : "no saved snapshot"}`
           : !lastUpdate
             ? "Automatic updates · waiting"
             : now - lastUpdate > 180000
-              ? view === 'bazaar' ? "Historical estimates. Check in-game prices before trading." : "Stale sample. Comparisons and seller commands need fresh prices."
+              ? view === "bazaar"
+                ? "Historical estimates. Check in-game prices before trading."
+                : "Stale sample · historical asking-price comparisons. Seller commands need fresh prices."
               : (view === "auctions" ? auctionError : marketError)
                 ? "Cached update failed · waiting for the next scheduled check"
                 : cacheStatus?.refreshing && view === "auctions"
                   ? "Updating automatically…"
                   : "Automatic updates"}
-        {usage.mode !== "paused" && usage.pollMs >= 3600_000 ? ` · next price check ${new Date(nextMarketRead(now, usage.pollMs)).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}` : ""}
+        {usage.mode !== "paused" && usage.pollMs >= 3600_000
+          ? ` · next price check ${new Date(nextMarketRead(now, usage.pollMs)).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`
+          : ""}
       </span>
     </span>
   );
@@ -572,7 +600,9 @@ export default function MarketApp() {
           </p>
           <div className="header-signs">
             <span className="server-tag">
-              HYPIXEL<br /><b>SKYBLOCK</b>
+              HYPIXEL
+              <br />
+              <b>SKYBLOCK</b>
             </span>
             {user ? (
               <button
@@ -619,44 +649,55 @@ export default function MarketApp() {
               <SkyIcon name="alert-bell" size={36} className="tab-icon" />
               <span>Price alerts</span>
             </a>
-            {ownerCandidate(user) && <button className={view==='usage'?'active tab-usage':'tab-usage'} onClick={()=>navigate('usage')} aria-current={view==='usage'?'page':undefined}><ShieldCheck size={25}/><span>Usage &amp; Costs</span></button>}
-          </nav>
-          {(view === 'bazaar' || view === 'auctions') && <label className="market-search">
-            <Search size={20} strokeWidth={2.4} />
-            <input
-              type="search"
-              aria-label={
-                view === "auctions"
-                  ? "Search auction items"
-                  : "Search Bazaar items"
-              }
-              placeholder={
-                view === "auctions"
-                  ? "Search Buy It Now listings…"
-                  : "Search items…"
-              }
-              value={view === "auctions" ? af.query : bf.query}
-              onChange={(e) => {
-                if (view === "auctions")
-                  patchAuction({ query: e.target.value });
-                else {
-                  patchBazaar({ query: e.target.value });
-                }
-              }}
-            />
-            {(view === "auctions" ? af.query : bf.query) && (
+            {ownerCandidate(user) && (
               <button
-                aria-label="Clear search"
-                onClick={() =>
-                  view === "auctions"
-                    ? patchAuction({ query: "" })
-                    : patchBazaar({ query: "" })
-                }
+                className={view === "usage" ? "active tab-usage" : "tab-usage"}
+                onClick={() => navigate("usage")}
+                aria-current={view === "usage" ? "page" : undefined}
               >
-                <X size={17} />
+                <ShieldCheck size={25} />
+                <span>Usage &amp; Costs</span>
               </button>
             )}
-          </label>}
+          </nav>
+          {(view === "bazaar" || view === "auctions") && (
+            <label className="market-search">
+              <Search size={20} strokeWidth={2.4} />
+              <input
+                type="search"
+                aria-label={
+                  view === "auctions"
+                    ? "Search auction items"
+                    : "Search Bazaar items"
+                }
+                placeholder={
+                  view === "auctions"
+                    ? "Search Buy It Now listings…"
+                    : "Search items…"
+                }
+                value={view === "auctions" ? af.query : bf.query}
+                onChange={(e) => {
+                  if (view === "auctions")
+                    patchAuction({ query: e.target.value });
+                  else {
+                    patchBazaar({ query: e.target.value });
+                  }
+                }}
+              />
+              {(view === "auctions" ? af.query : bf.query) && (
+                <button
+                  aria-label="Clear search"
+                  onClick={() =>
+                    view === "auctions"
+                      ? patchAuction({ query: "" })
+                      : patchBazaar({ query: "" })
+                  }
+                >
+                  <X size={17} />
+                </button>
+              )}
+            </label>
+          )}
         </div>
       </header>
       <main id="market-content" className="market-main">
@@ -691,12 +732,17 @@ export default function MarketApp() {
               </button>
             </div>
           )}
-          {view === 'usage' ? <UsageDashboard key={user?.uid??'signed-out'} user={user}/> : view === "watchlist" ? (
+          {view === "usage" ? (
+            <UsageDashboard key={user?.uid ?? "signed-out"} user={user} />
+          ) : view === "watchlist" ? (
             <section className="watchlist-page">
               <div className="section-heading">
                 <div>
                   <h2>Watchlist</h2>
-                  <p>Saved Bazaar items and auction listings. For email notifications, set a price alert.</p>
+                  <p>
+                    Saved Bazaar items and auction listings. For email
+                    notifications, set a price alert.
+                  </p>
                 </div>
                 <SkyIcon name="watchlist-chest" size={96} />
               </div>
@@ -735,6 +781,12 @@ export default function MarketApp() {
                 <div className="saved-items">
                   {saved.map((s) => (
                     <article key={s.key}>
+                      <button
+                        type="button"
+                        className="card-details-trigger"
+                        aria-label={`Reopen ${s.name}`}
+                        onClick={() => reopen(s)}
+                      />
                       <span
                         className="saved-art"
                         style={artGlow(
@@ -754,9 +806,6 @@ export default function MarketApp() {
                           · saved {new Date(s.savedAt).toLocaleDateString()}
                         </p>
                       </div>
-                      <button className="button blue" onClick={() => reopen(s)}>
-                        Reopen <ArrowRight size={14} />
-                      </button>
                       <button
                         className="save-icon is-saved"
                         aria-label={`Remove ${s.name}`}
@@ -824,11 +873,16 @@ export default function MarketApp() {
                     <div>
                       <h1>{view === "bazaar" ? "Bazaar" : "Auctions"}</h1>
                       <p>
+                        {view === "bazaar" ? rows.length : auctionTotal}{" "}
                         {view === "bazaar"
-                          ? rows.length
-                          : auctionTotal}{" "}
-                        {view === "bazaar" ? (rows.length === 1 ? "item" : "items") : (auctionTotal === 1 ? "listing" : "listings")}
-                        {view === "auctions" && " · Compare matching Buy It Now asking prices."}
+                          ? rows.length === 1
+                            ? "item"
+                            : "items"
+                          : auctionTotal === 1
+                            ? "unique item"
+                            : "unique items"}
+                        {view === "auctions" &&
+                          " · Compare matching Buy It Now asking prices."}
                       </p>
                     </div>
                     <div className="heading-tools">
@@ -855,6 +909,7 @@ export default function MarketApp() {
                               ["balanced", "Profit + Liquidity"],
                             ]
                           : [
+                              ["supported", "Best supported opportunities"],
                               ["profit", "Largest after-fee gap"],
                               ["roi", "Highest ROI"],
                               ["capital", "Lowest Price"],
@@ -897,12 +952,15 @@ export default function MarketApp() {
                       </div>
                     </div>
                   </div>
-                  <div className="result-status">
-                    {freshness}
-                  </div>
-                  {view === "bazaar" && bf.query.trim() && rows.some(row => row.outsideFilters) && (
-                    <p className="search-filter-note" role="status">Search includes items outside your filters. Estimates still use your strategy, quantity and fees.</p>
-                  )}
+                  <div className="result-status">{freshness}</div>
+                  {view === "bazaar" &&
+                    bf.query.trim() &&
+                    rows.some((row) => row.outsideFilters) && (
+                      <p className="search-filter-note" role="status">
+                        Search includes items outside your filters. Estimates
+                        still use your strategy, quantity and fees.
+                      </p>
+                    )}
                   {(view === "bazaar" ? bazaarLoading : auctionLoading) ? (
                     <>
                       {view === "auctions" && (
@@ -919,35 +977,46 @@ export default function MarketApp() {
                       >
                         {shown.map(({ item, quote: q, outsideFilters }) => {
                           const trade = bazaarTrade(item, bf, now);
-                          const stale = !isFresh(item.upstreamAt, now) || q?.fresh === false;
+                          const stale =
+                            !isFresh(item.upstreamAt, now) ||
+                            q?.fresh === false;
                           return (
-                          <ItemCard
-                            key={item.id}
-                            id={item.id}
-                            name={item.name}
-                            rarity={item.rarity}
-                            category={item.category}
-                            buy={trade.buy?.total ?? null}
-                            sell={trade.sale?.total ?? null}
-                            profit={q?.profit ?? null}
-                            roi={q?.roi ?? null}
-                            sampled={stale || Boolean(marketError)}
-                            badge={
-                              stale ? "Stale sample" : q ? "Sampled estimate" : "Partial data"
-                            }
-                            warning={
-                              !q ? "Profit unavailable: missing prices, depth or fee data."
-                                : outsideFilters ? q.capital > bf.budget ? "Outside filters: this quantity exceeds your budget." : "Outside your profit, category or liquidity filters."
-                                : undefined
-                            }
-                            selected={selectedItem?.id === item.id}
-                            saved={isSaved("bazaar", item.id)}
-                            onOpen={() => openBazaar(item.id)}
-                            onSave={() =>
-                              toggle("bazaar", item.id, item.name)
-                            }
-                          />
-                        );})}
+                            <ItemCard
+                              key={item.id}
+                              id={item.id}
+                              name={item.name}
+                              rarity={item.rarity}
+                              category={item.category}
+                              buy={trade.buy?.total ?? null}
+                              sell={trade.sale?.total ?? null}
+                              profit={q?.profit ?? null}
+                              roi={q?.roi ?? null}
+                              sampled={stale || Boolean(marketError)}
+                              badge={
+                                stale
+                                  ? "Stale sample"
+                                  : q
+                                    ? "Sampled estimate"
+                                    : "Partial data"
+                              }
+                              warning={
+                                !q
+                                  ? "Profit unavailable: missing prices, depth or fee data."
+                                  : outsideFilters
+                                    ? q.capital > bf.budget
+                                      ? "Outside filters: this quantity exceeds your budget."
+                                      : "Outside your profit, category or liquidity filters."
+                                    : undefined
+                              }
+                              selected={selectedItem?.id === item.id}
+                              saved={isSaved("bazaar", item.id)}
+                              onOpen={() => openBazaar(item.id)}
+                              onSave={() =>
+                                toggle("bazaar", item.id, item.name)
+                              }
+                            />
+                          );
+                        })}
                       </div>
                     ) : (
                       <EmptyState
@@ -959,7 +1028,8 @@ export default function MarketApp() {
                               : "No matching opportunities"
                         }
                         action={
-                            usage.mode !== "paused" && !marketError && (
+                          usage.mode !== "paused" &&
+                          !marketError && (
                             <button
                               className="button paper"
                               onClick={() => {
@@ -974,56 +1044,89 @@ export default function MarketApp() {
                       >
                         {usage.mode === "paused"
                           ? "Fresh prices are unavailable. Your watchlist and existing Price Alerts remain available, and you can still edit alert targets."
-                          : marketError ? "Cached prices could not be loaded. The next scheduled check will try again."
-                          : bf.query.trim() ? "No item names match your search. Try a shorter name."
-                          : "No trades pass your filters. Try a smaller quantity or adjust More filters."}
+                          : marketError
+                            ? "Cached prices could not be loaded. The next scheduled check will try again."
+                            : bf.query.trim()
+                              ? "No item names match your search. Try a shorter name."
+                              : "No trades pass your filters. Try a smaller quantity or adjust More filters."}
                       </EmptyState>
                     )
                   ) : visibleAuctions.length ? (
                     <div
                       className={`item-grid ${af.view === "list" ? "compact-list" : ""}`}
                     >
-                      {visibleAuctions.map((o) => (
-                        <ItemCard
-                          key={o.listing.id}
-                          id={o.listing.variant.itemId}
-                          name={o.listing.variant.name}
-                          rarity={o.listing.variant.rarity}
-                          category={o.listing.variant.category}
-                          buy={o.listing.price}
-                          askingPrice
-                          sell={o.valuation.estimate}
-                          profit={o.profit}
-                          roi={o.roi}
-                          badge={
-                            o.listing.status === "stale"
-                              ? "Stale"
-                              : `${titleCase(o.valuation.confidence)} confidence`
-                          }
-                          subtitle={o.listing.status !== "active" ? "Comparison unavailable · stale or ended listing" : `${o.valuation.count} matching active listings`}
-                          warning={
-                            o.valuation.reasons.some((r) =>
-                              r.includes("inflate"),
-                            )
-                              ? "Asking prices vary widely — check the median."
-                              : undefined
-                          }
-                          selected={selectedAh?.listing.id === o.listing.id}
-                          saved={isSaved("auction", o.listing.id)}
-                          onOpen={() => openAuction(o)}
-                          onAction={o.listing.status === "active" ? () => copyAuction(o) : undefined}
-                          actionLabel={auctionLabel(o)}
-                          actionAriaLabel={`Copy seller command for ${o.listing.variant.name}`}
-                          actionBusy={copyingAuction !== null}
-                          onSave={() =>
-                            toggle(
-                              "auction",
-                              o.listing.id,
-                              o.listing.variant.name,
-                            )
-                          }
-                        />
-                      ))}
+                      {visibleAuctions.map((o) => {
+                        const comparison = auctionComparison(
+                          o,
+                          af.durationHours,
+                          now,
+                        );
+                        return (
+                          <ItemCard
+                            key={o.listing.variant.itemId}
+                            id={o.listing.variant.itemId}
+                            name={o.listing.variant.name}
+                            rarity={o.listing.variant.rarity}
+                            category={o.listing.variant.category}
+                            buy={o.listing.price}
+                            askingPrice
+                            sampled={comparison.sampled}
+                            sell={comparison.valuation.estimate}
+                            profit={comparison.profit}
+                            roi={comparison.roi}
+                            badge={
+                              comparison.sampled
+                                ? o.listing.status === "expired"
+                                  ? "Ended · sample"
+                                  : o.listing.status === "stale"
+                                    ? "Stale sample"
+                                    : "Sampled estimate"
+                                : o.listing.status === "stale"
+                                  ? "Stale"
+                                  : `${titleCase(o.valuation.confidence)} confidence`
+                            }
+                            subtitle={
+                              <>
+                                {o.group?.matchingListings.length ?? 1} matching
+                                listings · Lowest matching purchase
+                                <br />
+                                <SampleTime
+                                  timestamp={o.listing.upstreamAt}
+                                  compact
+                                />
+                              </>
+                            }
+                            warning={
+                              comparison.valuation.confidence === "low"
+                                ? "Low confidence · inspect comparison evidence"
+                                : comparison.valuation.estimate === null
+                                  ? "Resale estimate unavailable"
+                                  : undefined
+                            }
+                            selected={
+                              selectedAh?.listing.variant.itemId ===
+                              o.listing.variant.itemId
+                            }
+                            saved={isSaved("auction", o.listing.id)}
+                            onOpen={() => openAuction(o)}
+                            onAction={
+                              o.listing.status === "active"
+                                ? () => copyAuction(o)
+                                : undefined
+                            }
+                            actionLabel={auctionLabel(o)}
+                            actionAriaLabel={`Copy seller command for ${o.listing.variant.name}`}
+                            actionBusy={copyingAuction !== null}
+                            onSave={() =>
+                              toggle(
+                                "auction",
+                                o.listing.id,
+                                o.listing.variant.name,
+                              )
+                            }
+                          />
+                        );
+                      })}
                     </div>
                   ) : (
                     <EmptyState
@@ -1093,28 +1196,28 @@ export default function MarketApp() {
                       <ChevronRight size={16} />
                     </button>
                   </div>
-                    <button
-                      className="how-it-works"
-                      onClick={() => setHelp((v) => !v)}
-                      aria-expanded={help}
-                    >
-                      <CircleHelp size={15} />
-                      How estimates work
-                    </button>
+                  <button
+                    className="how-it-works"
+                    onClick={() => setHelp((v) => !v)}
+                    aria-expanded={help}
+                  >
+                    <CircleHelp size={15} />
+                    How estimates work
+                  </button>
                   {help && (
                     <div className="method-note">
                       <ShieldCheck size={24} />
                       <div>
-                        <strong>
-                          Estimates are not guaranteed profit.
-                        </strong>
+                        <strong>Estimates are not guaranteed profit.</strong>
                         <p>
                           Bazaar uses visible order-book depth, your quantity,
                           and sale tax. Weekly activity is a sizing proxy, not
                           an exact trade count or fill-time promise. Auctions
-                          use the arithmetic average of other active BIN
-                          listings with the exact configuration and stack
-                          quantity. Bidding auctions are excluded because bids
+                          use a conservative lower-quartile estimate capped by
+                          the lowest valid competing ask for the exact configuration
+                          and stack quantity. Sparse matches, concentrated sellers
+                          and outliers reduce confidence and default ranking.
+                          Bidding auctions are excluded because bids
                           are not executable purchase prices. Asking prices do
                           not prove resale value.
                         </p>
@@ -1126,7 +1229,7 @@ export default function MarketApp() {
                     <p>
                       {view === "bazaar"
                         ? "Profit includes sale tax and additional costs. Orders may not fill; check prices in-game."
-                        : `Sampled BIN asking prices. Snapshot ${health?.activeUpstreamAt ? new Date(health.activeUpstreamAt).toLocaleTimeString() : "loading"}. Averages exclude the selected listing. After-fee gaps are hypothetical, not proven profit.`}
+                        : `Sampled BIN asking prices. Snapshot ${health?.activeUpstreamAt ? new Date(health.activeUpstreamAt).toLocaleTimeString() : "loading"}. Conservative estimates exclude the selected auction. One result per item; comparisons use the full cached pool. After-fee gaps are hypothetical, not proven profit.`}
                     </p>
                   </div>
                 </section>
@@ -1151,18 +1254,18 @@ export default function MarketApp() {
                         <BlankInspector />
                       )
                     ) : selectedAh ? (
-                      <AuctionInspector
+                      <AuctionGroupInspector
                         key={selectedAh.listing.id}
                         opportunity={selectedAh}
                         duration={af.durationHours}
-                        saved={isSaved("auction", selectedAh.listing.id)}
-                        save={() =>
-                          toggle(
-                            "auction",
-                            selectedAh.listing.id,
-                            selectedAh.listing.variant.name,
-                          )
+                        now={now}
+                        isSaved={(id) => isSaved("auction", id)}
+                        save={(listing) =>
+                          toggle("auction", listing.id, listing.variant.name)
                         }
+                        copySeller={copyAuction}
+                        sellerLabel={auctionLabel}
+                        copyBusy={copyingAuction !== null}
                       />
                     ) : (
                       <BlankInspector />
@@ -1183,4 +1286,4 @@ export default function MarketApp() {
     </div>
   );
 }
-import { nextMarketRead } from '../../shared/market-schedule';
+import { nextMarketRead } from "../../shared/market-schedule";
