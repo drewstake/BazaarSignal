@@ -14,8 +14,19 @@ const item = {
 };
 
 describe('Bazaar search discovery', () => {
+  it('includes Summoning Eye while browsing at the default single-item quantity', () => {
+    const rows = bazaarResults([item], defaultBazaarFilters, now);
+    expect(rows).toMatchObject([{item: {id:'SUMMONING_EYE'}, outsideFilters:false, quote:{quantity:1, fresh:false}}]);
+    expect(rows[0].quote!.capital).toBeLessThan(defaultBazaarFilters.budget);
+    expect(rows[0].quote!.tax).toBeCloseTo(rows[0].quote!.grossSale * 0.0125);
+  });
+  it('does not require a 64-item order book for a single-item trade', () => {
+    const single = {...item, asks:item.asks.map(level => ({...level, amount:1})), bids:item.bids.map(level => ({...level, amount:1}))};
+    expect(bazaarResults([single], defaultBazaarFilters, now)).toMatchObject([{outsideFilters:false, quote:{quantity:1, depth:1}}]);
+    expect(bazaarResults([single], {...defaultBazaarFilters, minDepth:64}, now)).toEqual([]);
+  });
   it('finds an over-budget item without changing quantity, fees, price or freshness', () => {
-    const filters = {...defaultBazaarFilters, query:'Summoning Eye'};
+    const filters = {...defaultBazaarFilters, quantity:64, query:'Summoning Eye'};
     const original = structuredClone(filters);
     const rows = bazaarResults([item], filters, now);
     expect(rows).toHaveLength(1);

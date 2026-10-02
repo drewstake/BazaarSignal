@@ -36,6 +36,44 @@
 .companion .inspector-alert { min-height: 44px; }
 .companion .market-footnote { margin-top: 12px; }
 
+/* A wider Bazaar board keeps seven illustrated cards readable on desktop. */
+.bazaar-layout .market-main { max-width: 2400px; }
+.bazaar-layout .market-board { grid-template-columns: minmax(0, 1fr); grid-template-areas: "cards" "side"; }
+.bazaar-layout .side-column { height: 0; }
+.bazaar-layout .item-grid:not(.compact-list) { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 12px; }
+.bazaar-layout .item-grid:not(.compact-list) .market-card { container-type: inline-size; }
+.bazaar-layout .item-grid:not(.compact-list) .card-art { height: 76px; }
+.bazaar-layout .item-grid:not(.compact-list) .card-art .item-art { width: 62px; height: 62px; }
+.bazaar-layout .item-grid:not(.compact-list) .card-art img.item-art.pack { width: 68px; height: 68px; }
+.bazaar-layout .item-grid:not(.compact-list) .card-content { padding-top: 6px; }
+.bazaar-layout .item-grid:not(.compact-list) .card-content h3 { margin-bottom: 4px; }
+.bazaar-layout .item-grid:not(.compact-list) .card-warning { line-height: 1.35; }
+.bazaar-layout .item-grid:not(.compact-list) .price-comparison.card { line-height: 1.35; margin-bottom: 8px; }
+.bazaar-layout .price-comparison.card .profit-line strong { width: 100%; margin-left: 0; flex-direction: row; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px; }
+@container (max-width: 210px) {
+  .bazaar-layout .price-comparison.card > div:not(.profit-line) { flex-direction: column; align-items: flex-start; gap: 1px; padding-bottom: 5px; }
+  .bazaar-layout .price-comparison.card .profit-line { align-items: flex-start; }
+  .bazaar-layout .price-comparison.card .profit-line strong { margin-left: 0; align-items: flex-start; }
+}
+@media (min-width: 700px) {
+  .bazaar-layout .inspector-sheet { width: min(820px, calc(100vw - 32px)); }
+}
+@media (min-width: 1101px) {
+  .bazaar-layout .inspector-sheet { inset: 16px 16px 16px auto; margin: 0; height: calc(100dvh - 32px); max-height: calc(100dvh - 32px); border-radius: 8px; background: var(--paper); }
+}
+@media (max-width: 1399px) {
+  .bazaar-layout .item-grid:not(.compact-list) { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+@media (max-width: 1099px) {
+  .bazaar-layout .item-grid:not(.compact-list) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 820px) {
+  .bazaar-layout .item-grid:not(.compact-list) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 559px) {
+  .bazaar-layout .item-grid:not(.compact-list) { grid-template-columns: minmax(0, 1fr); }
+}
+
 .price-alerts-app .alerts-title { flex-wrap: wrap; }
 .price-alerts-app .create-shortcut { display: inline-flex; font-size: 14px; white-space: nowrap; margin-left: auto; }
 .price-alerts-app .alerts-context { position: static; margin: 0; }

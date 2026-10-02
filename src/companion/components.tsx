@@ -1,5 +1,6 @@
 import { ArrowRight, Info, Minus, Plus } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
+import { itemArtwork } from "./item-artwork";
 
 /* ------------------------------------------------------------------ */
 /* Sky Island Market icon pack (public/assets/sky-island-v1)           */
@@ -176,6 +177,20 @@ export function ItemArt({
   id: string;
   size?: "small" | "normal" | "hero";
 }) {
+  const artwork = itemArtwork[id];
+  if (artwork) {
+    return (
+      <img
+        className={`item-art pack ${size}`}
+        src={artwork}
+        alt=""
+        aria-hidden="true"
+        draggable={false}
+        decoding="async"
+        style={{ imageRendering: "pixelated" }}
+      />
+    );
+  }
   const pack = packItem(id);
   if (pack) {
     const base = `${SKY}/${pack.file}`;
@@ -333,6 +348,8 @@ export function PriceComparison({
   sampled?: boolean;
 }) {
   const [buyLabel, sellLabel, profitLabel] = askingPrice ? ["Buy", "AH average", "After-fee gap"] : comparisonLabels[variant];
+  const profitDescription = sampled && !askingPrice ? 'Sampled profit after fees' : profitLabel;
+  const compactProfit = variant === "card" && !askingPrice;
   return (
     <div className={`price-comparison ${variant}`}>
       <div>
@@ -345,8 +362,9 @@ export function PriceComparison({
       </div>
       <div
         className={`profit-line ${profit !== null && profit < 0 ? "negative" : ""}`}
+        title={compactProfit ? profitDescription : undefined}
       >
-        <span>{sampled && !askingPrice ? 'Sampled profit after fees' : profitLabel}</span>
+        <span className={compactProfit ? "sr-only" : undefined}>{profitDescription}</span>
         <strong>
           <Coin value={profit} full={full} positive />
           {roi !== null && (
@@ -376,10 +394,10 @@ export function ItemCard({
   onSave,
   subtitle,
   warning,
-  actionLabel = "View Deal",
+  actionLabel,
   actionAriaLabel,
   actionBusy = false,
-  onInspect,
+  onAction,
   askingPrice = false,
   sampled = false,
 }: {
@@ -396,12 +414,12 @@ export function ItemCard({
   saved: boolean;
   onOpen: () => void;
   onSave: () => void;
-  subtitle: ReactNode;
+  subtitle?: ReactNode;
   warning?: string;
   actionLabel?: string;
   actionAriaLabel?: string;
   actionBusy?: boolean;
-  onInspect?: () => void;
+  onAction?: () => void;
   askingPrice?: boolean;
   sampled?: boolean;
 }) {
@@ -410,6 +428,12 @@ export function ItemCard({
       className={`market-card ${askingPrice ? "asking-price-card" : "bazaar-price-card"} ${selected ? "selected" : ""}`}
       aria-label={`${name} opportunity`}
     >
+      <button
+        type="button"
+        className="card-details-trigger"
+        onClick={onOpen}
+        aria-label={`Inspect ${name}`}
+      />
       <div className="card-art" style={artGlow(id)}>
         <RarityRibbon rarity={rarity} />
         <button
@@ -430,7 +454,7 @@ export function ItemCard({
           {titleCase(category)} <span>• {badge}</span>
         </span>
         <h3>{name}</h3>
-        <p className="card-subtitle">{subtitle}</p>
+        {subtitle && <p className="card-subtitle">{subtitle}</p>}
         {warning && <p className="card-warning">{warning}</p>}
         <PriceComparison
           buy={buy}
@@ -441,15 +465,17 @@ export function ItemCard({
           askingPrice={askingPrice}
           sampled={sampled}
         />
-        <button
-          className="button blue"
-          onClick={onOpen}
-          aria-label={actionAriaLabel ?? `Inspect ${name}`}
-          disabled={actionBusy}
-        >
-          {actionLabel} <ArrowRight size={16} strokeWidth={2.6} />
-        </button>
-        {onInspect && <button className="auction-details" onClick={onInspect} aria-label={`View details for ${name}`}>View details</button>}
+        {onAction && (
+          <button
+            type="button"
+            className="button blue card-action"
+            onClick={onAction}
+            aria-label={actionAriaLabel}
+            disabled={actionBusy}
+          >
+            {actionLabel} <ArrowRight size={16} strokeWidth={2.6} />
+          </button>
+        )}
       </div>
     </article>
   );

@@ -1051,13 +1051,6 @@ img.item-art.pack.hero {
 }
 
 /* Buttons */
-.companion .auction-details {
-  min-height: 44px;
-  padding: 8px 10px;
-  color: var(--ink-soft);
-  font-size: 13px;
-  text-decoration: underline;
-}
 .companion .button {
   --edge: #163b78;
   position: relative;
@@ -1513,6 +1506,8 @@ img.item-art.pack.hero {
   gap: 12px;
 }
 .market-card {
+  position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -1529,6 +1524,18 @@ img.item-art.pack.hero {
 }
 .market-card:hover {
   transform: translateY(-2px);
+}
+/* The native button covers the card, with independent actions above it. */
+.market-card .card-details-trigger {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  padding: 0;
+  border-radius: inherit;
+}
+.market-card .card-art .save-icon,
+.market-card .card-action {
+  z-index: 4;
 }
 .market-card.selected {
   border-color: #3b86d6;
@@ -2043,6 +2050,55 @@ img.item-art.pack.hero {
   border: 1px solid var(--line);
   border-radius: 4px;
 }
+.level-book { margin-bottom: 16px; container-type: inline-size; }
+.level-book-sides {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0 20px;
+  align-items: start;
+}
+@container (min-width: 560px) {
+  .level-book-sides { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.level-book-heading,
+.level-book-side-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+.level-book-heading h4 { margin: 0; }
+.level-book-heading > span,
+.level-book-side-heading > span { font-size: 12px; color: var(--muted); }
+.level-book .level-book-time,
+.level-book .level-book-count,
+.level-book .level-book-note { margin: 6px 0; font-size: 12px; }
+.level-book-side { margin-top: 12px; }
+.level-book-side h5 { margin: 0; font-size: 14px; }
+.level-book-side.bids h5,
+.level-book-side.bids td:first-child { color: var(--green); }
+.level-book-side.asks h5,
+.level-book-side.asks td:first-child { color: #9b3c24; }
+.level-book table {
+  width: 100%;
+  margin-top: 6px;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.level-book th,
+.level-book td { padding: 6px 4px; text-align: right; border-bottom: 1px solid var(--line); }
+.level-book th { font-weight: 600; color: var(--ink-soft); }
+.level-book th:first-child,
+.level-book td:first-child { text-align: left; }
+.level-book tbody tr {
+  background-image: linear-gradient(rgb(80 80 80 / 20%), rgb(80 80 80 / 20%));
+  background-position: right center;
+  background-repeat: no-repeat;
+}
+.level-book-empty { font-size: 13px; }
+
 details.inspector-section > summary {
   position: relative;
   padding-right: 20px;

@@ -315,9 +315,10 @@ export default function MarketApp() {
     () => validBazaar ? bazaarResults(bazaar, bf, now) : [],
     [bazaar, bf, now, validBazaar],
   );
-  const pages = Math.max(1, Math.ceil(rows.length / 6)),
+  const bazaarPageSize = 21;
+  const pages = Math.max(1, Math.ceil(rows.length / bazaarPageSize)),
     safePage = Math.min(page, pages - 1),
-    shown = rows.slice(safePage * 6, safePage * 6 + 6);
+    shown = rows.slice(safePage * bazaarPageSize, (safePage + 1) * bazaarPageSize);
   const visibleAuctions = useMemo(
     () =>
       auctions.map((o) =>
@@ -552,7 +553,7 @@ export default function MarketApp() {
     </span>
   );
   return (
-    <div className="companion">
+    <div className={`companion ${view === "bazaar" ? "bazaar-layout" : ""}`}>
       <a href="#market-content" className="skip-link">
         Skip to market
       </a>
@@ -931,24 +932,13 @@ export default function MarketApp() {
                             profit={q?.profit ?? null}
                             roi={q?.roi ?? null}
                             sampled={stale || Boolean(marketError)}
-                            actionLabel="View details"
                             badge={
                               stale ? "Stale sample" : q ? "Sampled estimate" : "Partial data"
                             }
                             warning={
                               !q ? "Profit unavailable: missing prices, depth or fee data."
                                 : outsideFilters ? q.capital > bf.budget ? "Outside filters: this quantity exceeds your budget." : "Outside your profit, category or liquidity filters."
-                                : q.concerns.find(concern => !concern.startsWith("Last sampled estimate"))
-                            }
-                            subtitle={
-                              <>
-                                {bf.strategy === "order-offer"
-                                  ? "Buy order → sell offer"
-                                  : bf.strategy === "instant-offer"
-                                    ? "Instant buy → sell offer"
-                                    : "Buy order → instant sell"}{" "}
-                                · {bf.quantity} {bf.quantity === 1 ? "item" : "items"}
-                              </>
+                                : undefined
                             }
                             selected={selectedItem?.id === item.id}
                             saved={isSaved("bazaar", item.id)}
@@ -1020,11 +1010,11 @@ export default function MarketApp() {
                           }
                           selected={selectedAh?.listing.id === o.listing.id}
                           saved={isSaved("auction", o.listing.id)}
-                          onOpen={() => o.listing.status === "active" ? copyAuction(o) : openAuction(o)}
-                          actionLabel={o.listing.status === "active" ? auctionLabel(o) : "View details"}
-                          actionAriaLabel={`${o.listing.status === "active" ? "Copy seller command for" : "View details for"} ${o.listing.variant.name}`}
+                          onOpen={() => openAuction(o)}
+                          onAction={o.listing.status === "active" ? () => copyAuction(o) : undefined}
+                          actionLabel={auctionLabel(o)}
+                          actionAriaLabel={`Copy seller command for ${o.listing.variant.name}`}
                           actionBusy={copyingAuction !== null}
-                          onInspect={o.listing.status === "active" ? () => openAuction(o) : undefined}
                           onSave={() =>
                             toggle(
                               "auction",
@@ -1142,6 +1132,7 @@ export default function MarketApp() {
                 </section>
                 <div className="side-column">
                   <InspectorShell
+                    overlay={view === "bazaar"}
                     open={sheetOpen}
                     onClose={() => setSheetOpen(false)}
                   >

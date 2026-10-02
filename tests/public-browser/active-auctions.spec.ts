@@ -141,9 +141,8 @@ for (const unavailable of [false, true])
       await expect
         .poll(() => page.evaluate(() => (window as any).copiedCommand))
         .toBe("/ah TestSeller");
-      await card
-        .getByRole("button", { name: "View details for Test Sword" })
-        .click();
+      await expect(card.getByText("View details", { exact: true })).toHaveCount(0);
+      await card.click();
       const inspector =
         info.project.name === "mobile"
           ? page.getByRole("dialog")

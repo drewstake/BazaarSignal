@@ -1,0 +1,764 @@
+{
+  "scope": "User narrowed the request to the top 20 by combined seven-day buy/sell unit activity. Seven icons generated before that change are retained. All other IDs are out of scope; their existingImage mapping remains unchanged.",
+  "inventoryCounts": {
+    "distinctItemIds": 7301,
+    "catalogIds": 5655,
+    "bazaarProducts": 2197,
+    "auctionListings": 39713,
+    "auctionItemIds": 2272,
+    "itemsWithAppearanceModifiers": 1643,
+    "generated": 27,
+    "connected": 27,
+    "unresolved": 0,
+    "selectedTopVolume": 20,
+    "retainedInitialBatch": 7,
+    "outOfScope": 7274
+  },
+  "storage": {
+    "files": 27,
+    "totalBytes": 360892,
+    "averageBytes": 13366.37037037037,
+    "largestBytes": 19764,
+    "largestItem": "HELIX_LOG",
+    "format": "Lossless WebP after palette normalization; smaller than optimized PNG for all 27 items",
+    "dimensions": [
+      236,
+      236
+    ],
+    "largestDisplayCssPixels": 118,
+    "devicePixelRatioSupported": 2
+  },
+  "verification": {
+    "exactIdMappings": 27,
+    "rankedFromBazaarProducts": 2197,
+    "missingScopedImages": 0,
+    "incorrectScopedMappings": 0,
+    "duplicateFileHashes": 0,
+    "duplicateDecodedPixelHashes": 0,
+    "brokenScopedImages": 0,
+    "legacyReferencedFilesDecoded": 13,
+    "legacyMissingOrBrokenFiles": 0,
+    "unreviewedOutOfScopeIds": 7274,
+    "desktopViewport": [
+      1440,
+      1000
+    ],
+    "mobileViewport": [
+      390,
+      844
+    ],
+    "mobileDeviceScaleFactor": 2,
+    "appItemViewportChecks": 52,
+    "compressedIconsInspectedAt64And80Px": 27,
+    "pageErrors": 0,
+    "unitTestFilesPassed": 8,
+    "unitTestsPassed": 79,
+    "typeScript": "passed",
+    "productionBuild": "passed",
+    "baselineFilesChecked": 164,
+    "existingFilesChangedSinceStart": [
+      "src/companion/components.tsx"
+    ],
+    "componentOnlyAddedExactIdArtLookup": true,
+    "newAppSourceFiles": [
+      "src/companion/item-artwork.ts"
+    ],
+    "productionServicesContactedDuringPreview": 0,
+    "previewUsesFrozenCache": true
+  },
+  "legacyArtworkNote": "Pre-existing shared atlas/pack mappings remain for 7,274 out-of-scope IDs. They are structurally valid but not newly verified for item appearance. Legacy sharing is intentional pre-existing behavior; duplicate checks above apply to the 27 new exports.",
+  "screenshots": [
+    ".local/artwork/screenshots/desktop-great_white_shark_tooth.png",
+    ".local/artwork/screenshots/desktop-summoning_eye.png",
+    ".local/artwork/screenshots/desktop-seeds.png",
+    ".local/artwork/screenshots/desktop-rough_sapphire_gem.png",
+    ".local/artwork/screenshots/mobile-great_white_shark_tooth.png",
+    ".local/artwork/screenshots/mobile-summoning_eye.png",
+    ".local/artwork/screenshots/mobile-seeds.png",
+    ".local/artwork/screenshots/mobile-rough_sapphire_gem.png",
+    ".local/artwork/screenshots/all-icons-64-and-80.png"
+  ],
+  "generation": {
+    "tool": "Built-in ImageGen",
+    "calls": "One individual generation per item",
+    "prompts": "generation-prompts.json",
+    "rawOriginals": "Not included in app or repository"
+  },
+  "items": [
+    {
+      "id": "GREAT_WHITE_SHARK_TOOTH",
+      "file": "/assets/items/great_white_shark_tooth.webp",
+      "width": 236,
+      "height": 236,
+      "objectLongestSide": 180,
+      "colorPalette": 128,
+      "alphaPreservedDuringQuantization": true,
+      "bytes": 11634,
+      "candidateBytes": {
+        "png": 15476,
+        "webp": 11634
+      },
+      "sha256": "a9b7178df41c98a3f7cfb6435c166518067401184ef5da9aa59b49532cc22ae1",
+      "rgbaSha256": "17cc0862d0f99f55b71a88b2cfad0c1166688087cba7b579fcd1683b48b901d3",
+      "losslessPixelMatch": true,
+      "transparentCorners": true,
+      "name": "Great White Shark Tooth",
+      "reference": {
+        "referencePage": "https://hypixelskyblock.minecraft.wiki/w/Great_White_Shark_Tooth",
+        "imageUrl": "https://hypixelskyblock.minecraft.wiki/images/Great_White_Shark_Tooth.png",
+        "definitionUrl": "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/GREAT_WHITE_SHARK_TOOTH.json"
+      },
+      "visualReview": "Raw output and compressed 64/80px light/dark previews passed"
+    },
+    {
+      "id": "SUMMONING_EYE",
+      "file": "/assets/items/summoning_eye.webp",
+      "width": 236,
+      "height": 236,
+      "objectLongestSide": 180,
+      "colorPalette": 128,
+      "alphaPreservedDuringQuantization": true,
+      "bytes": 17054,
+      "candidateBytes": {
+        "png": 21945,
+        "webp": 17054
+      },
+      "sha256": "fa0c96047fa4eb6a485d055b9515492f5f3c42887d014a4b85df711936df6210",
+      "rgbaSha256": "8d89582130919f4b5ddf559d403c5a7280e3a2a4e9779cc46a0b69caa0740dac",
+      "losslessPixelMatch": true,
+      "transparentCorners": true,
+      "name": "Summoning Eye",
+      "reference": {
+        "referencePage": "https://hypixelskyblock.minecraft.wiki/w/Summoning_Eye",
+        "imageUrl": "https://hypixelskyblock.minecraft.wiki/images/Summoning_Eye.png",
+        "definitionUrl": "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/SUMMONING_EYE.json"
+      },
+      "visualReview": "Raw output and compressed 64/80px light/dark previews passed"
+    },
+    {
+      "id": "BOOSTER_COOKIE",
+      "file": "/assets/items/booster_cookie.webp",
+      "width": 236,
+      "height": 236,
+      "objectLongestSide": 180,
+      "colorPalette": 128,
+      "alphaPreservedDuringQuantization": true,
+      "bytes": 12940,
+      "candidateBytes": {
+        "png": 16384,
+        "webp": 12940
+      },
+      "sha256": "d6a7c3e387b2c626b927aa0d44227690bf85b126edca7e099620db04104b09f4",
+      "rgbaSha256": "db1bdac0a3ce138defb206ccf9f78412c611f5e93370201669f6858b97a9b522",
+      "losslessPixelMatch": true,
+      "transparentCorners": true,
+      "name": "Booster Cookie",
+      "reference": {
+        "referencePage": "https://hypixelskyblock.minecraft.wiki/w/Booster_Cookie",
+        "imageUrl": "https://hypixelskyblock.minecraft.wiki/images/Enchanted_Cookie.png?77af0",
+        "definitionUrl": "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/BOOSTER_COOKIE.json"
+      },
+      "visualReview": "Raw output and compressed 64/80px light/dark previews passed"
+    },
+    {
+      "id": "ENCHANTED_DIAMOND_BLOCK",
+      "file": "/assets/items/enchanted_diamond_block.webp",
+      "width": 236,
+      "height": 236,
+      "objectLongestSide": 180,
+      "colorPalette": 128,
+      "alphaPreservedDuringQuantization": true,
+      "bytes": 18216,
+      "candidateBytes": {
+        "png": 22978,
+        "webp": 18216
+      },
+      "sha256": "dd95ea61a885c89b9136591b1d55ddb4466cd7e30f9bf458da0ceccc32fd214a",
+      "rgbaSha256": "499b2607b91b21c624026bedede69a15062b06fef60baf0698a72e39d09f2f2c",
+      "losslessPixelMatch": true,
+      "transparentCorners": true,
+      "name": "Enchanted Diamond Block",
+      "reference": {
+        "referencePage": "https://hypixelskyblock.minecraft.wiki/w/Enchanted_Diamond_Block",
+        "imageUrl": "https://hypixelskyblock.minecraft.wiki/images/Enchanted_Block_of_Diamond.png?e09ab",
+        "definitionUrl": "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/ENCHANTED_DIAMOND_BLOCK.json"
+      },
+      "visualReview": "Raw output and compressed 64/80px light/dark previews passed"
+    },
+    {
+      "id": "NECRON_HANDLE",
+      "file": "/assets/items/necron_handle.webp",
+      "width": 236,
+      "height": 236,
+      "objectLongestSide": 180,
+      "colorPalette": 128,
+      "alphaPreservedDuringQuantization": true,
+      "bytes": 5996,
+      "candidateBytes": {
+        "png": 8132,
+        "webp": 5996
+      },
+      "sha256": "8b6610d0727be21a995cd888a11bc33df772ad82f4738531e8b8fe40f311fae1",
+      "rgbaSha256": "8385c4ac1e8450c3f2cbc166fc1a42954d1b9f3b71149756aa15cc945633346f",
+      "losslessPixelMatch": true,
+      "transparentCorners": true,
+      "name": "Necron's Handle",
+      "reference": {
+        "referencePage": "https://hypixelskyblock.minecraft.wiki/w/Necron%27s_Handle",
+        "imageUrl": "https://hypixelskyblock.minecraft.wiki/images/Enchanted_Stick.png?cb423",
+        "definitionUrl": "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/NECRON_HANDLE.json"
+      },
+      "visualReview": "Raw output and compressed 64/80px light/dark previews passed"
+    },
+    {
+      "id": "ENCHANTED_BLAZE_ROD",
+      "file": "/assets/items/enchanted_blaze_rod.webp",
+      "width": 236,
+      "height": 236,
+      "objectLongestSide": 180,
+      "colorPalette": 128,
+      "alphaPreservedDuringQuantization": true,
+      "bytes": 6870,
+      "candidateBytes": {
+        "png": 9062,
+        "webp": 6870
+      },
+      "sha256": "b553b4900bd9fb21b6b8ba44b1c1d93e882761c834aceb6da59eb471e33f0679",
+      "rgbaSha256": "7afe26ed962163a1fbac04c7511f11e38904db9e4b97d413f4210903ec05dde5",
+      "losslessPixelMatch": true,
+      "transparentCorners": true,
+      "name": "Enchanted Blaze Rod",
+      "reference": {
+        "referencePage": "https://hypixelskyblock.minecraft.wiki/w/Enchanted_Blaze_Rod",
+        "imageUrl": "https://hypixelskyblock.minecraft.wiki/images/Enchanted_Blaze_Rod.png?221fb",
+        "definitionUrl": "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/ENCHANTED_BLAZE_ROD.json"
+      },
+      "visualReview": "Raw output and compressed 64/80px light/dark previews passed"
+    },
+    {
+      "id": "ENCHANTED_SUGAR_CANE",
+      "file": "/assets/items/enchanted_sugar_cane.webp",
+      "width": 236,
+      "height": 236,
+      "objectLongestSide": 180,
+      "colorPalette": 128,
+      "alphaPreservedDuringQuantization": true,
+      "bytes": 11486,
+      "candidateBytes": {
+        "png": 14460,
+        "webp": 11486
+      },
+      "sha256": "fa51bef46e9568571331d2cedf5f6dea5d5ac85714623ca3a45f583bc3ba73c2",
+      "rgbaSha256": "5fc91ffc59159cd9e9769e9e8999dd32b8482ced5dea090376af48334ed9b363",
+      "losslessPixelMatch": true,
+      "transparentCorners": true,
+      "name": "Enchanted Sugar Cane",
+      "reference": {
+        "referencePage": "https://hypixelskyblock.minecraft.wiki/w/Enchanted_Sugar_Cane",
+        "imageUrl": "https://hypixelskyblock.minecraft.wiki/images/Enchanted_Sugar_Cane.png?458a6",
+        "definitionUrl": "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/ENCHANTED_SUGAR_CANE.json"
+      },
+      "visualReview": "Raw output and compressed 64/80px light/dark previews passed"
+    },
+    {
+      "id": "SEEDS",
+      "file": "/assets/items/seeds.webp",
+      "width": 236,
+      "height": 236,
+      "objectLongestSide": 180,
+      "colorPalette": 128,
+      "alphaPreservedDuringQuantization": true,
+      "bytes": 12472,
+      "candidateBytes": {
+        "png": 16210,
+        "webp": 12472
+      },
+      "sha256": "b4fe3e68d1d1e49efe92b32f74e482853f8c598cc54c1a2a09bfbac2805851f7",
+      "rgbaSha256": "9e5441adc09809b84a5eef436669b85e1c27d3a6c041d45198b09ace3b30d9df",
+      "losslessPixelMatch": true,
+      "transparentCorners": true,
+      "name": "Seeds",
+      "reference": {
+        "referencePage": "https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/item/wheat_seeds.png",
+        "imageUrl": "https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/item/wheat_seeds.png",
+        "definitionUrl": "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/SEEDS.json"
+      },
+      "visualReview": "Raw output and compressed 64/80px light/dark previews passed"
+    },
+    {
+      "id": "WHEAT",
+      "file": "/assets/items/wheat.webp",
+      "width": 236,
+      "height": 236,
+      "objectLongestSide": 180,
+      "colorPalette": 128,
+      "alphaPreservedDuringQuantization": true,
+      "bytes": 10038,
+      "candidateBytes": {
+        "png": 13325,
+        "webp": 10038
+      },
+      "sha256": "ef6a5329f03b751b6b5d1cf2828f1884e979586597bc617b7f65237266da8bff",
+      "rgbaSha256": "36270a8c3d0088a62857c256675bffb5159e374c4d0b362264bc7be08853500f",
+      "losslessPixelMatch": true,
+      "transparentCorners": true,
+      "name": "Wheat",
+      "reference": {
+        "referencePage": "https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/item/wheat.png",
+        "imageUrl": "https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/item/wheat.png",
+        "definitionUrl": "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/WHEAT.json"
+      },
+      "visualReview": "Raw output and compressed 64/80px light/dark previews passed"
+    },
+    {
+      "id": "COAL",
+      "file": "/assets/items/coal.webp",
+      "width": 236,
+      "height": 236,
+      "objectLongestSide": 180,
+      "colorPalette": 128,
+      "alphaPreservedDuringQuantization": true,
+      "bytes": 16442,
+      "candidateBytes": {
+        "png": 22740,
+        "webp": 16442
+      },
+      "sha256": "c9ec8493858b864e5088dc16828897e9d761d827cf2d2d23d1b9d6cd680b7a16",
+      "rgbaSha256": "ad2fc452aeba7b8de07da192cffe11254cb02cffbfdf0d094b63e3194afd02d7",
+      "losslessPixelMatch": true,
+      "transparentCorners": true,
+      "name": "Coal",
+      "reference": {
+        "referencePage": "https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/item/coal.png",
+        "imageUrl": "https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/item/coal.png",
+        "definitionUrl": "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/COAL.json"
+      },
+      "visualReview": "Raw output and compressed 64/80px light/dark previews passed"
+    },
+    {
+      "id": "MITHRIL_ORE",
+      "file": "/assets/items/mithril_ore.webp",
+      "width": 236,
+      "height": 236,
+      "objectLongestSide": 180,
+      "colorPalette": 128,
+      "alphaPreservedDuringQuantization": true,
+      "bytes": 17114,
+      "candidateBytes": {
+        "png": 22674,
+        "webp": 17114
+      },
+      "sha256": "eee2207a88ade66ddf0e10c706a283497834d187e691f01efbd3b9efd2b71ebe",
+      "rgbaSha256": "47b450fef9ba5f033f906b938dfceee3469a47dc082a744c9e9da2159611a6df",
+      "losslessPixelMatch": true,
+      "transparentCorners": true,
+      "name": "Mithril",
+      "reference": {
+        "referencePage": "https://hypixelskyblock.minecraft.wiki/w/Mithril",
+        "imageUrl": "https://hypixelskyblock.minecraft.wiki/images/Mithril.png?2cb16",
+        "definitionUrl": "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/MITHRIL_ORE.json"
+      },
+      "visualReview": "Raw output and compressed 64/80px light/dark previews passed"
+    },
+    {
+      "id": "HARD_STONE",
+      "file": "/assets/items/hard_stone.webp",
+      "width": 236,
+      "height": 236,
+      "objectLongestSide": 180,
+      "colorPalette": 64,
+      "alphaPreservedDuringQuantization": true,
+      "bytes": 16464,
+      "candidateBytes": {
+        "png": 30432,
+        "webp": 16464
+      },
+      "sha256": "ed61d3da73395fe3e5972dcf020869200059c8dfc9757e284bc5bf1777caa6a0",
+      "rgbaSha256": "77c1b7f61ce48c9977a8728040b6e3d9e43422ebaf6e93861cb25800136bab27",
+      "losslessPixelMatch": true,
+      "transparentCorners": true,
+      "name": "Hard Stone",
+      "reference": {
+        "referencePage": "https://hypixelskyblock.minecraft.wiki/w/Hard_Stone",
+        "imageUrl": "https://hypixelskyblock.minecraft.wiki/images/Stone.png?6dd01",
+        "definitionUrl": "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/HARD_STONE.json"
+      },
+      "visualReview": "Raw output and compressed 64/80px light/dark previews passed"
+    },
+    {
+      "id": "MELON",
+      "file": "/assets/items/melon.webp",
+      "width": 236,
+      "height": 236,
+      "objectLongestSide": 180,
+      "colorPalette": 128,
+      "alphaPreservedDuringQuantization": true,
+      "bytes": 13000,
+      "candidateBytes": {
+        "png": 17298,
+        "webp": 13000
+      },
+      "sha256": "5f6370c60266b5b1c8a3b5d31c8cbfee6a67918c82b6037b724d434eca2b19a6",
+      "rgbaSha256": "7473a4c574d438e96a8f5c2f613e214d5d0440b46fb391e43de4aeda88976f79",
+      "losslessPixelMatch": true,
+      "transparentCorners": true,
+      "name": "Melon Slice",
+      "reference": {
+        "referencePage": "https://hypixelskyblock.minecraft.wiki/w/Melon_Slice",
+        "imageUrl": "https://hypixelskyblock.minecraft.wiki/images/Melon_Slice.png?64268",
+        "definitionUrl": "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/MELON.json"
+      },
+      "visualReview": "Raw output and compressed 64/80px light/dark previews passed"
+    },
+    {
+      "id": "ROUGH_SAPPHIRE_GEM",
+      "file": "/assets/items/rough_sapphire_gem.webp",
+      "width": 236,
+      "height": 236,
+      "objectLongestSide": 180,
+      "colorPalette": 128,
+      "alphaPreservedDuringQuantization": true,
+      "bytes": 12466,
+      "candidateBytes": {
+        "png": 16568,
+        "webp": 12466
+      },
+      "sha256": "70481126c2d25b7df69ba1452f7173ed84223d3a1e8db9ea33d9820c59addaeb",
+      "rgbaSha256": "4d904bff12487ec361dfd1e1d0abd96d4db797944843c695069de37d5ea7d4d2",
+      "losslessPixelMatch": true,
+      "transparentCorners": true,
+      "name": "Rough Sapphire Gemstone",
+      "reference": {
+        "referencePage": "https://hypixelskyblock.minecraft.wiki/w/Gemstone",
+        "imageUrl": "https://hypixelskyblock.minecraft.wiki/images/Rough_Sapphire_Gemstone.png?c2de1",
+        "definitionUrl": "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/ROUGH_SAPPHIRE_GEM.json"
+      },
+      "visualReview": "Raw output and compressed 64/80px light/dark previews passed"
+    },
+    {
+      "id": "GLACITE",
+      "file": "/assets/items/glacite.webp",
+      "width": 236,
+      "height": 236,
+      "objectLongestSide": 180,
+      "colorPalette": 128,
+      "alphaPreservedDuringQuantization": true,
+      "bytes": 12418,
+      "candidateBytes": {
+        "png": 16296,
+        "webp": 12418
+      },
+      "sha256": "b1ace6056ce4a136f203a6240e5223effa641fe1e812bda7b37061b3c18a0976",
+      "rgbaSha256": "93980d94335cea4ae4e17fa0299dfaa2920c403b837f1294b9dede0a048f895c",
+      "losslessPixelMatch": true,
+      "transparentCorners": true,
+      "name": "Glacite",
+      "reference": {
+        "referencePage": "https://hypixelskyblock.minecraft.wiki/w/Glacite",
+        "imageUrl": "https://hypixelskyblock.minecraft.wiki/images/Glacite.png?c8da2",
+        "definitionUrl": "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/GLACITE.json"
+      },
+      "visualReview": "Raw output and compressed 64/80px light/dark previews passed"
+    },
+    {
+      "id": "ESSENCE_CRIMSON",
+      "file": "/assets/items/essence_crimson.webp",
+      "width": 236,
+      "height": 236,
+      "objectLongestSide": 180,
+      "colorPalette": 128,
+      "alphaPreservedDuringQuantization": true,
+      "bytes": 18462,
+      "candidateBytes": {
+        "png": 24183,
+        "webp": 18462
+      },
+      "sha256": "6931c7511ae3adb87611ec43f250a322d56aab11115f61eaaf8953b50791e89d",
+      "rgbaSha256": "2357f57416ef98b8c17b4956154067bb2bab1672d7677866d3a637006a194abe",
+      "losslessPixelMatch": true,
+      "transparentCorners": true,
+      "name": "Essence Crimson",
+      "reference": {
+        "referencePage": "https://hypixelskyblock.minecraft.wiki/w/Crimson_Essence",
+        "imageUrl": "https://hypixelskyblock.minecraft.wiki/images/Crimson_Essence.png?989e9",
+        "definitionUrl": "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/ESSENCE_CRIMSON.json"
+      },
+      "visualReview": "Raw output and compressed 64/80px light/dark previews passed"
+    },
+    {
+      "id": "GOLD_INGOT",
+      "file": "/assets/items/gold_ingot.webp",
+      "width": 236,
+      "height": 236,
+      "objectLongestSide": 180,
+      "colorPalette": 128,
+      "alphaPreservedDuringQuantization": true,
+      "bytes": 12414,
+      "candidateBytes": {
+        "png": 15553,
+        "webp": 12414
+      },
+      "sha256": "6d5394d18d9d5e64dd3122ff04c66667fe83b7fd58ac28c3caae29da4286dc8c",
+      "rgbaSha256": "8530163e26389aaf7d53e3a073cc1bd479b7e3c5d35438f5f30bed24b405832b",
+      "losslessPixelMatch": true,
+      "transparentCorners": true,
+      "name": "Gold Ingot",
+      "reference": {
+        "referencePage": "https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/item/gold_ingot.png",
+        "imageUrl": "https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/item/gold_ingot.png",
+        "definitionUrl": "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/GOLD_INGOT.json"
+      },
+      "visualReview": "Raw output and compressed 64/80px light/dark previews passed"
+    },
+    {
+      "id": "RED_MUSHROOM",
+      "file": "/assets/items/red_mushroom.webp",
+      "width": 236,
+      "height": 236,
+      "objectLongestSide": 180,
+      "colorPalette": 128,
+      "alphaPreservedDuringQuantization": true,
+      "bytes": 11406,
+      "candidateBytes": {
+        "png": 14853,
+        "webp": 11406
+      },
+      "sha256": "c99a57faebcd4e22e9f465b5c07768f611c5e60f115f84de61bf0c25aa9d706d",
+      "rgbaSha256": "2c7d7381400c19e037f2ce00134c506bda0bcc5222701a06fe331f7e2df6b849",
+      "losslessPixelMatch": true,
+      "transparentCorners": true,
+      "name": "Red Mushroom",
+      "reference": {
+        "referencePage": "https://hypixelskyblock.minecraft.wiki/w/Mushroom",
+        "imageUrl": "https://hypixelskyblock.minecraft.wiki/images/Red_Mushroom.png?00a3c",
+        "definitionUrl": "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/RED_MUSHROOM.json"
+      },
+      "visualReview": "Raw output and compressed 64/80px light/dark previews passed"
+    },
+    {
+      "id": "ROUGH_JADE_GEM",
+      "file": "/assets/items/rough_jade_gem.webp",
+      "width": 236,
+      "height": 236,
+      "objectLongestSide": 180,
+      "colorPalette": 128,
+      "alphaPreservedDuringQuantization": true,
+      "bytes": 15326,
+      "candidateBytes": {
+        "png": 20980,
+        "webp": 15326
+      },
+      "sha256": "294c7cff7e222803387ec0319dcfa4f91bdaaad3e30b587862bed7ea3d5a9819",
+      "rgbaSha256": "d7010b462ae0eaa0b748ea077e742624e6a04987702ad6ebd3083a0c532a4f9f",
+      "losslessPixelMatch": true,
+      "transparentCorners": true,
+      "name": "Rough Jade Gemstone",
+      "reference": {
+        "referencePage": "https://hypixelskyblock.minecraft.wiki/w/Gemstone",
+        "imageUrl": "https://hypixelskyblock.minecraft.wiki/images/Rough_Jade_Gemstone.png?0a12c",
+        "definitionUrl": "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/ROUGH_JADE_GEM.json"
+      },
+      "visualReview": "Raw output and compressed 64/80px light/dark previews passed"
+    },
+    {
+      "id": "BROWN_MUSHROOM",
+      "file": "/assets/items/brown_mushroom.webp",
+      "width": 236,
+      "height": 236,
+      "objectLongestSide": 180,
+      "colorPalette": 128,
+      "alphaPreservedDuringQuantization": true,
+      "bytes": 12174,
+      "candidateBytes": {
+        "png": 16768,
+        "webp": 12174
+      },
+      "sha256": "820f5ff5c845dffe50329d3819d9974bd5dbe1246969a4b27749a996f805a42a",
+      "rgbaSha256": "aabbaf7cceb4f2836f2ec3a5645777b7a26785bfd1819e1fa5b9c892992c981c",
+      "losslessPixelMatch": true,
+      "transparentCorners": true,
+      "name": "Brown Mushroom",
+      "reference": {
+        "referencePage": "https://hypixelskyblock.minecraft.wiki/w/Mushroom",
+        "imageUrl": "https://hypixelskyblock.minecraft.wiki/images/Brown_Mushroom.png?ae39f",
+        "definitionUrl": "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/BROWN_MUSHROOM.json"
+      },
+      "visualReview": "Raw output and compressed 64/80px light/dark previews passed"
+    },
+    {
+      "id": "ROUGH_AMETHYST_GEM",
+      "file": "/assets/items/rough_amethyst_gem.webp",
+      "width": 236,
+      "height": 236,
+      "objectLongestSide": 180,
+      "colorPalette": 128,
+      "alphaPreservedDuringQuantization": true,
+      "bytes": 11834,
+      "candidateBytes": {
+        "png": 16370,
+        "webp": 11834
+      },
+      "sha256": "040d88122f0c0efa87a3d6b066300c09be8b85a268e119ac8447623a3179a646",
+      "rgbaSha256": "7215e45666c1da48a1b3576b76de6ecbad580f4f28e28330e10c582702406e5b",
+      "losslessPixelMatch": true,
+      "transparentCorners": true,
+      "name": "Rough Amethyst Gemstone",
+      "reference": {
+        "referencePage": "https://hypixelskyblock.minecraft.wiki/w/Gemstone",
+        "imageUrl": "https://hypixelskyblock.minecraft.wiki/images/Rough_Amethyst_Gemstone.png?3dea3",
+        "definitionUrl": "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/ROUGH_AMETHYST_GEM.json"
+      },
+      "visualReview": "Raw output and compressed 64/80px light/dark previews passed"
+    },
+    {
+      "id": "ENCHANTED_SEEDS",
+      "file": "/assets/items/enchanted_seeds.webp",
+      "width": 236,
+      "height": 236,
+      "objectLongestSide": 180,
+      "colorPalette": 128,
+      "alphaPreservedDuringQuantization": true,
+      "bytes": 9806,
+      "candidateBytes": {
+        "png": 12148,
+        "webp": 9806
+      },
+      "sha256": "658ca4c64976993507c27d96be1f9dddd5753c6adeca2d0d6754010922ad5b39",
+      "rgbaSha256": "1f1f47cba6082e40c29a71b5466ad963eb0f839915b5dd5e9291621d0e416445",
+      "losslessPixelMatch": true,
+      "transparentCorners": true,
+      "name": "Enchanted Seeds",
+      "reference": {
+        "referencePage": "https://hypixelskyblock.minecraft.wiki/w/Enchanted_Seeds",
+        "imageUrl": "https://hypixelskyblock.minecraft.wiki/images/Enchanted_Wheat_Seeds.png?26d8c",
+        "definitionUrl": "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/ENCHANTED_SEEDS.json"
+      },
+      "visualReview": "Raw output and compressed 64/80px light/dark previews passed"
+    },
+    {
+      "id": "ROUGH_TOPAZ_GEM",
+      "file": "/assets/items/rough_topaz_gem.webp",
+      "width": 236,
+      "height": 236,
+      "objectLongestSide": 180,
+      "colorPalette": 128,
+      "alphaPreservedDuringQuantization": true,
+      "bytes": 16682,
+      "candidateBytes": {
+        "png": 22454,
+        "webp": 16682
+      },
+      "sha256": "b59d9bd90fe1c5aa1a80d0a53001b4472f6e33241360ee848f5d829ce8d728ca",
+      "rgbaSha256": "536b3c15c2429279da14b7f78fcedff0b8b78a2b903cab365c0f7892c63fc0b4",
+      "losslessPixelMatch": true,
+      "transparentCorners": true,
+      "name": "Rough Topaz Gemstone",
+      "reference": {
+        "referencePage": "https://hypixelskyblock.minecraft.wiki/w/Gemstone",
+        "imageUrl": "https://hypixelskyblock.minecraft.wiki/images/Rough_Topaz_Gemstone.png?ff752",
+        "definitionUrl": "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/ROUGH_TOPAZ_GEM.json"
+      },
+      "visualReview": "Raw output and compressed 64/80px light/dark previews passed"
+    },
+    {
+      "id": "REDSTONE",
+      "file": "/assets/items/redstone.webp",
+      "width": 236,
+      "height": 236,
+      "objectLongestSide": 180,
+      "colorPalette": 128,
+      "alphaPreservedDuringQuantization": true,
+      "bytes": 15212,
+      "candidateBytes": {
+        "png": 20437,
+        "webp": 15212
+      },
+      "sha256": "d79c98bff62492733ddb3e59e9ca8492348bf46d782ea542945468e1f4e55ddc",
+      "rgbaSha256": "4a9e27a27a6efa548942d6a77548f53ac6576632fd8a0165af1ce9f0ed3848af",
+      "losslessPixelMatch": true,
+      "transparentCorners": true,
+      "name": "Redstone Dust",
+      "reference": {
+        "referencePage": "https://hypixelskyblock.minecraft.wiki/w/Redstone_Dust",
+        "imageUrl": "https://hypixelskyblock.minecraft.wiki/images/Redstone_Dust.png?16559",
+        "definitionUrl": "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/REDSTONE.json"
+      },
+      "visualReview": "Raw output and compressed 64/80px light/dark previews passed"
+    },
+    {
+      "id": "ROUGH_PERIDOT_GEM",
+      "file": "/assets/items/rough_peridot_gem.webp",
+      "width": 236,
+      "height": 236,
+      "objectLongestSide": 180,
+      "colorPalette": 128,
+      "alphaPreservedDuringQuantization": true,
+      "bytes": 13676,
+      "candidateBytes": {
+        "png": 18470,
+        "webp": 13676
+      },
+      "sha256": "5829ce4249e3a703245eed7f42a937687f22a8f8f1eb6db5c17d7e9f202aebda",
+      "rgbaSha256": "84a0e0786bac0c5f3c82d5db1bddd57cf1c7e0649f22bde435e5d84971653cc3",
+      "losslessPixelMatch": true,
+      "transparentCorners": true,
+      "name": "Rough Peridot Gemstone",
+      "reference": {
+        "referencePage": "https://hypixelskyblock.minecraft.wiki/w/Gemstone",
+        "imageUrl": "https://hypixelskyblock.minecraft.wiki/images/Rough_Peridot_Gemstone.png?2ffcb",
+        "definitionUrl": "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/ROUGH_PERIDOT_GEM.json"
+      },
+      "visualReview": "Raw output and compressed 64/80px light/dark previews passed"
+    },
+    {
+      "id": "HELIX_LOG",
+      "file": "/assets/items/helix_log.webp",
+      "width": 236,
+      "height": 236,
+      "objectLongestSide": 180,
+      "colorPalette": 64,
+      "alphaPreservedDuringQuantization": true,
+      "bytes": 19764,
+      "candidateBytes": {
+        "png": 25966,
+        "webp": 19764
+      },
+      "sha256": "a6d5a2b02fc59d3aa3c098342bc97ab46b0132c337b0704d75fa935b95edeb5e",
+      "rgbaSha256": "d4e24f2f2e17279e65d086c9d9b55ea0e3a03c878f817dda1e562cb7f64119fa",
+      "losslessPixelMatch": true,
+      "transparentCorners": true,
+      "name": "Helix Log",
+      "reference": {
+        "referencePage": "https://hypixelskyblock.minecraft.wiki/w/Helix_Log",
+        "imageUrl": "https://hypixelskyblock.minecraft.wiki/images/Stripped_Mangrove_Log.png?9eac3",
+        "definitionUrl": "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/HELIX_LOG.json"
+      },
+      "visualReview": "Raw output and compressed 64/80px light/dark previews passed"
+    },
+    {
+      "id": "ENCHANTED_WHEAT",
+      "file": "/assets/items/enchanted_wheat.webp",
+      "width": 236,
+      "height": 236,
+      "objectLongestSide": 180,
+      "colorPalette": 128,
+      "alphaPreservedDuringQuantization": true,
+      "bytes": 9526,
+      "candidateBytes": {
+        "png": 11953,
+        "webp": 9526
+      },
+      "sha256": "a9c8086724e0d310819c371c5a4c318bdd2f9ffc3f0dcda0ae5878be88fa90c3",
+      "rgbaSha256": "066592b01c20f61edbcd846b6b30436abf017dfe22f76b104e32a2fa9b4a3a1c",
+      "losslessPixelMatch": true,
+      "transparentCorners": true,
+      "name": "Enchanted Wheat",
+      "reference": {
+        "referencePage": "https://hypixelskyblock.minecraft.wiki/w/Enchanted_Wheat",
+        "imageUrl": "https://hypixelskyblock.minecraft.wiki/images/Enchanted_Wheat.png?41d61",
+        "definitionUrl": "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/ENCHANTED_WHEAT.json"
+      },
+      "visualReview": "Raw output and compressed 64/80px light/dark previews passed"
+    }
+  ]
+}

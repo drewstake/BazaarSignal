@@ -7,6 +7,7 @@ import type {
 } from "../../shared/companion/types";
 import { bazaarTrade, quoteBazaar, strategyLabels } from "../../shared/companion/bazaar";
 import { SampleTime } from '../SampleTime';
+import { BazaarOrderBook } from './OrderBook';
 import {
   artGlow,
   SkyIcon,
@@ -26,15 +27,18 @@ export function InspectorShell({
   children,
   open,
   onClose,
+  overlay = false,
 }: {
   children: ReactNode;
   open: boolean;
   onClose: () => void;
+  overlay?: boolean;
 }) {
   const [mobile, setMobile] = useState(
       () => matchMedia("(max-width: 1100px)").matches,
     ),
     dialog = useRef<HTMLDialogElement>(null);
+  const useDialog = mobile || overlay;
   useEffect(() => {
     const q = matchMedia("(max-width: 1100px)"),
       change = () => setMobile(q.matches);
@@ -42,17 +46,17 @@ export function InspectorShell({
     return () => q.removeEventListener("change", change);
   }, []);
   useEffect(() => {
-    if (mobile && dialog.current) {
+    if (useDialog && dialog.current) {
       if (open && !dialog.current.open) dialog.current.showModal();
       if (!open && dialog.current.open) dialog.current.close();
     }
-  }, [mobile, open]);
+  }, [useDialog, open]);
   const content = (
     <>
       <div className="inspector-heading">
         <h2>Item Details</h2>
         <span className="paper-pin" aria-hidden="true" />
-        {mobile && (
+        {useDialog && (
           <button aria-label="Close item details" onClick={onClose}>
             <X size={22} />
           </button>
@@ -61,7 +65,7 @@ export function InspectorShell({
       {children}
     </>
   );
-  return mobile ? (
+  return useDialog ? (
     <dialog
       className="inspector inspector-sheet"
       ref={dialog}
@@ -129,6 +133,9 @@ export function BazaarInspector({
   save: () => void;
 }) {
   const q = quoteBazaar(item, filters), trade = bazaarTrade(item, filters);
+  const visibleConcerns = q?.concerns.filter(c =>
+    !c.startsWith("Last sampled estimate") &&
+    !c.startsWith("Price moved more than 15%")) ?? [];
   return (
     <>
       <InspectorItem
@@ -185,9 +192,9 @@ export function BazaarInspector({
             />
           </div>
           <p className="estimate-fees">Includes {filters.taxPercent * (item.feeContext?.multiplier ?? 1)}% sale tax{q.executionCost > 0 ? ` and ${exact(q.executionCost)} coins in additional costs` : ""}. {!q.fresh && "Historical estimate; check in-game prices. "}Fills and profit are not guaranteed.</p>
-          {q.concerns.some(c => !c.startsWith("Last sampled estimate")) && (
+          {visibleConcerns.length > 0 && (
             <ul className="concerns">
-              {q.concerns.filter(c => !c.startsWith("Last sampled estimate")).map((c) => (
+              {visibleConcerns.map((c) => (
                 <li key={c}>{c}</li>
               ))}
             </ul>
@@ -201,6 +208,7 @@ export function BazaarInspector({
           Profit unavailable: the full quantity needs valid prices on both sides and fee evidence from the same collection period.
         </p>
       )}
+      <BazaarOrderBook key={item.id} item={item} />
       <button className="button green watch-button" onClick={save}>
         <SkyIcon name="favorite-heart" size={30} className="watch-heart" />
         {saved ? "Remove from Watchlist" : "Add to Watchlist"}

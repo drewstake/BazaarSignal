@@ -1,0 +1,170 @@
+{
+  "scope": "User narrowed request to top 20 highest-volume items; seven icons completed before scope change are retained.",
+  "metric": "instantBuyActivity7d + instantSellActivity7d; combined seven-day unit activity, not coin turnover or outstanding orders",
+  "snapshotVersion": "1790920128483:1790874480016:e39f3fb7d8a59369e749fe1b3f1d2730775b1526734ab506b7dd2208e111b1c8",
+  "observedAt": 1790920130080,
+  "upstreamAt": 1790920128483,
+  "rankedFromProducts": 2197,
+  "items": [
+    {
+      "rank": 1,
+      "id": "SEEDS",
+      "name": "Seeds",
+      "instantBuyActivity7d": 46117935,
+      "instantSellActivity7d": 1219457566,
+      "combinedActivity7d": 1265575501
+    },
+    {
+      "rank": 2,
+      "id": "WHEAT",
+      "name": "Wheat",
+      "instantBuyActivity7d": 7226400,
+      "instantSellActivity7d": 1164658613,
+      "combinedActivity7d": 1171885013
+    },
+    {
+      "rank": 3,
+      "id": "COAL",
+      "name": "Coal",
+      "instantBuyActivity7d": 8235025,
+      "instantSellActivity7d": 701751386,
+      "combinedActivity7d": 709986411
+    },
+    {
+      "rank": 4,
+      "id": "MITHRIL_ORE",
+      "name": "Mithril",
+      "instantBuyActivity7d": 3526816,
+      "instantSellActivity7d": 682699551,
+      "combinedActivity7d": 686226367
+    },
+    {
+      "rank": 5,
+      "id": "HARD_STONE",
+      "name": "Hard Stone",
+      "instantBuyActivity7d": 7311758,
+      "instantSellActivity7d": 508802422,
+      "combinedActivity7d": 516114180
+    },
+    {
+      "rank": 6,
+      "id": "MELON",
+      "name": "Melon Slice",
+      "instantBuyActivity7d": 24322860,
+      "instantSellActivity7d": 484457271,
+      "combinedActivity7d": 508780131
+    },
+    {
+      "rank": 7,
+      "id": "ROUGH_SAPPHIRE_GEM",
+      "name": "Rough Sapphire Gemstone",
+      "instantBuyActivity7d": 523238,
+      "instantSellActivity7d": 414802432,
+      "combinedActivity7d": 415325670
+    },
+    {
+      "rank": 8,
+      "id": "GLACITE",
+      "name": "Glacite",
+      "instantBuyActivity7d": 1732640,
+      "instantSellActivity7d": 397587027,
+      "combinedActivity7d": 399319667
+    },
+    {
+      "rank": 9,
+      "id": "ESSENCE_CRIMSON",
+      "name": "Essence Crimson",
+      "instantBuyActivity7d": 304928510,
+      "instantSellActivity7d": 82936519,
+      "combinedActivity7d": 387865029
+    },
+    {
+      "rank": 10,
+      "id": "GOLD_INGOT",
+      "name": "Gold Ingot",
+      "instantBuyActivity7d": 9827364,
+      "instantSellActivity7d": 328371186,
+      "combinedActivity7d": 338198550
+    },
+    {
+      "rank": 11,
+      "id": "RED_MUSHROOM",
+      "name": "Red Mushroom",
+      "instantBuyActivity7d": 2417722,
+      "instantSellActivity7d": 328168814,
+      "combinedActivity7d": 330586536
+    },
+    {
+      "rank": 12,
+      "id": "ROUGH_JADE_GEM",
+      "name": "Rough Jade Gemstone",
+      "instantBuyActivity7d": 482039,
+      "instantSellActivity7d": 300250231,
+      "combinedActivity7d": 300732270
+    },
+    {
+      "rank": 13,
+      "id": "BROWN_MUSHROOM",
+      "name": "Brown Mushroom",
+      "instantBuyActivity7d": 2017394,
+      "instantSellActivity7d": 292658787,
+      "combinedActivity7d": 294676181
+    },
+    {
+      "rank": 14,
+      "id": "ROUGH_AMETHYST_GEM",
+      "name": "Rough Amethyst Gemstone",
+      "instantBuyActivity7d": 568865,
+      "instantSellActivity7d": 275905468,
+      "combinedActivity7d": 276474333
+    },
+    {
+      "rank": 15,
+      "id": "ENCHANTED_SEEDS",
+      "name": "Enchanted Seeds",
+      "instantBuyActivity7d": 1057590,
+      "instantSellActivity7d": 273241821,
+      "combinedActivity7d": 274299411
+    },
+    {
+      "rank": 16,
+      "id": "ROUGH_TOPAZ_GEM",
+      "name": "Rough Topaz Gemstone",
+      "instantBuyActivity7d": 119842,
+      "instantSellActivity7d": 273421817,
+      "combinedActivity7d": 273541659
+    },
+    {
+      "rank": 17,
+      "id": "REDSTONE",
+      "name": "Redstone Dust",
+      "instantBuyActivity7d": 7448167,
+      "instantSellActivity7d": 255629353,
+      "combinedActivity7d": 263077520
+    },
+    {
+      "rank": 18,
+      "id": "ROUGH_PERIDOT_GEM",
+      "name": "Rough Peridot Gemstone",
+      "instantBuyActivity7d": 215199,
+      "instantSellActivity7d": 257502908,
+      "combinedActivity7d": 257718107
+    },
+    {
+      "rank": 19,
+      "id": "HELIX_LOG",
+      "name": "Helix Log",
+      "instantBuyActivity7d": 1232738,
+      "instantSellActivity7d": 236722677,
+      "combinedActivity7d": 237955415
+    },
+    {
+      "rank": 20,
+      "id": "ENCHANTED_WHEAT",
+      "name": "Enchanted Wheat",
+      "instantBuyActivity7d": 19241112,
+      "instantSellActivity7d": 211684773,
+      "combinedActivity7d": 230925885
+    }
+  ]
+}

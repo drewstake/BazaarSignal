@@ -1,6 +1,8 @@
 import { test, expect } from "@playwright/test";
 test("name search reveals filtered items and keeps trade inputs explicit", async ({page}, info) => {
   await page.goto('/?fixtures=1');
+  await expect(page.getByLabel('Quantity', {exact:true})).toHaveValue('1');
+  await page.getByLabel('Quantity', {exact:true}).fill('64');
   await page.getByText('More filters', {exact:true}).click();
   await page.getByLabel('Budget · coins', {exact:true}).fill('1');
   await page.getByText('More filters', {exact:true}).click();
@@ -8,17 +10,18 @@ test("name search reveals filtered items and keeps trade inputs explicit", async
   const card = page.getByRole('article', {name:'Summoning Eye opportunity'});
   await expect(card).toBeVisible();
   await expect(card).toContainText('exceeds your budget');
-  await expect(card).toContainText('64 items');
   await expect(card).toContainText('Sell before tax');
   await expect(page.getByLabel('Quantity', {exact:true})).toHaveValue('64');
-  await card.getByRole('button', {name:'Inspect Summoning Eye',exact:true}).click();
-  const inspector = info.project.name === 'mobile' ? page.getByRole('dialog') : page.getByRole('complementary', {name:'Item details'});
+  await expect(card.getByText('View details', {exact:true})).toHaveCount(0);
+  await card.click();
+  const inspector = page.getByRole('dialog', {name:'Item details'});
+  await expect(inspector).toContainText('Totals for 64 items');
   await inspector.getByLabel('Inspector quantity').fill('1');
   await expect(inspector).toContainText('Totals for 1 item');
   await expect(inspector).toContainText('1.25% sale tax');
   await inspector.getByText('Liquidity & order book', {exact:false}).click();
   await expect(inspector.getByText('Highest buy order / item')).toBeVisible();
-  if (info.project.name === 'mobile') await page.getByRole('button', {name:'Close item details'}).click();
+  await page.getByRole('button', {name:'Close item details'}).click();
   await expect(page.getByLabel('Quantity', {exact:true})).toHaveValue('1');
   await page.getByRole('button', {name:'Clear search',exact:true}).click();
   await expect(page.getByRole('article')).toHaveCount(0);
@@ -46,10 +49,7 @@ test("Bazaar budget, activity, quantity, views, filter persistence and responsiv
   await page
     .getByRole("button", { name: "Inspect Summoning Eye", exact: true })
     .click();
-  const inspector =
-    info.project.name === "mobile"
-      ? page.getByRole("dialog", { name: "Item details" })
-      : page.getByRole("complementary", { name: "Item details" });
+  const inspector = page.getByRole("dialog", { name: "Item details" });
   await expect(inspector.getByText("Fees & calculation")).toBeVisible();
   await inspector.getByLabel("Inspector quantity").fill("8");
   await expect(inspector).toContainText("Profit / unit");
@@ -58,8 +58,7 @@ test("Bazaar budget, activity, quantity, views, filter persistence and responsiv
     path: `.local/companion/inspector-${info.project.name}.png`,
     fullPage: true,
   });
-  if (info.project.name === "mobile")
-    await page.getByRole("button", { name: "Close item details" }).click();
+  await page.getByRole("button", { name: "Close item details" }).click();
   await page.getByRole("button", { name: "Compact list view" }).click();
   await expect(page.locator(".compact-list")).toBeVisible();
   await page.getByRole("button", { name: "Card view", exact: true }).click();
@@ -99,9 +98,7 @@ test("auction evidence, enchantment exclusion and availability checks", async ({
   await expect(
     page.getByRole("article", { name: "Livid Dagger opportunity" }),
   ).toBeVisible();
-  await page
-    .getByRole("button", { name: "View details for Livid Dagger", exact: true })
-    .click();
+  await page.getByRole("article", { name: "Livid Dagger opportunity" }).click();
   const inspector =
     info.project.name === "mobile"
       ? page.getByRole("dialog")
