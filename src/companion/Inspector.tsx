@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { marketMessage, marketStatusLabel } from '../market-copy';
 import { Check, Copy, X } from "lucide-react";
 import type {
   AuctionOpportunity,
@@ -230,7 +231,7 @@ export function BazaarInspector({
           {visibleConcerns.length > 0 && (
             <ul className="concerns">
               {visibleConcerns.map((c) => (
-                <li key={c}>{c}</li>
+                <li key={c}>{marketMessage(c)}</li>
               ))}
             </ul>
           )}
@@ -516,7 +517,7 @@ export function AuctionGroupInspector({
                       </span>
                       <span>
                         <SampleTime timestamp={l.upstreamAt} compact /> ·{" "}
-                        {status}
+                        {marketStatusLabel(status)}
                       </span>
                     </button>
                     <button
@@ -690,7 +691,7 @@ export function AuctionInspector({
           asking prices.
         </p>
         {val.reasons.map((r) => (
-          <p key={r}>{r}</p>
+          <p key={r}>{marketMessage(r)}</p>
         ))}
         <details>
           <summary>
@@ -760,7 +761,7 @@ export function AuctionInspector({
       {comparison.flags.length > 0 && (
         <ul className="concerns">
           {comparison.flags.map((flag) => (
-            <li key={flag}>{flag}</li>
+            <li key={flag}>{marketMessage(flag)}</li>
           ))}
         </ul>
       )}
@@ -800,10 +801,10 @@ export function AuctionInspector({
           {Math.max(0, Math.floor((Date.now() - o.listing.start) / 60000))} min
           ·{" "}
           {check
-            ? check.status
+            ? marketStatusLabel(check.status)
             : o.listing.status === "active"
               ? "not rechecked"
-              : o.listing.status}
+              : marketStatusLabel(o.listing.status)}
         </p>
         <button className="button blue" onClick={recheck} disabled={busy}>
           {busy ? "Checking…" : "Recheck availability"}
@@ -811,7 +812,7 @@ export function AuctionInspector({
         {check && (
           <p>
             Checked {new Date(check.checkedAt).toLocaleTimeString()} ·{" "}
-            {check.source}. Cached status can change in-game.
+            {marketMessage(check.source)}. Cached status can change in-game.
           </p>
         )}
         {check?.command && (
@@ -826,7 +827,7 @@ export function AuctionInspector({
         )}
         {error && (
           <p className="notice warning" role="alert">
-            {error}
+            {marketMessage(error)}
           </p>
         )}
       </div>

@@ -6,10 +6,23 @@ import { currentStatus, imageStorageEstimate, needsAttention, projectionStatus, 
 import type { UsageRow } from '../shared/usage-dashboard';
 import { liveDailyMaximums, liveMaximums, pacificDay } from '../collector/allowance-live';
 import type { UsageDashboard } from '../shared/usage-dashboard';
+import { HOURLY_TRIAL_START, HOURLY_TRIAL_END } from '../shared/hourly-trial';
 const now=Date.parse('2026-10-02T16:00:00Z');
 const owner={sub:'owner',email:'drewstake3@gmail.com',email_verified:true,firebase:{sign_in_provider:'google.com'},aud:'bazaarsignal',iss:'https://securetoken.google.com/bazaarsignal',exp:now/1000+3600};
 const snapshot={generatedAt:now,nextMeasurementAt:now+MEASUREMENT_TTL,rows:[],spending:{month:null,total:null},collection:{state:'Active'}} as unknown as UsageDashboard;
 const stores:SqliteCache[]=[];
+it('reports the bounded hourly test, automatic fallback and hard stop without claiming low pressure',()=>{
+  const ledger={version:1 as const,id:'free-test',startsAt:HOURLY_TRIAL_START-1,expiresAt:HOURLY_TRIAL_END+86400000,
+    monthlyLimits:{...liveMaximums},monthlyReserved:{cpuSeconds:80000},dailyLimits:{...liveDailyMaximums},dailyReserved:{},
+    day:pacificDay(HOURLY_TRIAL_START),observed:{},evidence:'offline fixture'};
+  const active=collectionStatus(ledger,null,'ENABLED',HOURLY_TRIAL_START);
+  expect(active.state).toBe('Hourly test');expect(active.hourlyTrialEndsAt).toBe(HOURLY_TRIAL_END);
+  expect(active.pressure).toBeGreaterThan(.65);expect(active.reason).toContain('95%');
+  const after=collectionStatus(ledger,null,'ENABLED',HOURLY_TRIAL_END);
+  expect(after.state).toBe('Slowed');expect(after.hourlyTrialEndsAt).toBeUndefined();
+  expect(collectionStatus(ledger,null,'PAUSED',HOURLY_TRIAL_START).state).toBe('Paused');
+  expect(collectionStatus({...ledger,stoppedAt:HOURLY_TRIAL_START},null,'ENABLED',HOURLY_TRIAL_START).hourlyTrialEndsAt).toBeUndefined();
+});
 afterEach(async()=>{for(const s of stores.splice(0))await s.close();});
 function store(){const s=new SqliteCache(':memory:');stores.push(s);return s;}
 it('requires a verified Google owner from the correct signed Firebase token',()=>{

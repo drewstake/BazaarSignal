@@ -1,5 +1,5 @@
 export const PAUSED_MESSAGE = "Updates paused to protect the free allowance";
-export type PollDirective = { mode: "normal" | "warning" | "slow" | "paused"; pollMs: number; reason?: string; expiresAt?: number; serverNow?: number; trialId?: string };
+export type PollDirective = { mode: "normal" | "warning" | "slow" | "paused"; pollMs: number; retryAt?: number; reason?: string; expiresAt?: number; serverNow?: number; trialId?: string };
 const configuredEnd = Date.parse(import.meta.env.VITE_MARKET_TRIAL_END ?? "");
 const configuredTrialId = import.meta.env.VITE_MARKET_TRIAL_ID;
 const liveMode = import.meta.env.VITE_MARKET_OPERATING_MODE === "free-tier";
@@ -24,12 +24,13 @@ function armDeadline() {
 armDeadline();
 export const pollingDirective = () => { expire(); return directive; };
 export const nextScheduledMarketCheck = (after = Date.now()) =>
-  liveMode && pollingDirective().mode !== 'paused' ? nextMarketRead(after, directive.pollMs) : null;
+  liveMode && pollingDirective().mode !== 'paused' ? Math.max(nextMarketRead(after, directive.pollMs),directive.retryAt??0) : null;
 export function applyPollingDirective(next: PollDirective) {
   // A running tab cannot silently resume itself after a pause. Reload only after
   // an operator has verified all allowances and enabled a new release.
   if (directive.mode === "paused") return;
   const valid = next && ["normal", "warning", "slow", "paused"].includes(next.mode) && Number.isFinite(next.pollMs) && next.pollMs >= 0 &&
+    (next.retryAt===undefined||(Number.isFinite(next.retryAt)&&next.retryAt>=0&&next.retryAt<=(next.expiresAt??Infinity)))&&
     (next.mode === "paused" || ((!configuredTrialId || next.trialId === configuredTrialId) && (next.expiresAt === undefined ? !import.meta.env.PROD :
       Number.isFinite(next.expiresAt) && next.expiresAt > Date.now() && next.expiresAt - Date.now() <= maximumWindow)));
   const value: PollDirective = valid
@@ -60,7 +61,7 @@ export function visiblePoll(
     clearTimeout(timer);
     if (!closed && !hidden() && !busy && !(attempted && paused()))
       timer = setTimeout(run, completedAt ? Math.max(0,
-        (market && liveMode ? nextMarketRead(completedAt, delay()) : completedAt + delay()) - Date.now()) : initialDelay);
+        Math.max(market && liveMode ? nextMarketRead(completedAt, delay()) : completedAt + delay(),market?directive.retryAt??0:0) - Date.now()) : initialDelay);
   };
   const run = async () => {
     clearTimeout(timer);

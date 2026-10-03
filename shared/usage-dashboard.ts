@@ -28,6 +28,7 @@ export interface UsageDashboard {
   spending: { state: 'unavailable' | 'not-reported'; month: null; total: null;
     coverage: string; reason: string; setup: string; sourceUrl: string; checkedAt: string };
   collection: { state: string; reason: string; pressure: number | null;
+    hourlyTrialEndsAt?: number;
     reviewAt: number | null; lastSuccessAt: number | null; nextCollectionAt: number | null;
     scheduler: string; cleanup: string; measuredAt: number };
 }

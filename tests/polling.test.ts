@@ -1,5 +1,15 @@
 import { afterEach, expect, it, vi } from "vitest";
 afterEach(()=>{vi.useRealTimers();vi.unstubAllGlobals();vi.unstubAllEnvs();vi.resetModules();});
+it('a temporary budget wait schedules automatic recovery without hourly retries or a permanent pause',async()=>{
+  vi.stubEnv('VITE_MARKET_OPERATING_MODE','free-tier');
+  const {visiblePoll,applyPollingDirective,pollingDirective}=await setup();
+  vi.setSystemTime(new Date('2026-10-03T02:02:00Z'));
+  const retryAt=Date.parse('2026-10-03T07:02:00Z');
+  const task=vi.fn(async()=>{if(task.mock.calls.length===1)applyPollingDirective({mode:'slow',pollMs:3600000,retryAt});});
+  const stop=visiblePoll(task);await vi.advanceTimersByTimeAsync(0);
+  await vi.advanceTimersByTimeAsync(5*3600000-1);expect(task).toHaveBeenCalledTimes(1);expect(pollingDirective().mode).toBe('slow');
+  await vi.advanceTimersByTimeAsync(1);expect(task).toHaveBeenCalledTimes(2);stop();
+});
 it('an hourly tab opened at :47 checks at :02, then keeps the same clock phase after hidden time',async()=>{
   vi.stubEnv('VITE_MARKET_OPERATING_MODE','free-tier');
   const {visiblePoll,doc}=await setup();vi.setSystemTime(new Date('2026-10-02T03:47:00Z'));

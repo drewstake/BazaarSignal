@@ -291,8 +291,8 @@ export class TrialSession {
     if (this.clock() + this.offset >= this.expiresAt)
       this.refuse("Trial deadline reached");
   }
-  private refuse(reason: string): never {
-    this.refusal ??= new TrialStopped(reason);
+  private refuse(reason: string, original?: TrialStopped): never {
+    this.refusal ??= original ?? new TrialStopped(reason);
     this.cancellation.abort(this.refusal);
     throw this.refusal;
   }
@@ -331,6 +331,7 @@ export class TrialSession {
     } catch (error) {
       this.refuse(
         error instanceof Error ? error.message : "Shared reservation failed",
+        error instanceof TrialStopped ? error : undefined,
       );
     }
     for (const [key, value] of Object.entries(costs))

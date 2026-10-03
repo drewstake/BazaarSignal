@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { marketMessage } from '../market-copy';
 import type { User } from "firebase/auth";
 import {
   ArrowRight,
@@ -563,19 +564,21 @@ export default function MarketApp() {
       <span className="automatic-status" aria-live="polite">
         {usage.mode === "paused"
           ? `${PAUSED_MESSAGE} · ${lastUpdate ? `data from ${new Date(lastUpdate).toLocaleString()}` : "no saved snapshot"}`
+          : usage.retryAt&&now<usage.retryAt
+            ? `Waiting for the app budget reset at ${new Date(usage.retryAt).toLocaleTimeString([], {hour:'numeric',minute:'2-digit',timeZoneName:'short'})}. Saved prices are shown.`
           : !lastUpdate
             ? "Automatic updates · waiting"
             : now - lastUpdate > 180000
               ? view === "bazaar"
                 ? "Historical estimates. Check in-game prices before trading."
-                : "Stale sample · historical asking-price comparisons. Seller commands need fresh prices."
+                : "Snapshot asking-price comparisons. Check in-game prices and availability before trading."
               : (view === "auctions" ? auctionError : marketError)
                 ? "Cached update failed · waiting for the next scheduled check"
                 : cacheStatus?.refreshing && view === "auctions"
                   ? "Updating automatically…"
                   : "Automatic updates"}
         {usage.mode !== "paused" && usage.pollMs >= 3600_000
-          ? ` · next price check ${new Date(nextMarketRead(now, usage.pollMs)).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`
+          ? ` · next price check ${new Date(Math.max(nextMarketRead(now, usage.pollMs),usage.retryAt??0)).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`
           : ""}
       </span>
     </span>
@@ -726,7 +729,7 @@ export default function MarketApp() {
           )}
           {toast && (
             <div className="notice" role="status">
-              {toast}
+              {marketMessage(toast)}
               <button aria-label="Dismiss message" onClick={() => setToast("")}>
                 <X size={15} />
               </button>
@@ -844,7 +847,7 @@ export default function MarketApp() {
               )}
               {view === "bazaar" && marketError && (
                 <div className="notice warning" role="alert">
-                  {marketError}{" "}
+                  {marketMessage(marketError)}{" "}
                   {bazaar.length > 0
                     ? "Last successful sample remains visible. Estimates use that sample; collection failures are separate from its age."
                     : ""}
@@ -855,7 +858,7 @@ export default function MarketApp() {
               )}
               {view === "auctions" && (auctionError || health?.error) && (
                 <div className="notice warning" role="alert">
-                  {auctionError || health?.error}
+                  {marketMessage(auctionError || health?.error || '')}
                 </div>
               )}
               {!validBazaar && view === "bazaar" && (
@@ -992,13 +995,6 @@ export default function MarketApp() {
                               profit={q?.profit ?? null}
                               roi={q?.roi ?? null}
                               sampled={stale || Boolean(marketError)}
-                              badge={
-                                stale
-                                  ? "Stale sample"
-                                  : q
-                                    ? "Sampled estimate"
-                                    : "Partial data"
-                              }
                               warning={
                                 !q
                                   ? "Profit unavailable: missing prices, depth or fee data."
@@ -1074,17 +1070,6 @@ export default function MarketApp() {
                             sell={comparison.valuation.estimate}
                             profit={comparison.profit}
                             roi={comparison.roi}
-                            badge={
-                              comparison.sampled
-                                ? o.listing.status === "expired"
-                                  ? "Ended · sample"
-                                  : o.listing.status === "stale"
-                                    ? "Stale sample"
-                                    : "Sampled estimate"
-                                : o.listing.status === "stale"
-                                  ? "Stale"
-                                  : `${titleCase(o.valuation.confidence)} confidence`
-                            }
                             subtitle={
                               <>
                                 {o.group?.matchingListings.length ?? 1} matching

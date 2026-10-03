@@ -69,6 +69,12 @@ export async function cachedMarketRequest<T>(url: string, signal?: AbortSignal):
     const old = reusable ? await read(url) : undefined;
     const firstRead = !seen.has(url); seen.add(url);
     const policy = pollingDirective();
+    const savedDuringWait=(usage:PollDirective,error:string)=>({...old!.body,usage,error,
+      status:{...old!.body.status,usage,error}});
+    if(policy.retryAt&&Date.now()<policy.retryAt) {
+      if(old)return savedDuringWait(policy,policy.reason??'Waiting for the app budget reset.');
+      throw new Error(policy.reason??'Waiting for the app budget reset.');
+    }
     if (policy.mode === "paused") {
       if (old) return observe({ ...old.body, status: { ...old.body.status, usage: policy } });
       throw new Error(`${PAUSED_MESSAGE}. No saved data is available for this view.`);
@@ -93,6 +99,8 @@ export async function cachedMarketRequest<T>(url: string, signal?: AbortSignal):
     }
     const body = await response.json();
     observe(body);
+    if(response.status===429&&old&&pollingDirective().retryAt&&Date.now()<pollingDirective().retryAt!)
+      return savedDuringWait(pollingDirective(),body.error??'Waiting for the app budget reset.');
     if (!response.ok) throw new Error(body.error ?? "Market service unavailable");
     if (reusable) await save(url, { at: Date.now(), etag: response.headers.get("ETag"), body });
     return body;

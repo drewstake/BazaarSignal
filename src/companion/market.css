@@ -1605,19 +1605,6 @@ img.item-art.pack.hero {
   filter: drop-shadow(0 2px 0 #000a);
 }
 
-.art-badge {
-  position: absolute;
-  left: 5px;
-  bottom: 5px;
-  z-index: 2;
-  padding: 2px 7px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #fff;
-  background: #0009;
-  border: 1px solid #ffffff2e;
-  border-radius: 3px;
-}
 .card-content {
   display: flex;
   flex-direction: column;
@@ -1695,7 +1682,6 @@ img.item-art.pack.hero {
   width: 70px;
   height: 70px;
 }
-.compact-list .art-badge,
 .compact-list .card-art::after,
 .compact-list .art-spark {
   display: none;

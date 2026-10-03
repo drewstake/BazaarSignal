@@ -148,9 +148,7 @@ for (const scenario of ["fresh", "sampled", "unavailable"])
         await expect(
           card.getByText("Sampled after-fee gap", { exact: true }),
         ).toBeVisible();
-        await expect(
-          card.getByText("Stale sample", { exact: true }),
-        ).toBeVisible();
+        await expect(card.locator('.card-art')).toHaveText('');
         await expect(card.getByText(/1 matching listings/)).toBeVisible();
         await expect(
           card.getByRole("button", {
@@ -209,7 +207,7 @@ for (const scenario of ["fresh", "sampled", "unavailable"])
       await expect(page.getByText(/Shared cache unavailable/)).toBeVisible();
       await expect(card).toBeVisible();
       await page.clock.fastForward(180000);
-      await expect(page.locator(".automatic-status")).toContainText("Stale");
+      await expect(page.locator(".automatic-status")).toContainText("Snapshot asking-price comparisons");
       await expect(card.getByText("2,000,000", { exact: true })).toBeVisible();
       await expect(card.locator(".profit-line .coin-value")).toContainText(
         expectedGap,

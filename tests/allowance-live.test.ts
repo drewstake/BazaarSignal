@@ -1,8 +1,14 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { SqliteCache } from '../collector/cache-store';
-import { LiveLedger, liveMaximums, liveDailyMaximums, pacificDay, createLiveRuntime, type LiveAllowanceState } from '../collector/allowance-live';
+import { LiveLedger, liveMaximums, liveDailyMaximums, pacificDay, nextPacificReset, createLiveRuntime, type LiveAllowanceState } from '../collector/allowance-live';
+import { MarketCollector } from '../collector/engine';
+import { HOURLY_TRIAL_START, HOURLY_TRIAL_END } from '../shared/hourly-trial';
 const stores: SqliteCache[]=[];
-afterEach(async()=>{for(const s of stores.splice(0))await s.close();});
+async function request(runtime:ReturnType<typeof createLiveRuntime>,method='GET',url='/api/companion/status') {
+  const response:any={headers:{},status:0,body:'',setHeader(k:string,v:unknown){this.headers[k]=v;},writeHead(n:number){this.status=n;return this;},end(body=''){this.body=body;this.headersSent=true;}};
+  await runtime.handle({method,url,headers:{origin:'https://bazaarsignal.web.app'}} as any,response);return response;
+}
+afterEach(async()=>{vi.restoreAllMocks();for(const s of stores.splice(0))await s.close();});
 async function setup(start=Date.parse('2026-10-02T03:00:00Z')) {
   const store=new SqliteCache(':memory:');stores.push(store);
   const state:LiveAllowanceState={version:1,id:'free-test',startsAt:start-1,expiresAt:start+86_400_000,
@@ -51,4 +57,135 @@ it('runtime failure attempts infrastructure shutdown and never fetches upstream'
   await expect(r.collect('scheduled')).rejects.toThrow('does not match');
   expect(shutdown).toHaveBeenCalledOnce();expect(network).not.toHaveBeenCalled();
   expect(JSON.parse((await store.read('live-allowance'))!).stoppedAt).toBe(start);
+});
+it('an admitted work timeout retains charges, completes accounting and waits for the next hour',async()=>{
+  const {store,state,start}=await setup(); const shutdown=vi.fn(),network=vi.fn(); let now=start;
+  const tick=vi.spyOn(MarketCollector.prototype,'tick').mockRejectedValueOnce(new DOMException('request timed out','TimeoutError')).mockResolvedValue(undefined);
+  const r=createLiveRuntime({id:state.id,expiresAt:state.expiresAt,store:()=>store,shutdown,network,now:()=>now});
+  await expect(r.collect('first')).rejects.toThrow('reserved usage retained');
+  const saved=JSON.parse((await store.read('live-allowance'))!);
+  expect(saved.stoppedAt).toBeUndefined();expect(saved.monthlyReserved.collectorInvocations).toBe(1);
+  expect(saved.observed.transientTimeouts).toBe(1);expect(saved.expiresAt).toBe(state.expiresAt);
+  await r.collect('same-hour');expect(tick).toHaveBeenCalledTimes(1);
+  now+=3_600_000;await r.collect('next-hour');expect(tick).toHaveBeenCalledTimes(2);
+  expect(shutdown).not.toHaveBeenCalled();expect(network).not.toHaveBeenCalled();
+});
+it.each(['admission','accounting','unknown','deadline'])('%s failures still stop the service',async(phase)=>{
+  const {store,state,start}=await setup();const shutdown=vi.fn();let now=start;
+  const timeout=new DOMException('timeout','TimeoutError');
+  if(phase==='admission')vi.spyOn(LiveLedger.prototype,'admit').mockRejectedValueOnce(timeout);
+  if(phase==='accounting')vi.spyOn(LiveLedger.prototype,'finish').mockRejectedValueOnce(timeout);
+  vi.spyOn(MarketCollector.prototype,'tick').mockImplementation(async()=>{
+    if(phase==='deadline')now=state.expiresAt;
+    throw phase==='unknown'?new Error('invalid data'):timeout;
+  });
+  const r=createLiveRuntime({id:state.id,expiresAt:state.expiresAt,store:()=>store,shutdown,now:()=>now});
+  await expect(r.collect('failure')).rejects.toThrow();expect(shutdown).toHaveBeenCalledOnce();
+  expect(JSON.parse((await store.read('live-allowance'))!).stoppedAt).toBe(now);
+});
+it('admits consecutive hourly test slots above 65%, retains costs and returns to slowdown after the test',async()=>{
+  const {store,state}=await setup(HOURLY_TRIAL_START);
+  state.expiresAt=HOURLY_TRIAL_END+86400000;
+  state.monthlyReserved.cpuSeconds=80000;
+  await store.commit('live-allowance',await store.read('live-allowance'),JSON.stringify(state));
+  let now=HOURLY_TRIAL_START;
+  const ledger=new LiveLedger(store,()=>now);
+  const first=await ledger.admit('collector','odd-test-hour');
+  expect(first!.policy().pollMs).toBe(3600000);
+  expect(first!.policy().reason).toContain('Hourly test until');
+  expect(await ledger.admit('collector','duplicate')).toBeNull();
+  now+=3600000;expect(await ledger.admit('collector','next-hour')).not.toBeNull();
+  const saved=JSON.parse((await store.read('live-allowance'))!);
+  expect(saved.dailyReserved).toMatchObject({firestoreReads:1400,firestoreWrites:592});
+  expect(saved.monthlyReserved.cpuSeconds).toBe(80200);
+  expect(saved.expiresAt).toBe(state.expiresAt);
+  now=HOURLY_TRIAL_END+3600000;
+  expect(await ledger.admit('collector','odd-after-trial')).toBeNull();
+  expect((await ledger.admit('browser','after-trial'))!.policy().pollMs).toBe(7200000);
+});
+it('skips a test collection before 95% without pausing, spending or clearing accounting; resets only at Pacific midnight',async()=>{
+  const {store,state}=await setup(HOURLY_TRIAL_START);
+  state.dailyReserved={firestoreReads:28000,firestoreWrites:10000};
+  await store.commit('live-allowance',await store.read('live-allowance'),JSON.stringify(state));
+  const original=await store.read('live-allowance');
+  const shutdown=vi.fn(),tick=vi.spyOn(MarketCollector.prototype,'tick').mockResolvedValue(undefined);
+  const runtime=createLiveRuntime({id:state.id,expiresAt:state.expiresAt,store:()=>store,shutdown,now:()=>HOURLY_TRIAL_START});
+  await runtime.collect('insufficient-test-headroom');
+  expect(await store.read('live-allowance')).toBe(original);
+  expect(shutdown).not.toHaveBeenCalled();expect(tick).not.toHaveBeenCalled();
+  const nextDay=Date.parse('2026-10-03T07:01:00Z');
+  expect(await new LiveLedger(store,()=>nextDay).admit('collector','new-day')).not.toBeNull();
+  const saved=JSON.parse((await store.read('live-allowance'))!);
+  expect(saved.day).toBe('2026-10-03');expect(saved.dailyReserved.firestoreReads).toBe(700);
+});
+it.each(['cpuSeconds','snapshotUploads','hypixelRequests'])('test respects monthly %s reservations and never renews the budget',async(key)=>{
+  const {store,state}=await setup(HOURLY_TRIAL_START);
+  state.monthlyReserved[key]=Math.floor(state.monthlyLimits[key]*.95);
+  await store.commit('live-allowance',await store.read('live-allowance'),JSON.stringify(state));
+  const before=await store.read('live-allowance');
+  expect(await new LiveLedger(store,()=>HOURLY_TRIAL_START).admit('collector',key)).toBeNull();
+  expect(await store.read('live-allowance')).toBe(before);
+});
+it('hourly test still enforces browser hard limits, expired periods and explicit stops',async()=>{
+  const {store,state}=await setup(HOURLY_TRIAL_START);
+  state.dailyReserved.firestoreReads=30000;
+  await store.commit('live-allowance',await store.read('live-allowance'),JSON.stringify(state));
+  const ledger=new LiveLedger(store,()=>HOURLY_TRIAL_START);
+  await expect(ledger.admit('browser','hard-limit')).rejects.toThrow('firestoreReads');
+  await expect(new LiveLedger(store,()=>state.expiresAt).admit('collector','expired')).rejects.toThrow('expired');
+  await ledger.stop('operator stop');await expect(ledger.admit('collector','stopped')).rejects.toThrow('operator stop');
+});
+it('budget refusal keeps Scheduler alive, returns bounded CORS/429, avoids repeated reads and resumes naturally next day',async()=>{
+  const {store,state}=await setup(HOURLY_TRIAL_START);let now=HOURLY_TRIAL_START;
+  state.dailyReserved={firestoreReads:29972,firestoreWrites:11032};
+  await store.commit('live-allowance',await store.read('live-allowance'),JSON.stringify(state));
+  const before=await store.read('live-allowance'),shutdown=vi.fn(),network=vi.fn();
+  const runtime=createLiveRuntime({id:state.id,expiresAt:state.expiresAt,store:()=>store,shutdown,network,now:()=>now});
+  const res=await request(runtime);expect(res.status).toBe(429);
+  expect(JSON.parse(res.body).usage).toMatchObject({mode:'slow',pollMs:3600000,trialId:state.id,expiresAt:state.expiresAt,retryAt:Date.parse('2026-10-03T07:00:00Z')});
+  const reads=vi.spyOn(store,'read');expect((await request(runtime,'OPTIONS')).status).toBe(204);
+  expect(reads).not.toHaveBeenCalled();reads.mockRestore();
+  await runtime.collect('before-reset');expect(await store.read('live-allowance')).toBe(before);
+  const tick=vi.spyOn(MarketCollector.prototype,'tick').mockResolvedValue(undefined);
+  now=Date.parse('2026-10-03T07:00:00Z');await runtime.collect('after-reset');
+  expect(tick).toHaveBeenCalledOnce();
+  const after=JSON.parse((await store.read('live-allowance'))!);
+  expect(after.stoppedAt).toBeUndefined();expect(after.day).toBe('2026-10-03');
+  expect(after.dailyReserved.firestoreReads).toBe(700);expect(after.monthlyLimits).toEqual(state.monthlyLimits);
+  expect(after.monthlyReserved.collectorInvocations).toBe(1);expect(shutdown).not.toHaveBeenCalled();expect(network).not.toHaveBeenCalled();
+});
+it('browsing protects the remaining hourly collector budget without pre-spending or resetting it',async()=>{
+  const start=Date.parse('2026-10-03T07:00:00Z'),{store,state}=await setup(start);
+  state.dailyReserved={firestoreReads:12900};
+  await store.commit('live-allowance',await store.read('live-allowance'),JSON.stringify(state));
+  const ledger=new LiveLedger(store,()=>start);
+  await ledger.admit('browser','one',false);
+  await expect(ledger.admit('browser','protected',false)).rejects.toThrow('firestoreReads');
+  expect(await ledger.admit('collector','scheduled')).not.toBeNull();
+  const after=JSON.parse((await store.read('live-allowance'))!);
+  expect(after.dailyReserved.firestoreReads).toBe(12900+164+700);
+  expect(after.monthlyReserved.sellerRequests).toBe(0);
+});
+it('a denied response-size extension finalizes admitted accounting without shutting down collection',async()=>{
+  const {store,state,start}=await setup();state.monthlyLimits.egressBytes=16384;
+  await store.commit('live-allowance',await store.read('live-allowance'),JSON.stringify(state));
+  vi.spyOn(MarketCollector.prototype,'bazaar').mockResolvedValue({items:[],padding:'x'.repeat(18000)} as any);
+  const shutdown=vi.fn(),runtime=createLiveRuntime({id:state.id,expiresAt:state.expiresAt,store:()=>store,shutdown,now:()=>start});
+  expect((await request(runtime,'GET','/api/companion/bazaar')).status).toBe(429);
+  const after=JSON.parse((await store.read('live-allowance'))!);
+  expect(after.stoppedAt).toBeUndefined();expect(after.monthlyReserved.egressBytes).toBe(16384);
+  expect(after.observed.observedHandlerMs).toBeDefined();expect(shutdown).not.toHaveBeenCalled();
+});
+it('failure to finalize a deferred admitted request still stops infrastructure',async()=>{
+  const {store,state,start}=await setup();state.monthlyLimits.egressBytes=16384;
+  await store.commit('live-allowance',await store.read('live-allowance'),JSON.stringify(state));
+  vi.spyOn(MarketCollector.prototype,'bazaar').mockResolvedValue({items:[],padding:'x'.repeat(18000)} as any);
+  vi.spyOn(LiveLedger.prototype,'finish').mockRejectedValueOnce(new Error('accounting unavailable'));
+  const shutdown=vi.fn(),runtime=createLiveRuntime({id:state.id,expiresAt:state.expiresAt,store:()=>store,shutdown,now:()=>start});
+  expect((await request(runtime,'GET','/api/companion/bazaar')).status).toBe(503);
+  expect(shutdown).toHaveBeenCalledOnce();
+});
+it('finds natural Pacific midnight across daylight saving changes',()=>{
+  expect(nextPacificReset(Date.parse('2026-10-03T02:00:00Z'))).toBe(Date.parse('2026-10-03T07:00:00Z'));
+  expect(nextPacificReset(Date.parse('2026-11-01T07:00:00Z'))).toBe(Date.parse('2026-11-02T08:00:00Z'));
 });

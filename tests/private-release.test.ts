@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 // Deployment script is directly executable without a separate production build.
 // @ts-expect-error JavaScript operator utility
-import { verifyReleasePlan, uploadLocation, releasePatch, verifyLiveUpdate } from '../scripts/private-trial-release.mjs';
+import { verifyReleasePlan, uploadLocation, releasePatch, verifyLiveUpdate, verifyStoppedUpdate } from '../scripts/private-trial-release.mjs';
+import { createHash } from 'node:crypto';
 
 const now = Date.parse('2026-10-01T16:50:00Z');
 const receipt = { imageDigest: `sha256:${'a'.repeat(64)}`, applicationOnly: true,
@@ -17,6 +18,18 @@ const plan = () => ({ project: 'bazaarsignal-510305', imageDigest: receipt.image
     logBytes: { used: 500000, hold: 16 * 1024 ** 2, headroom: 16 * 1024 ** 2, limit: 50 * 1024 ** 3 },
   } });
 describe('private release admission', () => {
+  it('explicit recovery deploys only against the unchanged inspected stopped ledger',()=>{
+    const p:any={...plan(),operatingMode:'free-tier',updateExistingLive:true,recoverStopped:true,releaseId:'timeout-repair',services:['marketapi','refreshmarket']};
+    const ledger={id:p.id,startsAt:Date.parse(p.startsAt),expiresAt:Date.parse(p.expiresAt),stoppedAt:now,reason:'The operation was aborted due to timeout',monthlyReserved:{cpuSeconds:500}};
+    p.stoppedLedgerSha256=createHash('sha256').update(JSON.stringify(ledger)).digest('hex');
+    const service={template:{containers:[{env:[{name:'MARKET_OPERATING_MODE',value:'free-tier'},{name:'MARKET_LIVE_ID',value:p.id},{name:'MARKET_LIVE_END',value:p.expiresAt}]}]}};
+    expect(()=>verifyStoppedUpdate(p,ledger,service)).not.toThrow();
+    for(const changed of [{...ledger,reason:'Budget reached'},{...ledger,monthlyReserved:{}},{...ledger,expiresAt:ledger.expiresAt+1}])
+      expect(()=>verifyStoppedUpdate(p,changed,service)).toThrow();
+    expect(()=>verifyStoppedUpdate({...p,recoverStopped:false},ledger,service)).toThrow();
+    expect(()=>verifyStoppedUpdate({...p,services:['marketapi']},ledger,service)).toThrow();
+    expect(ledger.stoppedAt).toBe(now);expect(ledger.monthlyReserved.cpuSeconds).toBe(500);
+  });
   it('discloses existing image overage only for bounded existing-live releases without changing free allowance',()=>{
     const p={...plan(),operatingMode:'free-tier',updateExistingLive:true,startsAt:new Date(now-1000).toISOString(),
       existingImageOverageDisclosed:true,artifactCapacityCeilingBytes:1024**3};
@@ -26,6 +39,16 @@ describe('private release admission', () => {
     expect(()=>verifyReleasePlan({...p,updateExistingLive:false},receipt,now)).toThrow(/headroom/);
     p.meters.artifactBytes.used=1024**3;
     expect(()=>verifyReleasePlan(p,receipt,now)).toThrow(/headroom/);
+  });
+  it('permits only explicit read-budget recovery against the exact unchanged stopped ledger',()=>{
+    const p:any={...plan(),operatingMode:'free-tier',updateExistingLive:true,recoverStopped:true,recoveryStopReason:'Free-tier operating budget reached: firestoreReads',releaseId:'budget-repair',services:['marketapi','refreshmarket']};
+    const ledger={id:p.id,startsAt:Date.parse(p.startsAt),expiresAt:Date.parse(p.expiresAt),stoppedAt:now,reason:p.recoveryStopReason,dailyReserved:{firestoreReads:29972}};
+    p.stoppedLedgerSha256=createHash('sha256').update(JSON.stringify(ledger)).digest('hex');
+    const service={template:{containers:[{env:[{name:'MARKET_OPERATING_MODE',value:'free-tier'},{name:'MARKET_LIVE_ID',value:p.id},{name:'MARKET_LIVE_END',value:p.expiresAt}]}]}};
+    expect(()=>verifyStoppedUpdate(p,ledger,service)).not.toThrow();
+    expect(()=>verifyStoppedUpdate({...p,recoveryStopReason:undefined},ledger,service)).toThrow();
+    expect(()=>verifyStoppedUpdate({...p,recoveryStopReason:'operator stop'},ledger,service)).toThrow();
+    expect(()=>verifyStoppedUpdate(p,{...ledger,dailyReserved:{}},service)).toThrow();
   });
   it('an existing-live code update cannot renew the allowance or reopen a stopped ledger',()=>{
     const p={...plan(),operatingMode:'free-tier',releaseId:'timing-fix'};

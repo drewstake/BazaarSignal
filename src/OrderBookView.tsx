@@ -54,7 +54,7 @@ export default function OrderBook({
         >
           {!error && isFresh(timestamp)
             ? "Current snapshot"
-            : "Stale / unavailable"}
+            : timestamp > 0 ? "Saved prices" : "Prices unavailable"}
           {timestamp > 0
             ? ` · ${new Date(timestamp).toLocaleTimeString()}`
             : ""}

@@ -1,7 +1,8 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { gzipSync } from 'node:zlib';
 import type { CacheStore } from './cache-store';
-import { pacificDay, validateLive, type LiveAllowanceState } from './allowance-live';
+import { pacificDay, validateLive, livePressure, collectorBudgetDeferral, type LiveAllowanceState } from './allowance-live';
+import { hourlyTrialActive, HOURLY_TRIAL_END } from '../shared/hourly-trial';
 import type { UsageDashboard, UsageRow } from '../shared/usage-dashboard';
 import { verifiedUsageSnapshot } from '../shared/usage-dashboard';
 
@@ -142,21 +143,23 @@ export function summarizeSeries(data:any, gauge:boolean, divisor=1):Measurement 
   return {value,at,state:'measured'};
 }
 export function collectionStatus(ledger:LiveAllowanceState|null, control:any, scheduler:string, now:number):UsageDashboard['collection'] {
-  let state='Unavailable',reason='Allowance ledger could not be read.',pressure:number|null=null;
+  let state='Unavailable',reason='Allowance ledger could not be read.',pressure:number|null=null,budgetRetryAt:number|null=null;
   if (ledger) {
     try {
       validateLive(ledger,now);
-      // Match live admission pressure, including a prior-day reservation until admission rolls it over.
-      pressure=Math.max(0,...Object.entries(ledger.monthlyLimits).filter(([,v])=>v>0).map(([k,v])=>(ledger.monthlyReserved[k]??0)/v),...Object.entries(ledger.dailyLimits).filter(([,v])=>v>0).map(([k,v])=>(ledger.dailyReserved[k]??0)/v));
-      state=pressure>=.65?'Slowed':pressure>=.5?'Warning':'Active';
-      reason=pressure>=.65?'Two-hour collection opportunities and browser checks.':'Hourly collection opportunities; provider backoff can defer a run.';
+      pressure=livePressure(ledger,now);
+      state=hourlyTrialActive(now)?'Hourly test':pressure>=.65?'Slowed':pressure>=.5?'Warning':'Active';
+      reason=hourlyTrialActive(now)?'Hourly collection opportunities and browser checks during the temporary test. A collection is skipped if its reservation would exceed 95% of any app budget. Existing hard limits still apply.':pressure>=.65?'Two-hour collection opportunities and browser checks.':'Hourly collection opportunities; provider backoff can defer a run.';
+      const wait=collectorBudgetDeferral(ledger,now);
+      if(wait){budgetRetryAt=wait.retryAt;state='Waiting for budget';reason=`Collection is waiting for ${wait.key} capacity. Scheduler remains enabled; no counters were cleared.`;}
     } catch { state=ledger.expiresAt<=now?'Expired':'Paused'; reason=ledger.reason??'Application allowance is missing, invalid, stopped or expired.'; }
   }
   if (scheduler==='PAUSED') {state='Paused';reason='Cloud Scheduler is paused.';}
   const jobs=Object.values(control?.jobs??{}) as any[];
   return {state,reason,pressure,reviewAt:ledger?.expiresAt??null,
+    ...(['Hourly test','Waiting for budget'].includes(state)&&hourlyTrialActive(now)?{hourlyTrialEndsAt:HOURLY_TRIAL_END}:{}),
     lastSuccessAt:Math.max(0,...jobs.map(j=>j.lastCheckedAt??j.observedAt??0))||null,
-    nextCollectionAt:jobs.length?Math.min(...jobs.map(j=>j.nextAt).filter(Number.isFinite))||null:null,
+    nextCollectionAt:budgetRetryAt??(jobs.length?Math.min(...jobs.map(j=>j.nextAt).filter(Number.isFinite))||null:null),
     scheduler,cleanup:'Once daily, at most four listing pages; unchanged',measuredAt:now};
 }
 

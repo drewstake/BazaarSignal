@@ -302,7 +302,7 @@ export default function AlertForm({
         )}
         <p className="quote-note">
           {quote
-              ? `${stale ? 'Last sampled' : 'Sampled'} ${side === 'buy' ? 'instant-buy cost' : `instant-sell proceeds after ${taxRate}% tax`}: ${coins(quote.unit)} coins / item for ${coins(qty)} ${qty === 1 ? 'item' : 'items'}.`
+              ? `${stale ? 'Saved' : 'Sampled'} ${side === 'buy' ? 'instant-buy cost' : `instant-sell proceeds after ${taxRate}% tax`}: ${coins(quote.unit)} coins / item for ${coins(qty)} ${qty === 1 ? 'item' : 'items'}.`
               : "Insufficient visible liquidity. The alert waits until your full quantity is available."}
           {' '}<SampleTime timestamp={timestamp} compact />
           {stale && ' Alerts only trigger on fresh prices.'}

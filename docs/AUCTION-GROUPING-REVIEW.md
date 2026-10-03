@@ -1,5 +1,19 @@
 # Grouped auction review — October 2, 2026
 
+## Recovery deployed — 6:13 PM EDT
+
+The later authorized repair deployed both services: `marketapi-00013-fmq` and `refreshmarket-00010-nf6`, image `sha256:9596171c06105796c869b696a9b430a237e840479c174f853611330798ed0aad`. The existing live website bundle `app-DDw54z0S.js` already matches the grouped API and was verified with the repaired service; no redundant Hosting or Apps Script deployment was needed.
+
+Cloud logs confirmed that the 4:00 PM collector invocation timed out and the common error handler stopped the ledger, paused Scheduler, and removed public API access. The logs did not retain the specific failing RPC. An admitted work-phase `TimeoutError` now completes accounting and retains every reservation before returning a transient failure. It cannot retry collection within the same hour. Admission/accounting failures, expired deadlines, budget refusals and unknown errors still stop the service. Structured failure logs now identify invocation kind and phase.
+
+The explicit repair release verifies the exact stopped-ledger hash and deploys both services while Scheduler remains paused and both endpoints private. Recovery uses compare-and-swap to remove only the two timeout stop markers, verifies every remaining ledger field, restores the existing public cache API, resumes the unchanged hourly schedule and requests one admitted recovery run. Counters, quotas, limits, historical snapshots, cleanup and the November 1 fixed deadline remain intact; alerts, email and billing were unchanged. There is no automatic reopening of a stopped ledger.
+
+Recovery successfully published the 6:13:09 PM auction snapshot (45 pages) and a new Bazaar snapshot. Live verification checked two pages containing 12 distinct canonical groups, unique matching auction IDs within each group, successful CORS responses, rejected unauthorized owner requests, and unchanged collection/upstream reservations across page reads. The API returned 1,030 grouped items under default filters at verification. Desktop and 390px mobile checks confirmed one Candy Artifact card and working grouped details without horizontal overflow. Its newly sampled candidate was 1,450,000 coins, conservative estimate 1,500,000, after-fee gap 19,650 and ROI 1.3%, with low confidence and one excluded upper outlier. The browser's search was cleared after verification; existing cached pages retain accurate historical timestamps until their normal refresh.
+
+Validation: 266 unit tests passed, collector/frontend/backend type checks and builds passed, and both packaged handlers passed network-blocked startup checks. Deployment/recovery receipts are `.local/private-release-free-20261001-usage-timeout-repair-apply.json`, `.local/recovery-free-20261001-usage-timeout-repair-apply.json`, and `.local/timeout-repair-verification.json`. Production screenshots are `.local/grouped-auctions/live-timeout-repair-{desktop,mobile}.jpg`. The repair source changes remain local and uncommitted.
+
+## Initial release attempt
+
 The initial review below covered local changes. The October 2 release follow-up published the website through `free-preview` to https://bazaarsignal.web.app, verified production bundle `app-DDw54z0S.js`, and prepared these changes for commit and push.
 
 The cache API deployment is blocked: read-only inspection at 22:00 UTC found Scheduler PAUSED and the operating ledger stopped after a timeout. `prepare-usage-release.mjs` refused the stopped period with `Missing fresh active-period evidence`. The API image was built and both handlers passed local startup checks with outbound connections blocked, but no image was uploaded and no API revision was changed. Grouped live auction responses therefore remain unavailable pending an authorized recovery of the stopped service. No collector restart, ledger reset, billing change, alert mutation or email was performed.

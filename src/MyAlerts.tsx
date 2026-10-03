@@ -375,7 +375,7 @@ function SavedAlert({
           {board && (
             <>
               <div className="current-quote">
-                <span>{stale ? 'Last sampled' : 'Sampled estimate'} · {side === 'sell' ? 'instant sell, after tax' : 'instant buy'}</span>
+                <span>{stale ? 'Saved prices' : 'Sampled estimate'} · {side === 'sell' ? 'instant sell, after tax' : 'instant buy'}</span>
                 <strong>
                   {!book ? (
                     "Price unavailable"

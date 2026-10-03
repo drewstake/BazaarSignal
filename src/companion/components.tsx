@@ -396,7 +396,6 @@ export function ItemCard({
   sell,
   profit,
   roi,
-  badge,
   selected,
   saved,
   onOpen,
@@ -418,7 +417,6 @@ export function ItemCard({
   sell: number | null;
   profit: number | null;
   roi: number | null;
-  badge: string;
   selected: boolean;
   saved: boolean;
   onOpen: () => void;
@@ -444,7 +442,6 @@ export function ItemCard({
         aria-label={`Inspect ${name}`}
       />
       <div className="card-art" style={artGlow(id)}>
-        <RarityRibbon rarity={rarity} />
         <button
           className={`save-icon ${saved ? "is-saved" : ""}`}
           onClick={onSave}
@@ -454,13 +451,12 @@ export function ItemCard({
           <SkyIcon name="favorite-star" size={26} />
         </button>
         <ItemArt id={id} />
-        <span className="art-badge">{badge}</span>
         <span className="art-spark one" aria-hidden="true" />
         <span className="art-spark two" aria-hidden="true" />
       </div>
       <div className="card-content">
         <span className="item-category">
-          {titleCase(category)} <span>• {badge}</span>
+          {titleCase(category)} <span>• {titleCase(rarity)}</span>
         </span>
         <h3>{name}</h3>
         {subtitle && <p className="card-subtitle">{subtitle}</p>}
