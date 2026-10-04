@@ -10,7 +10,8 @@ export interface BackendRequest {
     | "update"
     | "disable"
     | "portfolio-notification"
-    | "legacy-pause";
+    | "legacy-pause"
+    | "usage-report";
   [key: string]: unknown;
 }
 export const backendUrl = import.meta.env.VITE_APPS_SCRIPT_URL || "";
@@ -107,7 +108,9 @@ async function attemptBackend<T>(
     throw new BackendReadError(
       request.action === "account"
         ? "Cannot reach the saved-alert service. Check your connection and retry alerts."
-        : "Cannot reach the email backend. Check the connection and retry; your request will not be duplicated.",
+        : request.action === 'usage-report'
+          ? 'Cannot reach the saved usage report. Try refreshing again.'
+          : "Cannot reach the email backend. Check the connection and retry; your request will not be duplicated.",
       1000,
     );
   }

@@ -7,6 +7,7 @@ import { stopTrialInfrastructure } from '../collector/trial-shutdown';
 import { MARKET_COLLECTION_SCHEDULE } from '../shared/market-schedule';
 import { PORTFOLIO_COLLECTION_ENABLED } from '../shared/companion/portfolio-policy';
 import { capacityProblems } from '../collector/capacity-plan';
+import { requireExistingBrowserDelivery, requireLiveCapacity } from '../collector/live-activation';
 
 const args=process.argv.slice(2),file=args[0],action=args[1]??'--inspect';
 if(!file || args.length>2 || !['--inspect','--prepare','--activate'].includes(action))
@@ -35,6 +36,7 @@ async function call(url:string,method='GET',body?:unknown) {
   const data=await r.json();if(!r.ok)throw new Error(`Control-plane HTTP ${r.status}: ${data.error?.message}`);return data;
 }
 const store=trialGoogleStore({project:plan.project,bucket:`${plan.project}-market-cache`,token});
+let activationAttempted=false;
 try {
   for(const name of ['marketapi','refreshmarket']) {
     const service=await call(`https://run.googleapis.com/v2/${root}/services/${name}`);
@@ -67,28 +69,24 @@ try {
     report.changes.push('Existing paused job changed to five-minute slots, no retries');
   }
   if(action==='--activate') {
-    const ledger=JSON.parse((await store.read('live-allowance'))??'null');validateLive(ledger,Date.now());
-    if(capacityProblems(ledger.capacity,Date.now()).length)throw new Error('Persisted capacity evidence is missing or expired');
+    const ledger=JSON.parse((await store.read('live-allowance'))??'null');
+    requireLiveCapacity(ledger,Date.now());
     if(ledger.id!==plan.id||scheduled.schedule!==MARKET_COLLECTION_SCHEDULE)throw new Error('Prepared ledger/schedule mismatch');
+    const api=`https://run.googleapis.com/v1/${root}/services/marketapi`;
+    requireExistingBrowserDelivery(await call(`${api}:getIamPolicy?options.requestedPolicyVersion=3`));
+    requireLiveCapacity(ledger,Date.now());
+    activationAttempted=true;
     await call(`https://cloudscheduler.googleapis.com/v1/${job}:resume`,'POST',{});
     report.changes.push('Five-minute schedule resumed');save();
     await call(`https://cloudscheduler.googleapis.com/v1/${job}:run`,'POST',{});
     report.changes.push('One initial scheduled collection requested');save();
-    const api=`https://run.googleapis.com/v1/${root}/services/marketapi`;
-    const policy=await call(`${api}:getIamPolicy?options.requestedPolicyVersion=3`);
-    policy.bindings??=[];
-    if(!policy.bindings.some((b:any)=>b.role==='roles/run.invoker'&&!b.condition&&b.members.includes('allUsers')))
-      policy.bindings.push({role:'roles/run.invoker',members:['allUsers']});
-    await call(`${api}:setIamPolicy`,'POST',{policy});
-    const after=await call(`${api}:getIamPolicy?options.requestedPolicyVersion=3`);
-    if(!after.bindings.some((b:any)=>b.role==='roles/run.invoker'&&!b.condition&&b.members.includes('allUsers')))
-      throw new Error('Public API invocation was not verified');
-    report.changes.push('Cache-only API public invocation verified');
+    requireExistingBrowserDelivery(await call(`${api}:getIamPolicy?options.requestedPolicyVersion=3`));
+    report.changes.push('Existing cache-only API invocation verified without permission changes');
   }
   report.success=true;
 } catch(e:any) {
   report.error=e.message;
-  if(action==='--activate') {
+  if(activationAttempted) {
     try{await stopTrialInfrastructure({project:plan.project,token});report.rollback='Scheduler paused and API private';}
     catch(error:any){report.rollbackError=error.message;}
   }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 // Deployment script is directly executable without a separate production build.
 // @ts-expect-error JavaScript operator utility
-import { verifyReleasePlan, uploadLocation, releasePatch, verifyLiveUpdate, verifyStoppedUpdate, verifySchedule } from '../scripts/private-trial-release.mjs';
+import { verifyReleasePlan, uploadLocation, releasePatch, verifyLiveUpdate, verifyStoppedUpdate, verifyPausedUpdate, verifySchedule, retainedReleaseHolds } from '../scripts/private-trial-release.mjs';
 import { createHash } from 'node:crypto';
 
 const now = Date.parse('2026-10-01T16:50:00Z');
@@ -18,6 +18,32 @@ const plan = () => ({ project: 'bazaarsignal-510305', imageDigest: receipt.image
     logBytes: { used: 500000, hold: 16 * 1024 ** 2, headroom: 16 * 1024 ** 2, limit: 50 * 1024 ** 3 },
   } });
 describe('private release admission', () => {
+  it('keeps all rollout reservations, including failures, and independently rejects exhausted compute', () => {
+    const receipts = Array.from({ length: 13 }, (_, i) => ({ apply: true, at: new Date(now).toISOString(),
+      ...(i === 12 ? { error: 'unknown outcome' } : { result: 'complete' }), reservations: { cpuSeconds: { hold: 10000 } } }));
+    const held = retainedReleaseHolds(receipts, '2026-10-01T07:00:00Z', '2026-11-01T07:00:00Z');
+    expect(held.cpuSeconds).toBe(130000);
+    const p = plan(); p.meters.cpuSeconds.used = held.cpuSeconds;
+    expect(() => verifyReleasePlan(p, receipt, now)).toThrow('cpuSeconds');
+    expect(retainedReleaseHolds(receipts, '2026-11-01T07:00:00Z', '2026-12-01T08:00:00Z')).toEqual({});
+    expect(() => retainedReleaseHolds([{ ...receipts[0], at: 'unknown' }], '2026-10-01T07:00:00Z', '2026-11-01T07:00:00Z')).toThrow();
+  });
+  it('permits code-only deployment with an unchanged operator stop, never activation or unknown rollout headroom', () => {
+    const p: any = { ...plan(), operatingMode: 'free-tier', updateExistingLive: true,
+      pausedCodeOnly: true, keepCollectionPaused: true, releaseId: 'paused-optimization', services: ['marketapi', 'refreshmarket'] };
+    const ledger = { id: p.id, startsAt: Date.parse(p.startsAt), expiresAt: Date.parse(p.expiresAt),
+      stoppedAt: now, reason: 'Owner requested all services off', monthlyReserved: { cpuSeconds: 8340 } };
+    p.stoppedLedgerSha256 = createHash('sha256').update(JSON.stringify(ledger)).digest('hex');
+    const service = { template: { containers: [{ env: [
+      { name: 'MARKET_OPERATING_MODE', value: 'free-tier' }, { name: 'MARKET_LIVE_ID', value: p.id }, { name: 'MARKET_LIVE_END', value: p.expiresAt },
+    ] }] } };
+    expect(() => verifyPausedUpdate(p, ledger, service)).not.toThrow();
+    for (const patch of [{ stoppedAt: undefined }, { monthlyReserved: {} }, { reason: 'changed' }])
+      expect(() => verifyPausedUpdate(p, { ...ledger, ...patch }, service)).toThrow();
+    expect(() => verifyPausedUpdate({ ...p, keepCollectionPaused: false }, ledger, service)).toThrow();
+    expect(() => verifyReleasePlan(p, receipt, now)).toThrow('complete deployment scope');
+    expect(() => verifyReleasePlan({ ...p, deploymentScopeComplete: true, existingImageOverageDisclosed: true }, receipt, now)).toThrow('complete deployment scope');
+  });
   it('accepts five-minute configuration only with an explicit paused release', () => {
     const p = { updateExistingLive: true, keepCollectionPaused: true, pausedSchedule: '*/5 * * * *' };
     expect(() => verifySchedule(p, { state: 'PAUSED', schedule: '*/5 * * * *' })).not.toThrow();

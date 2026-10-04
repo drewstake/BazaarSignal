@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { User } from "firebase/auth";
 import { auth } from "../data";
+import { readPublishedUsage } from "./usage-report";
 import { localWorkspace } from "../local-workspace";
 import type {
   UsageDashboard as Dashboard,
@@ -437,31 +438,35 @@ export default function UsageDashboard({ user }: { user: User | null }) {
     setError("");
     try {
       const token = await user.getIdToken();
-      const base = localWorkspace
-        ? ""
-        : (import.meta.env.VITE_MARKET_API_URL ?? "").replace(/\/$/, "");
-      const r = await fetch(`${base}/api/owner/usage`, {
-        headers: { Authorization: `Bearer ${token}` },
-        credentials: "omit",
-        cache: "no-store",
-        referrerPolicy: "no-referrer",
-        signal: signal
-          ? AbortSignal.any([signal, AbortSignal.timeout(20000)])
-          : AbortSignal.timeout(20000),
-      });
-      if (!r.ok)
-        throw new Error(
-          r.status === 401
-            ? "Your session expired. Sign in again."
-            : r.status === 403
-              ? "Access denied."
-              : r.status === 429
-                ? "Please wait before refreshing."
-                : localWorkspace
-                  ? "Cloud measurements are unavailable. Check the local reporting credentials and try after the 30-minute measurement interval. Collection remains paused."
-                  : "Usage measurements are unavailable. The reporting service may be paused or temporarily unreachable.",
-        );
-      const result = (await r.json()) as Dashboard;
+      const requestSignal = signal
+        ? AbortSignal.any([signal, AbortSignal.timeout(20000)])
+        : AbortSignal.timeout(20000);
+      let result: Dashboard;
+      if (!localWorkspace) {
+        result = await readPublishedUsage({
+          token,
+          signal: requestSignal,
+        });
+      } else {
+        const r = await fetch("/api/owner/usage", {
+          headers: { Authorization: `Bearer ${token}` },
+          credentials: "omit",
+          cache: "no-store",
+          referrerPolicy: "no-referrer",
+          signal: requestSignal,
+        });
+        if (!r.ok)
+          throw new Error(
+            r.status === 401
+              ? "Your session expired. Sign in again."
+              : r.status === 403
+                ? "Access denied."
+                : r.status === 429
+                  ? "Please wait before refreshing."
+                  : "Cloud measurements are unavailable. Check the local reporting credentials and try after the 30-minute measurement interval. Collection remains paused.",
+          );
+        result = (await r.json()) as Dashboard;
+      }
       if (!signal?.aborted && auth?.currentUser === user)
         setData(verifiedUsageSnapshot(result));
     } catch (e) {
@@ -563,12 +568,36 @@ export default function UsageDashboard({ user }: { user: User | null }) {
           {error}
         </p>
       )}
-      {data?.localReport && (
+      {data?.publishedReport ? (
         <details className="notice usage-local-report">
-          <summary>Read-only cloud report · Refresh checks for new measurements</summary>
-          <p>{data.localReport}</p>
-          <p>Report checked: {date(data.generatedAt)}. Next cloud refresh allowed: {date(data.localNextAttemptAt ?? data.nextMeasurementAt)}.</p>
+          <summary>
+            Published usage report · Measured {date(data.generatedAt)}
+          </summary>
+          <p>
+            Refresh checks for a newer published report. It does not start cloud
+            measurements or price collection. Reports are published separately
+            while collection is paused.
+          </p>
+          <p>
+            Report measured: {date(data.generatedAt)}. Freshness expires:{" "}
+            {date(data.nextMeasurementAt)}. Individual resources retain their
+            own measurement times.
+          </p>
         </details>
+      ) : (
+        data?.localReport && (
+          <details className="notice usage-local-report">
+            <summary>
+              Read-only cloud report · Refresh checks for new measurements
+            </summary>
+            <p>{data.localReport}</p>
+            <p>
+              Report checked: {date(data.generatedAt)}. Next cloud refresh
+              allowed: {date(data.localNextAttemptAt ?? data.nextMeasurementAt)}
+              .
+            </p>
+          </details>
+        )
       )}
       {!data && busy && (
         <p role="status">
@@ -591,7 +620,9 @@ export default function UsageDashboard({ user }: { user: User | null }) {
               </strong>
               <p>
                 {stale
-                  ? "Refresh the cached report before relying on its statuses."
+                  ? data.publishedReport
+                    ? "A newer measurement report is needed. Refresh checks whether one has been published."
+                    : "Refresh the cached report before relying on its statuses."
                   : `${data.rows.filter((r) => r.state === "measured").length} of ${data.rows.length} resources measured. Statuses apply to the reported scope.`}
               </p>
             </article>
@@ -636,7 +667,10 @@ export default function UsageDashboard({ user }: { user: User | null }) {
                     <b>{date(data.collection.hourlyTrialEndsAt)}</b>.
                   </p>
                 ) : null}
-                <p>{localWorkspace ? "Prepared rule: " : ""}{APP_BUDGET_PAUSE_DESCRIPTION}</p>
+                <p>
+                  {localWorkspace ? "Prepared rule: " : ""}
+                  {APP_BUDGET_PAUSE_DESCRIPTION}
+                </p>
                 <p>
                   {stale ? "Reported fixed stop" : "Fixed stop"}:{" "}
                   <b>{date(data.collection.reviewAt)}</b>

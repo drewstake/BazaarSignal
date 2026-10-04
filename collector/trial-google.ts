@@ -3,6 +3,7 @@ import { gzipSync, gunzipSync } from "node:zlib";
 import { GoogleCacheStore, type SnapshotBlobs } from "./google-cache-store";
 import type { Counters, TrialSession } from "./trial";
 import { TrialStopped } from "./trial";
+import { inlineSnapshotLimits, INLINE_DOCUMENT_OVERHEAD, INLINE_SNAPSHOT_PREFIX } from './inline-snapshot';
 
 export interface GoogleTransport {
   project: string;
@@ -13,6 +14,7 @@ export interface GoogleTransport {
   storageOrigin?: string;
   collection?: string;
   onAttempt?: (costs: Counters) => void;
+  inlineSmallSnapshots?: boolean;
 }
 /** Bound reads before JSON/gzip decoding; no SDK retry can issue an uncounted RPC. */
 async function bytes(response: Response, limit: number) {
@@ -134,7 +136,9 @@ export function trialGoogleStore(
       "POST",
       { documents: refs.map((r) => r.name) },
       { firestoreReads: refs.length },
-      refs.length * 128 * 1024,
+      // Readers support both formats, including rollback/read-only releases.
+      refs.reduce((sum, r) => sum + Math.max(128 * 1024,
+        (inlineSnapshotLimits[r.name.split('/').at(-1)!] ?? 0) + INLINE_DOCUMENT_OVERHEAD), 0),
     );
     if (!Array.isArray(results)) throw new Error("Missing Firestore read time");
     return refs.map((ref) => {
@@ -172,14 +176,23 @@ export function trialGoogleStore(
         create: (r: any, d: any) => update(r, d, { exists: false }),
         update: (r: any, d: any, options: any) =>
           update(r, d, { updateTime: options.lastUpdateTime }),
-        commit: () =>
-          request(
+        commit: () => {
+          // Charge retained bytes before the attempted publication, including
+          // CAS failures/ambiguous commits. No refunds for overwritten snapshots.
+          const inlineBytes = writes.reduce((sum, w) => {
+            const data = w.update.fields.value?.stringValue;
+            return sum + (typeof data === 'string' && data.startsWith(INLINE_SNAPSHOT_PREFIX)
+              ? Buffer.byteLength(data) + INLINE_DOCUMENT_OVERHEAD : 0);
+          }, 0);
+          if (inlineBytes) session?.take({ firestoreStorageBytes: inlineBytes }, false);
+          return request(
             `${root}:commit`,
             "POST",
             { writes },
             { firestoreWrites: writes.length },
             16 * 1024,
-          ),
+          );
+        },
       };
     },
   } as unknown as Firestore;
@@ -270,5 +283,5 @@ export function trialGoogleStore(
       return result;
     },
   };
-  return new GoogleCacheStore(db, blobs, config.collection);
+  return new GoogleCacheStore(db, blobs, config.collection, 0, config.inlineSmallSnapshots);
 }

@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
@@ -15,10 +15,32 @@ const read = path => JSON.parse(readFileSync(path, 'utf8'));
 const isPublic = policy => (policy.bindings ?? []).some(b =>
   b.members?.some(m => m === 'allUsers' || m === 'allAuthenticatedUsers'));
 
+/** Successful and uncertain attempts both retain their holds. Measurements are
+ * separate evidence; a smaller repository or compute sample never refunds them. */
+export function retainedReleaseHolds(receipts, periodStart, periodEnd) {
+  const start = Date.parse(periodStart), end = Date.parse(periodEnd);
+  if (!Number.isFinite(start + end) || end <= start || end - start > 32 * 86400000)
+    throw new Error('Invalid deployment accounting period');
+  const held = {};
+  for (const receipt of receipts) {
+    if (!receipt.apply || !receipt.reservations) continue;
+    const at = Date.parse(receipt.at);
+    if (!Number.isFinite(at)) throw new Error('Prior rollout has unknown reservation time');
+    if (at < start || at >= end) continue;
+    for (const [key, meter] of Object.entries(receipt.reservations)) {
+      if (!Number.isFinite(meter.hold) || meter.hold < 0) throw new Error('Invalid retained rollout hold');
+      held[key] = (held[key] ?? 0) + meter.hold;
+    }
+  }
+  return held;
+}
+
 /** Bounded image release, optionally updating an already-active live period.
  * Cannot activate a period, invoke a handler, reset accounting, create a build/job,
  * or change billing/IAM. Existing-live updates must preserve identity and expiry. */
 export function verifyReleasePlan(plan, receipt, now = Date.now()) {
+  if (plan.pausedCodeOnly && (plan.existingImageOverageDisclosed || !plan.deploymentScopeComplete))
+    throw new Error('Paused code release requires complete deployment scope within every allowance');
   if (plan.project !== project || plan.imageDigest !== receipt.imageDigest ||
       !/^sha256:[a-f0-9]{64}$/.test(receipt.imageDigest) ||
       !receipt.applicationOnly || !receipt.localRuntimeSmokeVerified ||
@@ -104,6 +126,18 @@ export function verifyStoppedUpdate(plan, ledger, service) {
   verifyLiveUpdate(plan, active, service);
 }
 
+/** Deploy code to the exact inspected operator-paused period. Never recovers,
+ * restarts, resets, or authorizes collection; both invokers stay private. */
+export function verifyPausedUpdate(plan, ledger, service) {
+  if (plan.pausedCodeOnly !== true || plan.keepCollectionPaused !== true || plan.recoverStopped ||
+      plan.updateExistingLive !== true || !Number.isFinite(ledger?.stoppedAt) || !ledger.reason ||
+      plan.stoppedLedgerSha256 !== sha(JSON.stringify(ledger)) ||
+      JSON.stringify([...plan.services].sort()) !== JSON.stringify(['marketapi', 'refreshmarket']))
+    throw new Error('Paused code release must preserve the exact stopped ledger and both private services');
+  const active = { ...ledger }; delete active.stoppedAt; delete active.reason;
+  verifyLiveUpdate(plan, active, service);
+}
+
 export function releasePatch(service, name, plan) {
   if (!['marketapi', 'refreshmarket'].includes(name) || service.name !== `${root}/services/${name}` ||
       !service.etag || service.reconciling || service.invokerIamDisabled === true ||
@@ -147,7 +181,24 @@ async function main() {
   if(liveUpdate && (!/^[a-zA-Z0-9_-]{1,100}$/.test(plan.releaseId??'') || plan.operatingMode!=='free-tier'))
     throw new Error('Invalid existing-live update identity');
   const receipt = read(resolve(plan.imageDirectory, 'receipt.json'));
+  if (plan.pausedCodeOnly) {
+    const prior = readdirSync('.local').filter(name => /^private-release-.*-apply\.json$/.test(name))
+      .map(name => read(resolve('.local', name)));
+    const held = retainedReleaseHolds(prior, plan.deploymentPeriodStart, plan.deploymentPeriodEnd);
+    for (const [key, value] of Object.entries(held))
+      if (!Number.isFinite(plan.meters?.[key]?.used) || plan.meters[key].used < value)
+        throw new Error(`Deployment omits retained rollout reservations: ${key}`);
+  }
   verifyReleasePlan(plan, receipt);
+  if (plan.pausedCodeOnly) {
+    for (const [file, gates] of [
+      ['shared/companion/portfolio-policy.ts', ['PORTFOLIO_COLLECTION_ENABLED', 'PORTFOLIO_EVALUATION_ENABLED']],
+      ['shared/market-features.ts', ['AUCTION_COLLECTION_ENABLED']],
+      ['shared/automation-policy.ts', ['BACKGROUND_JOBS_ENABLED', 'EMAIL_DELIVERY_ENABLED']],
+    ]) for (const gate of gates)
+      if (!readFileSync(file, 'utf8').includes(`export const ${gate} = false;`))
+        throw new Error(`Paused code release requires ${gate}=false`);
+  }
   const blob = digest => {
     if (!/^sha256:[a-f0-9]{64}$/.test(digest)) throw new Error('Invalid blob digest');
     const bytes = readFileSync(resolve(receipt.layout, 'blobs/sha256', digest.slice(7)));
@@ -195,10 +246,11 @@ async function main() {
       const ledger=JSON.parse(doc.fields.value.stringValue);
       for(const name of ['marketapi','refreshmarket']) {
         const service=await json(`https://run.googleapis.com/v2/${root}/services/${name}`);
-        if(plan.recoverStopped)verifyStoppedUpdate(plan,ledger,service);
+        if(plan.pausedCodeOnly)verifyPausedUpdate(plan,ledger,service);
+        else if(plan.recoverStopped)verifyStoppedUpdate(plan,ledger,service);
         else verifyLiveUpdate(plan,ledger,service);
         const policy=await json(`https://run.googleapis.com/v1/${root}/services/${name}:getIamPolicy?options.requestedPolicyVersion=3`);
-        if(isPublic(policy)!==(!plan.recoverStopped && name==='marketapi'))throw new Error('Live invocation permissions changed');
+        if(isPublic(policy)!==(!plan.recoverStopped && !plan.pausedCodeOnly && name==='marketapi'))throw new Error('Live invocation permissions changed');
       }
       return;
     }
@@ -262,7 +314,7 @@ async function main() {
       save();
     }
     await contained();
-    report.result = liveUpdate ? 'existing-live-code-updated-counters-preserved' : 'privately-deployed-collector-paused';
+    report.result = plan.pausedCodeOnly ? 'paused-code-updated-stopped-ledger-preserved' : liveUpdate ? 'existing-live-code-updated-counters-preserved' : 'privately-deployed-collector-paused';
   } catch (error) { report.error = error.message; throw error; }
   finally { report.finishedAt = new Date().toISOString(); save(); console.log(JSON.stringify({ reportPath, ...report }, null, 2)); }
 }

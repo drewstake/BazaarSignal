@@ -9,6 +9,7 @@ import { PORTFOLIO_EVALUATION_ENABLED } from '../shared/companion/portfolio-poli
 import { BACKGROUND_JOBS_ENABLED, EMAIL_DELIVERY_ENABLED } from '../shared/automation-policy';
 import { MARKET_HOUR, MARKET_REFRESH_MS, marketAlertWindow } from '../shared/market-schedule';
 import { portfolioNotificationRequest, runPortfolioNotifications } from './portfolio-backend';
+import { readOwnerUsageReport } from './usage-report';
 declare const PropertiesService:any, ScriptApp:any, Session:any, UrlFetchApp:any,
   Utilities:any, LockService:any, ContentService:any, CacheService:any, MailApp:any;
 const PROJECT='bazaarsignal', SENDER='bazaarsignal@gmail.com';
@@ -109,7 +110,7 @@ export function doPost(e:any) {
     const request=JSON.parse(e.postData.contents),p=settings();
     const origins=[p.APP_URL,...(p.ALLOWED_ORIGINS || '').split(',').map((x:string)=>x.trim()).filter(Boolean)];
     if(request.version!==1 || !origins.includes(request.origin))throw new Error('Website origin is not configured.');
-    if(!['account','create','update','disable','portfolio-notification','legacy-pause'].includes(request.action))throw new Error('Unsupported operation.');
+    if(!['account','create','update','disable','portfolio-notification','legacy-pause','usage-report'].includes(request.action))throw new Error('Unsupported operation.');
     if(request.action==='disable') {
       if(request.confirm!==true || !/^[a-f0-9]{64}$/.test(request.token || ''))throw new Error('Confirm using the button in your alert link.');
       return output({ok:true,data:locked(()=>{
@@ -121,6 +122,7 @@ export function doPost(e:any) {
       })});
     }
     const identity=verifyIdentity(request.idToken,p.FIREBASE_API_KEY);
+    if(request.action==='usage-report')return output({ok:true,data:readOwnerUsageReport(identity)});
     if(request.action==='portfolio-notification')return output({ok:true,data:locked(()=>portfolioNotificationRequest(identity,request))});
     if(request.action==='legacy-pause')return output({ok:true,data:locked(()=>{const record=loadUser(identity.uid),alert=record.state.alerts.find(a=>a.workflow.id===request.id&&!a.test);if(!alert)throw new Error('Invalid alert.');disableAlert(record.state,alert.tokenHash,Date.now());persistUser(record);return {disabled:true};})});
     if(request.action==='account')return output({ok:true,data:accountData(loadUser(identity.uid))});
@@ -142,7 +144,7 @@ export function doPost(e:any) {
       return {id:input.requestId,emailStatus:state.mail.find(m=>m.alertId===input.requestId && m.kind==='confirmation')?.status??'cancelled'};
     })});  } catch(e) {
     const message=e instanceof Error?e.message:'';
-    const safe=/^(Sign in|Use a verified|Use an upward|Notification |Backend setup|Deploy and authorize|Website origin|Unsupported operation|Invalid |This alert |Target price |Confirm using|Another operation|Request ID|You can have|You can create|Free alert capacity|The 100|Wait for|Item unavailable|Market data|No valid market|Alert storage|Stored alerts)/.test(message);
+    const safe=/^(Sign in|Use a verified|Use an upward|Usage report:|Notification |Backend setup|Deploy and authorize|Website origin|Unsupported operation|Invalid |This alert |Target price |Confirm using|Another operation|Request ID|You can have|You can create|Free alert capacity|The 100|Wait for|Item unavailable|Market data|No valid market|Alert storage|Stored alerts)/.test(message);
     return output({ok:false,error:safe?message:'Service temporarily unavailable. Retry shortly.'});
   }
 }

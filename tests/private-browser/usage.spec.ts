@@ -25,7 +25,7 @@ async function expandResource(resource: Locator) {
     await toggle.click();
 }
 
-test("local report refresh replaces stale status while keeping unknown spending and making no market calls", async ({ page }) => {
+test("published report refresh replaces stale status while keeping unknown spending and making no market calls", async ({ page }) => {
   const snapshot = await measureDashboard({
     store: {read: async () => null, commit: async () => { throw new Error("No writes"); }, close: async () => {}},
     token: async () => "offline", network: async () => new Response("{}"),
@@ -38,16 +38,16 @@ test("local report refresh replaces stale status while keeping unknown spending 
   let calls = 0;
   const marketCalls: string[] = [];
   page.on("request", request => {
-    if (/\/api\/companion\//.test(request.url()) || request.url().includes("hypixel.net")) marketCalls.push(request.url());
+    if (/\/api\/(companion\/|owner\/usage)/.test(request.url()) || request.url().includes("hypixel.net")) marketCalls.push(request.url());
   });
-  await page.route("**/api/owner/usage", route => { calls++; return route.fulfill({json: snapshot}); });
+  await page.route("**/macros/s/portfolio-emulator/exec", route => { calls++; return route.fulfill({json: {ok:true,data:snapshot}}); });
   await page.goto("/#view=usage");
   await signIn(page, "drewstake3@gmail.com");
   await expect(page.getByText("Report out of date", {exact: true})).toBeVisible();
   await expect(page.getByText("Current state unknown", {exact: true})).toBeVisible();
   await page.locator(".usage-local-report > summary").click();
-  await expect(page.locator(".usage-local-report")).toContainText("30 minutes");
-  await expect(page.locator(".usage-local-report")).toContainText("Report checked:");
+  await expect(page.locator(".usage-local-report")).toContainText("does not start cloud measurements");
+  await expect(page.locator(".usage-local-report")).toContainText("Report measured:");
   await page.clock.install();
   await page.clock.fastForward(61000);
   snapshot.generatedAt = Date.now() + 61000;
@@ -63,7 +63,7 @@ test("local report refresh replaces stale status while keeping unknown spending 
   await expect(page.locator(".usage-summary article").nth(1)).toContainText("headroom checks can slow or pause them earlier");
   await expect(page.getByText("Updates slow at 65% reserved.", {exact: true})).toHaveCount(0);
   await expect(page.locator(".usage-summary article").nth(2)).toContainText("Unknown");
-  await expect(page.locator(".usage-local-report > summary")).toContainText("Refresh checks for new measurements");
+  await expect(page.locator(".usage-local-report > summary")).toContainText("Published usage report");
   expect(calls).toBe(2);
   expect(marketCalls).toEqual([]);
 });
@@ -84,13 +84,13 @@ test("owner tab, private response lifecycle, cached refresh UI, mobile layout an
   });
   let calls = 0;
   const marketCalls: string[] = [];
-  await page.route("**/api/owner/usage", async (route) => {
+  await page.route("**/macros/s/portfolio-emulator/exec", async (route) => {
     calls++;
-    expect(route.request().headers().authorization).toMatch(/^Bearer /);
-    await route.fulfill({ json: snapshot });
+    expect(route.request().postDataJSON()).toMatchObject({action:'usage-report',idToken:expect.any(String)});
+    await route.fulfill({ json: {ok:true,data:snapshot} });
   });
   page.on("request", (r) => {
-    if (/\/api\/companion\//.test(r.url()) || r.url().includes("hypixel.net"))
+    if (/\/api\/(companion\/|owner\/usage)/.test(r.url()) || r.url().includes("hypixel.net"))
       marketCalls.push(r.url());
   });
   await page.goto("/#view=usage");
@@ -174,9 +174,9 @@ test("corrected container storage is within allowance and an old cached source b
       ),
   });
   let calls = 0;
-  await page.route("**/api/owner/usage", (route) => {
+  await page.route("**/macros/s/portfolio-emulator/exec", (route) => {
     calls++;
-    return route.fulfill({ json: snapshot });
+    return route.fulfill({ json: {ok:true,data:snapshot} });
   });
   await page.goto("/#view=usage");
   await signIn(page, "drewstake3@gmail.com");
@@ -263,9 +263,9 @@ test("attention first, current and projected usage, capacity estimate, expanded 
     measuredAt: Date.now(),
   });
   let calls = 0;
-  await page.route("**/api/owner/usage", (route) => {
+  await page.route("**/macros/s/portfolio-emulator/exec", (route) => {
     calls++;
-    return route.fulfill({ json: snapshot });
+    return route.fulfill({ json: {ok:true,data:snapshot} });
   });
   await page.goto("/#view=usage");
   await signIn(page, "drewstake3@gmail.com");

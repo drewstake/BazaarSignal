@@ -14,6 +14,7 @@ import { PORTFOLIO_COLLECTION_ENABLED } from '../../shared/companion/portfolio-p
 import { MARKET_COLLECTION_SCHEDULE } from '../../shared/market-schedule';
 import type { Holding } from '../../shared/companion/portfolio';
 import type { TrialSession } from '../../collector/trial';
+import { pausedMarketResponse } from '../../collector/paused-response';
 
 // Source implementation only: the deployment guard still requires verified
 // preflight. Missing release deadlines or ledger always stop optional work.
@@ -41,7 +42,8 @@ const portfolioDemand=(session:TrialSession)=>readPortfolioDemand({
 const runtime = live ? createLiveRuntime({
   id: process.env.MARKET_LIVE_ID ?? "",
   expiresAt: Date.parse(process.env.MARKET_LIVE_END ?? ""),
-  store: session => trialGoogleStore({ project, bucket: `${project}-market-cache`, token }, session),
+  store: session => trialGoogleStore({ project, bucket: `${project}-market-cache`, token, inlineSmallSnapshots: true }, session),
+  collectionProfile: 'bazaar-inline',
   shutdown: () => stopTrialInfrastructure({ project, token }),
   report: measurement => console.info(JSON.stringify(measurement)),
   portfolioDemand,
@@ -79,6 +81,10 @@ export const marketApi = onRequest(
       if(req.headers.origin==='https://bazaarsignal.web.app')res.setHeader('Access-Control-Allow-Origin',req.headers.origin);
       res.status(410).json({error:'Discovery and seller lookups have retired. Reload BazaarSignal to open Portfolios.'});return;
     }
+    // The paused release cannot mutate its stopped ledger or invoke shutdown
+    // controls just because an old client calls it. Owner reports use the
+    // existing authenticated published-report route in Apps Script.
+    if (pausedMarketResponse(PORTFOLIO_COLLECTION_ENABLED, res)) return;
     // Route before market admission: dashboard reads can never collect, reserve market work or pause it.
     if (new URL(req.url, 'http://localhost').pathname.startsWith('/api/owner/')) {
       if (new URL(req.url, 'http://localhost').pathname === '/api/owner/usage') { await ownerUsage(req, res); return; }

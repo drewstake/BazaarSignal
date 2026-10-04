@@ -23,6 +23,7 @@ export function verifiedUsageSnapshot(snapshot: UsageDashboard): UsageDashboard 
   })};
 }
 export interface UsageDashboard {
+  publishedReport?: boolean;
   localReport?: string;
   localNextAttemptAt?: number;
   generatedAt: number; nextMeasurementAt: number; stale?: boolean;

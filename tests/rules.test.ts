@@ -23,6 +23,7 @@ beforeAll(async () => {
     await setDoc(doc(db, "owners/owner/workflows/w1"), {
       itemId: "SUMMONING_EYE",
     });
+    await setDoc(doc(db, "owners/owner/reports/usage"), {schema:1,json:'private usage report'});
     await setDoc(doc(db, "market/status"), { lastUpdated: 1 });
     await setDoc(doc(db, "owners/other/workflows/private"), { itemId: "X" });
     await setDoc(doc(db, "users/owner/status/main"), { json: "private owner projection" });
@@ -88,6 +89,7 @@ describe("Firestore owner boundary", () => {
       .firestore();
     await assertSucceeds(getDoc(doc(db, "market/status")));
     await assertSucceeds(getDocs(collection(db, "owners/owner/workflows")));
+    await assertSucceeds(getDoc(doc(db, "owners/owner/reports/usage")));
   });
   it("denies other users, anonymous and unverified users", async () => {
     for (const db of [
@@ -97,6 +99,7 @@ describe("Firestore owner boundary", () => {
     ]) {
       await assertFails(getDoc(doc(db, "market/status")));
       await assertFails(getDocs(collection(db, "owners/owner/workflows")));
+      await assertFails(getDoc(doc(db, "owners/owner/reports/usage")));
     }
   });
   it("denies all client writes including owner writes and access configuration", async () => {
@@ -112,6 +115,7 @@ describe("Firestore owner boundary", () => {
       "system/pollLease",
       "backend/state",
       "owners/owner/status/main",
+      "owners/owner/reports/usage",
     ])
       await assertFails(setDoc(doc(db, path), { ownerUid: "owner" }));
     await assertFails(getDoc(doc(db, "owners/other/workflows/private")));

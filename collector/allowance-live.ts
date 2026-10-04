@@ -12,6 +12,19 @@ import { MARKET_HOUR, MARKET_REFRESH_MS } from '../shared/market-schedule';
 import { chooseCadence, reserveCapacity, type CapacityPlan, type CadenceDecision } from './capacity-plan';
 import { changeVisibleDemand, visibleDemand, type VisibleDemand } from './visible-demand';
 import { APP_BUDGET_PAUSE_FRACTION, APP_BUDGET_PAUSE_PERCENT, APP_BUDGET_PAUSE_DESCRIPTION } from '../shared/app-budget-policy';
+import { INLINE_STORAGE_RESERVATION } from './inline-snapshot';
+
+export type CollectionProfile = 'legacy' | 'bazaar-inline';
+/** Three single-page jobs, each with at most three physical attempts. Auction
+ * scans cannot use this envelope. CPU, CAS, daily limits and margins stay intact. */
+export function collectionEnvelope(profile: CollectionProfile): Counters {
+  return profile === 'bazaar-inline' ? { ...invocationEnvelope('collector'),
+    storageClassA: 0, snapshotUploads: 0, storageByteMonths: 0,
+    storageClassB: 3, storageEgressBytes: 24 * 1024 ** 2,
+    hypixelRequests: 9,
+    firestoreStorageBytes: INLINE_STORAGE_RESERVATION,
+  } : invocationEnvelope('collector');
+}
 
 export const LIVE_HOUR = MARKET_HOUR;
 const collectionInterval = (now: number) => hourlyTrialActive(now) ? LIVE_HOUR : MARKET_REFRESH_MS;
@@ -106,7 +119,8 @@ function reservationBudgetDeferral(s:LiveAllowanceState,costs:Counters,now:numbe
   return null;
 }
 export class LiveLedger {
-  constructor(private store: CacheStore, private clock = Date.now, private requireCapacity = true) {}
+  constructor(private store: CacheStore, private clock = Date.now, private requireCapacity = true,
+    private profile: CollectionProfile = 'legacy') {}
   private async change<T>(fn: (state: LiveAllowanceState, now: number) => T) {
     for (let i = 0; i < 8; i++) {
       const raw = await this.store.read('live-allowance');
@@ -127,7 +141,7 @@ export class LiveLedger {
       if(budgetPause)throw budgetPause;
       let decision: CadenceDecision | undefined;
       if(this.requireCapacity) {
-        decision=chooseCadence(s.capacity,{...s,dailyEnd:nextPacificReset(now)},liveInvocationCharge('collector'),liveInvocationCharge('browser'),now);
+        decision=chooseCadence(s.capacity,{...s,dailyEnd:nextPacificReset(now)},liveInvocationCharge('collector',this.profile),liveInvocationCharge('browser'),now);
         if(decision.mode==='paused')throw new TrialStopped(decision.reasons.join('; '));
         // No full private-account scan or upstream work for idle portfolios.
         if(kind==='collector'&&!demandJobs(visibleDemand(s.visible,now),now).length)return null;
@@ -138,7 +152,7 @@ export class LiveLedger {
       // Upgrades retain every reservation and cannot replay an ambiguous old run.
       if (kind === 'collector' && (s.lastCollectorAt === undefined
         ? (s.lastCollectorHour ?? -1) >= hour : s.lastCollectorAt >= slot*interval)) return null;
-      const costs: Counters = { ...invocationEnvelope(kind), cpuSeconds: kind === 'collector' ? 100 : 20,
+      const costs: Counters = { ...(kind==='collector'?collectionEnvelope(this.profile):invocationEnvelope(kind)), cpuSeconds: kind === 'collector' ? 100 : 20,
         memoryGiBSeconds: kind === 'collector' ? 100 : 20,
         egressBytes: kind === 'collector' ? 64*1024 : 16*1024,
         firestoreReads: kind === 'collector' ? 600 : 64 };
@@ -249,10 +263,11 @@ export interface LiveConfig {
   /** Only historical offline regression fixtures may select the old profile. */
   requireCapacity?: boolean;
   verifyPresence?: (idToken: string) => Promise<{uid:string}>;
+  collectionProfile?: CollectionProfile;
 }
 /** The planner uses the SAME conservative bounds as admission, never averages. */
-export function liveInvocationCharge(kind:'collector'|'browser'): Counters {
-  return kind==='collector'?{...invocationEnvelope(kind),cpuSeconds:100,memoryGiBSeconds:100,egressBytes:64*1024,firestoreReads:700,firestoreWrites:296}:
+export function liveInvocationCharge(kind:'collector'|'browser',profile:CollectionProfile='legacy'): Counters {
+  return kind==='collector'?{...collectionEnvelope(profile),cpuSeconds:100,memoryGiBSeconds:100,egressBytes:64*1024,firestoreReads:700,firestoreWrites:296}:
     {...invocationEnvelope(kind),cpuSeconds:20,memoryGiBSeconds:20,egressBytes:16*1024,firestoreReads:108,firestoreWrites:40,
       sellerRequests:0,storageClassB:1,storageEgressBytes:8*1024**2};
 }
@@ -264,7 +279,7 @@ export function createLiveRuntime(config: LiveConfig) {
   const deferred=new Map<'collector'|'browser',LiveBudgetDeferred>();
   async function run(kind: 'collector' | 'browser', id: string,
     work: (session: LiveSession, collector: MarketCollector, store: ReturnType<LiveConfig['store']>) => Promise<void>,sellerLookup=true) {
-    const raw = config.store(), ledger = new LiveLedger(raw, now, config.requireCapacity??true);
+    const raw = config.store(), ledger = new LiveLedger(raw, now, config.requireCapacity??true,config.collectionProfile);
     let session: LiveSession | null = null;
     let phase: 'admission' | 'work' | 'accounting' = 'admission';
     try {
@@ -336,6 +351,8 @@ export function createLiveRuntime(config: LiveConfig) {
   return {
     collect: async (event: string) => { try { await run('collector',event,async(session,collector,store)=>{
       const jobs=session.demand?demandJobs(session.demand,now()):config.portfolioDemand?demandJobs(await config.portfolioDemand(session),now()):undefined;
+      if(config.collectionProfile==='bazaar-inline' && (!jobs || jobs.some(job=>!['catalog','election','bazaar'].includes(job))))
+        throw new TrialStopped('Bazaar inline reservation cannot admit an auction scan or unbounded job set');
       if(!jobs||jobs.length)await collector.tick(jobs);
       if(store.cleanup) {
         const previous=await store.read('cleanup');

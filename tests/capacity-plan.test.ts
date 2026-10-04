@@ -6,6 +6,7 @@ import { SqliteCache } from '../collector/cache-store';
 import { visibleDemand,changeVisibleDemand } from '../collector/visible-demand';
 import { MarketCollector } from '../collector/engine';
 import { capacityFixture } from './support/capacity-fixture';
+import { INLINE_STORAGE_RESERVATION } from '../collector/inline-snapshot';
 
 const now=Date.parse('2026-10-04T12:00:00Z');
 const stores:SqliteCache[]=[];
@@ -93,6 +94,34 @@ it('default runtime fails closed on missing evidence and never scans, sends upst
   const network=vi.fn(),scan=vi.fn(),shutdown=vi.fn();
   const runtime=createLiveRuntime({id:s.id,expiresAt:s.expiresAt,store:()=>store,now:()=>now,network,shutdown,portfolioDemand:scan});
   await expect(runtime.collect('missing')).rejects.toThrow('evidence');expect(network).not.toHaveBeenCalled();expect(scan).not.toHaveBeenCalled();expect(shutdown).toHaveBeenCalledOnce();
+});
+it('inline profile uses its own atomic holds, retains existing usage, and refuses unreserved uploads', async () => {
+  const { s, store } = await setup();
+  s.monthlyReserved.storageClassA = 168;
+  await store.commit('live-allowance', await store.read('live-allowance'), JSON.stringify(s));
+  const runs = await Promise.all(Array.from({ length: 40 }, (_, i) =>
+    new LiveLedger(store, () => now, true, 'bazaar-inline').admit('collector', String(i))));
+  expect(runs.filter(Boolean)).toHaveLength(1);
+  const saved = JSON.parse((await store.read('live-allowance'))!);
+  expect(saved.monthlyReserved.storageClassA).toBe(168);
+  expect(saved.monthlyReserved.hypixelRequests).toBe(9);
+  expect(saved.capacity.meters.firestoreStorageBytes.reserved).toBe(INLINE_STORAGE_RESERVATION);
+  expect(saved.dailyReserved.firestoreReads).toBe(700);
+  expect(() => runs.find(Boolean)!.take({ storageClassA: 1 })).toThrow('storageClassA');
+  expect(await store.read('live-allowance')).toBe(JSON.stringify(saved));
+});
+it.each([28, 29, 30, 31])('models the inline profile for a complete %i-day period without inventing faster capacity', days => {
+  const s = capacityFixture(now, days);
+  s.monthlyReserved = { collectorInvocations: 39, browserRequests: 222, cpuSeconds: 8340, storageClassA: 168 };
+  const before = JSON.stringify(s);
+  const d = chooseCadence(s.capacity, { ...s, dailyEnd: nextPacificReset(now) },
+    liveInvocationCharge('collector', 'bazaar-inline'), liveInvocationCharge('browser'), now);
+  expect(d.mode).toBe('slow');
+  expect(d.bazaarMs).toBeGreaterThan(90_000);
+  expect(d.auctionMs).toBe(0);
+  for (const p of d.projections) expect(p.measured + p.reserved + p.fixed + p.work, p.meter).toBeLessThanOrEqual(p.ceiling);
+  expect(d.projections.find(p => p.meter === 'storageClassA')?.work).toBe(0);
+  expect(JSON.stringify(s)).toBe(before);
 });
 it('strict runtime timeouts retain both reservations; retry/restart cannot repeat collection',async()=>{
   const {store,s}=await setup(),shutdown=vi.fn();let clock=now;

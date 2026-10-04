@@ -58,6 +58,23 @@ function seedLegacy(uid=ADMIN_UID,recipient=email) {
   docs.set(`alertLinks/${hash}`,{fields:{uid:{stringValue:uid},alertId:{stringValue:input.requestId}}});
 }
 describe('portfolio-release HTTP boundaries and legacy preservation',()=>{
+  it('serves usage only to the verified reporting owner, independent of the legacy storage owner ID and market pause',()=>{
+    const report={generatedAt:1000,nextMeasurementAt:1801000,rows:[],spending:{state:'unavailable',total:null},collection:{state:'Paused'}};
+    docs.set('config/access',{fields:{ownerUid:{stringValue:ADMIN_UID}}});
+    put(`owners/${ADMIN_UID}/reports/usage`,report,{schema:{integerValue:'1'}});
+    const before=writes,fetcher=vi.spyOn((globalThis as any).UrlFetchApp,'fetch');
+    expect(doPost(req({action:'usage-report',email:'drewstake3@gmail.com'})).ok).toBe(false);
+    asUser('another-user','other@example.test');
+    expect(doPost(req({action:'usage-report',idToken:token(),email:'drewstake3@gmail.com',uid:ADMIN_UID})).error).toContain('owner access');
+    expect(fetcher.mock.calls.some(([url])=>String(url).includes('/reports/usage'))).toBe(false);
+    asUser('current-owner-id','drewstake3@gmail.com');
+    vi.stubGlobal('TextEncoder',undefined);
+    const result=doPost(req({action:'usage-report',idToken:token()}));
+    expect(result).toMatchObject({ok:true,data:{...report,publishedReport:true}});
+    expect(writes).toBe(before);expect(sends).toBe(0);
+    expect(fetcher.mock.calls.filter(([url])=>String(url).includes('/reports/usage'))).toHaveLength(1);
+    expect(fetcher.mock.calls.some(([url])=>String(url).includes('market.example.com'))).toBe(false);
+  });
   it('idle paused workers perform no repeated network reads, writes or sends',()=>{
     seedLegacy();const state=stored(`backendUsers/${ADMIN_UID}`);state.mail[0].status='sent';put(`backendUsers/${ADMIN_UID}`,state,{active:{booleanValue:true}});
     const fetcher=vi.spyOn((globalThis as any).UrlFetchApp,'fetch');

@@ -9,6 +9,8 @@ import { defaultPolicy } from "../collector/policy";
 import { randomUUID } from "node:crypto";
 import { trialGoogleStore } from '../collector/trial-google';
 import { gzipSync } from 'node:zlib';
+import { TrialSession } from '../collector/trial';
+import { INLINE_STORAGE_RESERVATION } from '../collector/inline-snapshot';
 
 const app = initializeApp({projectId:"demo-bazaar-watch"}, "google-cache-tests");
 const db = getFirestore(app);
@@ -24,6 +26,54 @@ beforeAll(()=>{if(!process.env.FIRESTORE_EMULATOR_HOST)throw new Error("Firestor
 beforeEach(async()=>{await db.recursiveDelete(db.collection(namespace));files.clear();vi.clearAllMocks();});
 afterAll(async()=>{await db.recursiveDelete(db.collection(namespace));await deleteApp(app);});
 const store = () => new GoogleCacheStore(db, blobs, namespace);
+it('inline publication is atomic under contention, readable after restart, and makes no blob uploads', async () => {
+  const inline = () => new GoogleCacheStore(db, blobs, namespace, 0, true);
+  const owner = inline(), coordinator = new Coordinator(owner, defaultPolicy);
+  await coordinator.acquire();
+  const old = (await owner.read('control'))!;
+  const results = await Promise.all(Array.from({ length: 20 }, (_, i) =>
+    inline().commit('control', old, JSON.stringify({ ...JSON.parse(old), revision: 100 + i }),
+      { key: 'bazaar', value: JSON.stringify({ upstreamAt: 123, winner: i }) })));
+  expect(results.filter(Boolean)).toHaveLength(1);
+  expect(await store().read('bazaar')).toBe(JSON.stringify({ upstreamAt: 123, winner: results.indexOf(true) }));
+  expect(blobs.put).not.toHaveBeenCalled();
+  const latest = (await owner.read('control'))!;
+  await expect(owner.commit('control', latest, latest, { key: 'bazaar', value: 'x'.repeat(13 * 1024 ** 2) }))
+    .rejects.toThrow('bound');
+  expect(await owner.read('control')).toBe(latest);
+  expect(blobs.put).not.toHaveBeenCalled();
+});
+
+it('counted inline REST writes reserve storage before I/O; a failed reservation retains the old snapshot', async () => {
+  const host = process.env.FIRESTORE_EMULATOR_HOST!;
+  if (!/^(127\.0\.0\.1|localhost):\d+$/.test(host)) throw new Error('Local emulator required');
+  const transport = vi.fn(async (input: any, init: any) => {
+    if (new URL(String(input)).origin !== `http://${host}`) throw new Error('No Storage or upstream calls permitted');
+    return fetch(input, init);
+  });
+  const base = { project: 'demo-bazaar-watch', bucket: 'fixture', collection: namespace,
+    firestoreOrigin: `http://${host}`, token: async () => 'owner', network: transport, inlineSmallSnapshots: true };
+  const session = new TrialSession({ finish: async () => {}, add: async () => {} } as any,
+    'test', 'inline', Date.now() + 60000, { firestoreReads: 100, firestoreWrites: 20,
+      firestoreEgressBytes: 16 * 1024 ** 2, firestoreStorageBytes: INLINE_STORAGE_RESERVATION }, Date.now, 0, 'normal');
+  const s = trialGoogleStore(base, session), c = new Coordinator(s, defaultPolicy);
+  await c.acquire();
+  const old = (await s.read('control'))!;
+  // A realistic response exceeds the former 128 KiB REST snapshot read bound.
+  const payload = JSON.stringify({ sourceAt: 123, data: Array.from({ length: 13000 }, (_, i) => `${i}-${randomUUID()}`) });
+  expect(await s.commit('control', old, old, { key: 'bazaar', value: payload })).toBe(true);
+  expect(await trialGoogleStore(base).read('bazaar')).toBe(payload);
+  const insufficient = new TrialSession({ finish: async () => {}, add: async () => {} } as any,
+    'test', 'exhausted', Date.now() + 60000, { firestoreReads: 20, firestoreWrites: 20,
+      firestoreEgressBytes: 8 * 1024 ** 2, firestoreStorageBytes: 0 }, Date.now, 0, 'normal');
+  const blocked = trialGoogleStore(base, insufficient);
+  await blocked.read('control');
+  transport.mockClear();
+  await expect(blocked.commit('control', old, old, { key: 'bazaar', value: 'replacement' })).rejects.toThrow('firestoreStorageBytes');
+  expect(transport).not.toHaveBeenCalled();
+  expect(await s.read('bazaar')).toBe(payload);
+  expect(session.observed.snapshotUploads ?? 0).toBe(0);
+});
 it('the counted REST transport publishes through real Firestore preconditions and rejects a stale owner',async()=>{
   const host=process.env.FIRESTORE_EMULATOR_HOST!;
   if(!/^(127\.0\.0\.1|localhost):\d+$/.test(host))throw new Error('Only a local emulator is permitted');

@@ -54,7 +54,7 @@ for (const target of ['marketApi', 'refreshMarket']) {
       cwd, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'],
       env: { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot,
         NODE_ENV: 'test', PORT: '0', FUNCTION_TARGET: target, FUNCTION_SIGNATURE_TYPE: 'http',
-        GCLOUD_PROJECT: 'bazaarsignal-510305' },
+        GCLOUD_PROJECT: 'bazaarsignal-510305', MARKET_OPERATING_MODE: 'free-tier' },
     });
     let output = '', ready = false;
     const timeout = setTimeout(() => { child.kill(); fail(new Error(`${target} startup timed out: ${output}`)); }, 15000);
@@ -78,6 +78,6 @@ for (const target of ['marketApi', 'refreshMarket']) {
 receipt.localRuntimeSmokeVerified = true;
 receipt.localRuntimeSmokePlatform = `${process.platform}/${process.arch} Node ${process.version}`;
 receipt.localRuntimeSmokeVerifiedAt = new Date().toISOString();
-receipt.localRuntimeSmoke = { handlers: ['marketApi', 'refreshMarket'], outboundConnections: 'blocked', handlerRequests: 0 };
+receipt.localRuntimeSmoke = { handlers: ['marketApi', 'refreshMarket'], operatingMode: 'free-tier', outboundConnections: 'blocked', handlerRequests: 0 };
 await writeFile(receiptPath, JSON.stringify(receipt, null, 2));
 console.log(JSON.stringify(receipt, null, 2));

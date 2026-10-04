@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Firestore, DocumentSnapshot } from "firebase-admin/firestore";
 import type { CacheStore } from "./cache-store";
+import { decodeInlineSnapshot, encodeInlineSnapshot, inlineSnapshotLimits } from './inline-snapshot';
 
 export interface SnapshotBlobs {
   put(name: string, value: string): Promise<void>;
@@ -11,8 +12,8 @@ export interface SnapshotBlobs {
 const snapshotKeys = new Set(["catalog", "election", "bazaar", "auctions"]);
 const prefix = "market-current/";
 
-/** Firestore holds only coordination and pointers. Large immutable blobs are private.
- * A conditional atomic batch publishes pointer and control AFTER upload completes.
+/** Firestore holds coordination, bounded inline snapshots, and private blob pointers.
+ * A conditional atomic batch publishes payload/pointer and control together.
  * Failed/ambiguous commits leave staging blobs for bounded cleanup, never deleting
  * something that might have become the authoritative snapshot.
  */
@@ -29,6 +30,7 @@ export class GoogleCacheStore implements CacheStore {
     readonly blobs: SnapshotBlobs,
     readonly collection = "marketCache",
     readonly readCacheMs = 0,
+    readonly inlineSmallSnapshots = false,
   ) {}
   private ref(key: string) {
     if (!/^[a-z-]+$/.test(key)) throw new Error("Invalid cache key");
@@ -58,7 +60,8 @@ export class GoogleCacheStore implements CacheStore {
       }
       const value = data?.blob
         ? await this.blobs.get(data.blob)
-        : (data?.value ?? null);
+        : (typeof data?.value === 'string' && snapshotKeys.has(key)
+          ? decodeInlineSnapshot(key, data.value) : (data?.value ?? null));
       // Snapshot JSON is decoded/cached by MarketCollector; avoid a second large cache.
       if (this.readCacheMs && !snapshotKeys.has(key))
         this.reads.set(key, { value, until: Date.now() + this.readCacheMs });
@@ -93,10 +96,18 @@ export class GoogleCacheStore implements CacheStore {
         if (!lease || lease.until <= await this.time()) return false;
         // Reject already-stale candidates BEFORE a paid upload. The batch still
         // checks the original version after upload, fencing concurrent owners.
-        blob = `${prefix}${payload.key}/${randomUUID()}.json.gz`;
-        await this.blobs.put(blob, payload.value);
-        if (lease.until <= await this.time()) return false;
-        batch.set(this.ref(payload.key), { blob, publishedAt: current.readTime });
+        if (this.inlineSmallSnapshots && inlineSnapshotLimits[payload.key]) {
+          // Oversize fails closed, preserving the last snapshot. Never fall back
+          // to an unreserved Storage upload. Control and payload share one CAS.
+          const encoded = encodeInlineSnapshot(payload.key, payload.value);
+          if (lease.until <= await this.time()) return false;
+          batch.set(this.ref(payload.key), { value: encoded, publishedAt: current.readTime });
+        } else {
+          blob = `${prefix}${payload.key}/${randomUUID()}.json.gz`;
+          await this.blobs.put(blob, payload.value);
+          if (lease.until <= await this.time()) return false;
+          batch.set(this.ref(payload.key), { blob, publishedAt: current.readTime });
+        }
       }
       // Optimistic CAS avoids 100 losing claimants holding pessimistic read
       // locks while the winner tries to charge requests. The server checks the

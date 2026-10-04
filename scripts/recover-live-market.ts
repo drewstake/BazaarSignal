@@ -6,14 +6,18 @@ import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { trialGoogleStore } from '../collector/trial-google';
-import { LiveLedger, validateLive } from '../collector/allowance-live';
+import { LiveLedger } from '../collector/allowance-live';
 import { stopTrialInfrastructure } from '../collector/trial-shutdown';
+import { PORTFOLIO_COLLECTION_ENABLED } from '../shared/companion/portfolio-policy';
+import { requireExistingBrowserDelivery, requireLiveCapacity } from '../collector/live-activation';
 // Keep the executable utility outside the bundle so its main-module guard
 // cannot mistake this recovery entry point for a release invocation.
 const { verifyStoppedUpdate, verifyReleasePlan } = await import(pathToFileURL(resolve('scripts/private-trial-release.mjs')).href);
 
 const [file, action='--inspect'] = process.argv.slice(2);
 if (!file || !['--inspect','--apply'].includes(action) || process.argv.length>4) throw new Error('Pass repair plan and --inspect or --apply');
+if(action==='--apply'&&!PORTFOLIO_COLLECTION_ENABLED)
+  throw new Error('Production collection remains disabled; recovery cannot bypass the source gate');
 const plan=JSON.parse(readFileSync(file,'utf8'));
 const receipt=JSON.parse(readFileSync(resolve(plan.imageDirectory,'receipt.json'),'utf8'));
 verifyReleasePlan(plan,receipt);
@@ -40,7 +44,7 @@ try {
   const raw=await store.read('live-allowance');if(!raw)throw new Error('Missing stopped ledger');
   const ledger=JSON.parse(raw);
   const active={...ledger};delete active.stoppedAt;delete active.reason;
-  validateLive(active,Date.now());
+  requireLiveCapacity(active,Date.now());
   const scheduled=await call(`https://cloudscheduler.googleapis.com/v1/${job}`);
   if(scheduled.state!=='PAUSED'||scheduled.schedule!=='0 * * * *'||scheduled.timeZone!=='Etc/UTC'||(scheduled.retryConfig?.retryCount??0)!==0)
     throw new Error('Expected unchanged paused hourly schedule without retries');
@@ -57,24 +61,23 @@ try {
       revision.containers[0].resources?.cpuIdle!==true||revision.containers[0].resources?.startupCpuBoost===true)
       throw new Error('Repaired revision settings differ');
     const policy=await call(`https://run.googleapis.com/v1/${root}/services/${name}:getIamPolicy?options.requestedPolicyVersion=3`);
-    if((policy.bindings??[]).some((b:any)=>b.members?.some((m:string)=>['allUsers','allAuthenticatedUsers'].includes(m))))
+    if(name==='marketapi')requireExistingBrowserDelivery(policy);
+    else if((policy.bindings??[]).some((b:any)=>b.members?.some((m:string)=>['allUsers','allAuthenticatedUsers'].includes(m))))
       throw new Error('Repair must remain private until recovery');
   }
   report.before=ledger;
   report.after=active;
   report.preservedLedgerSha256=createHash('sha256').update(JSON.stringify(active)).digest('hex');save();
   if(action==='--apply') {
+    requireLiveCapacity(active,Date.now());
     attempted=true;
     // CAS changes ONLY the two stop markers. No accounting or scheduling fields.
     if(!await store.commit('live-allowance',raw,JSON.stringify(active)))throw new Error('Stopped ledger changed during recovery');
     report.changes.push('Removed verified repair stop markers; all other ledger fields preserved');save();
     if(await store.read('live-allowance')!==JSON.stringify(active))throw new Error('Recovered ledger verification failed');
-    const policy=await call(`${api}:getIamPolicy?options.requestedPolicyVersion=3`);
-    policy.bindings??=[];policy.bindings.push({role:'roles/run.invoker',members:['allUsers']});
-    await call(`${api}:setIamPolicy`,'POST',{policy});
-    report.changes.push('Restored public cache-only API access');save();
-    const after=await call(`${api}:getIamPolicy?options.requestedPolicyVersion=3`);
-    if(!after.bindings.some((b:any)=>b.role==='roles/run.invoker'&&!b.condition&&b.members.includes('allUsers')))throw new Error('API access restoration unverified');
+    requireLiveCapacity(active,Date.now());
+    requireExistingBrowserDelivery(await call(`${api}:getIamPolicy?options.requestedPolicyVersion=3`));
+    report.changes.push('Verified existing API access without changing permissions');save();
     await call(`https://cloudscheduler.googleapis.com/v1/${job}:resume`,'POST',{});
     report.changes.push('Resumed unchanged hourly schedule');save();
     await call(`https://cloudscheduler.googleapis.com/v1/${job}:run`,'POST',{});
