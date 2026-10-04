@@ -1,5 +1,4 @@
 import { beforeAll, beforeEach, afterAll, expect, it, vi } from "vitest";
-vi.mock('../shared/market-features',()=>({AUCTION_COLLECTION_ENABLED:true}));
 import { initializeApp, deleteApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { GoogleCacheStore, type SnapshotBlobs } from "../collector/google-cache-store";
@@ -97,18 +96,18 @@ it('the counted REST transport publishes through real Firestore preconditions an
   expect(await b.commit('trial','not-current','lost')).toBe(false);
   const c=new Coordinator(a,defaultPolicy);expect(await c.acquire()).toBe(true);
   const old=(await a.read('control'))!;
-  expect(await a.commit('control',old,old,{key:'auctions',value:'complete-rest-snapshot'})).toBe(true);
-  expect(await b.read('auctions')).toBe('complete-rest-snapshot');
+  expect(await a.commit('control',old,old,{key:'bazaar',value:'complete-rest-snapshot'})).toBe(true);
+  expect(await b.read('bazaar')).toBe('complete-rest-snapshot');
   const expired=JSON.parse(old);expired.lease.until=Date.now()-1;
   expect(await a.commit('control',old,JSON.stringify(expired))).toBe(true);
-  expect(await b.commit('control',JSON.stringify(expired),JSON.stringify(expired),{key:'auctions',value:'invalid'})).toBe(false);
+  expect(await b.commit('control',JSON.stringify(expired),JSON.stringify(expired),{key:'bazaar',value:'invalid'})).toBe(false);
   expect(attempts.snapshotUploads).toBe(1);expect(attempts.storageClassB).toBe(1);
   expect(attempts.firestoreReads).toBeGreaterThan(0);
 });
 async function seedComplete() {
   const s=store(), c=new Coordinator(s,defaultPolicy);
   await c.acquire();const old=await s.read("control");
-  expect(await s.commit("control",old,old!,{key:"auctions",value:"complete-v1"})).toBe(true);
+  expect(await s.commit("control",old,old!,{key:"bazaar",value:"complete-v1"})).toBe(true);
   await c.release();
 }
 
@@ -124,17 +123,17 @@ it("only publishes complete uploaded payloads; stale CAS/expired owners cannot r
   expect(await c.acquire()).toBe(true);
   const current=await s.read("control");
   const next=JSON.parse(current!); next.revision++;
-  expect(await s.commit("control",current,JSON.stringify(next),{key:"auctions",value:"complete-v1"})).toBe(true);
-  expect(await store().read("auctions")).toBe("complete-v1");
-  expect(await s.commit("control",current,JSON.stringify(next),{key:"auctions",value:"losing-v2"})).toBe(false);
+  expect(await s.commit("control",current,JSON.stringify(next),{key:"bazaar",value:"complete-v1"})).toBe(true);
+  expect(await store().read("bazaar")).toBe("complete-v1");
+  expect(await s.commit("control",current,JSON.stringify(next),{key:"bazaar",value:"losing-v2"})).toBe(false);
   expect(blobs.put).toHaveBeenCalledTimes(1);
-  expect(await store().read("auctions")).toBe("complete-v1");
+  expect(await store().read("bazaar")).toBe("complete-v1");
   const old=await s.read("control");
   const expired=JSON.parse(old!);expired.lease.until=Date.now()-1000;
   expect(await s.commit("control",old,JSON.stringify(expired))).toBe(true);
-  expect(await s.commit("control",JSON.stringify(expired),JSON.stringify(expired),{key:"auctions",value:"expired-v3"})).toBe(false);
+  expect(await s.commit("control",JSON.stringify(expired),JSON.stringify(expired),{key:"bazaar",value:"expired-v3"})).toBe(false);
   expect(blobs.put).toHaveBeenCalledTimes(1);
-  expect(await store().read("auctions")).toBe("complete-v1");
+  expect(await store().read("bazaar")).toBe("complete-v1");
   await c.release();
 });
 
@@ -144,23 +143,23 @@ it("upload failures preserve the previous pointer and shared control",async()=>{
   const s=new GoogleCacheStore(db,broken,namespace), c=new Coordinator(s,defaultPolicy);
   await c.acquire();
   const old=await s.read("control");
-  await expect(s.commit("control",old,old!,{key:"auctions",value:"partial"})).rejects.toThrow("upload failed");
+  await expect(s.commit("control",old,old!,{key:"bazaar",value:"partial"})).rejects.toThrow("upload failed");
   expect(await s.read("control")).toBe(old);
-  expect(await store().read("auctions")).toBe("complete-v1");
+  expect(await store().read("bazaar")).toBe("complete-v1");
   await c.release();
 });
 
 it("cleanup keeps current snapshots and recent staging objects, removes old failed candidates",async()=>{
   await seedComplete();
-  files.set("market-current/auctions/failed.json.gz",{value:"failed",createdAt:Date.now()});
+  files.set("market-current/bazaar/failed.json.gz",{value:"failed",createdAt:Date.now()});
   for(const f of files.values()) f.createdAt=Date.now()-700_000;
-  files.set("market-current/auctions/recent.json.gz",{value:"pending",createdAt:Date.now()});
+  files.set("market-current/bazaar/recent.json.gz",{value:"pending",createdAt:Date.now()});
   await store().cleanup();
-  expect(await store().read("auctions")).toBe("complete-v1");
+  expect(await store().read("bazaar")).toBe("complete-v1");
   expect([...files.values()].map(f=>f.value).sort()).toEqual(["complete-v1","pending"]);
 });
 
-it("a real collector on the Google adapter charges each page once and all browser reads remain cached",async()=>{
+it("a real collector on the Google adapter charges each supported source once and all browser reads remain cached",async()=>{
   // Separate namespace uses a separate mock upstream, never a second live ledger.
   const ns=`${namespace}-full`, now=Date.now();
   const fetcher=vi.fn(async (input:string|URL|Request)=>{
@@ -173,12 +172,12 @@ it("a real collector on the Google adapter charges each page once and all browse
   try {
     const collectors=Array.from({length:100},()=>new MarketCollector(new GoogleCacheStore(db,blobs,ns),defaultPolicy,fetcher));
     await Promise.all(collectors.map(c=>c.tick()));
-    expect(fetcher).toHaveBeenCalledTimes(7);
+    expect(fetcher).toHaveBeenCalledTimes(3);
     for(let round=0;round<3;round++)await Promise.all(collectors.map(async c=>{
-      await c.bazaar();await c.portfolioAuctions([]);await c.rawBazaar();await c.status();
+      await c.bazaar();await c.portfolioPrices(["bz_TEST"]);await c.rawBazaar();await c.status();
     }));
-    expect(fetcher).toHaveBeenCalledTimes(7);
-    expect((await collectors[0].status()).requestBudget.used).toBe(7);
+    expect(fetcher).toHaveBeenCalledTimes(3);
+    expect((await collectors[0].status()).requestBudget.used).toBe(3);
   } finally {await db.recursiveDelete(db.collection(ns));}
 },60_000);
 

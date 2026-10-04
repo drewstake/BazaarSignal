@@ -9,7 +9,7 @@ export interface SnapshotBlobs {
   remove(name: string): Promise<void>;
   list(): Promise<{ name: string; createdAt: number }[]>;
 }
-const snapshotKeys = new Set(["catalog", "election", "bazaar", "auctions"]);
+const snapshotKeys = new Set(["catalog", "election", "bazaar"]);
 const prefix = "market-current/";
 
 /** Firestore holds coordination, bounded inline snapshots, and private blob pointers.
@@ -77,6 +77,7 @@ export class GoogleCacheStore implements CacheStore {
     value: string,
     payload?: { key: string; value: string },
   ) {
+    if (key === "auctions" || payload?.key === "auctions") throw new Error("Auction snapshots are retired");
     if (snapshotKeys.has(key)) throw new Error("Snapshots require atomic publication");
     if (payload && (key !== "control" || !snapshotKeys.has(payload.key)))
       throw new Error("Invalid snapshot publication");
@@ -137,7 +138,7 @@ export class GoogleCacheStore implements CacheStore {
     const previous = await this.read("cleanup");
     if (previous && JSON.parse(previous).nextAt > now) return false;
     if (!await this.commit("cleanup", previous, JSON.stringify({ nextAt: now + intervalMs }))) return false;
-    const docs = await this.db.getAll(...[...snapshotKeys].map(k => this.ref(k)));
+    const docs = await this.db.getAll(...[...snapshotKeys, "auctions"].map(k => this.ref(k)));
     const live = new Set(docs.map(d => d.data()?.blob).filter(Boolean));
     for (const file of await this.blobs.list()) {
       if (file.name.startsWith(prefix) && !live.has(file.name) &&

@@ -11,7 +11,6 @@ const SKY = "/assets/sky-island-v1/web";
 export type SkyIconName =
   | "emerald"
   | "bazaar-crate"
-  | "auction-gavel"
   | "watchlist-chest"
   | "favorite-heart"
   | "gold-coin"

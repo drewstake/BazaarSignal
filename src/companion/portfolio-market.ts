@@ -2,13 +2,15 @@ import type { User } from 'firebase/auth';
 import { auth } from '../data';
 import { fixtureMode, getBazaar, marketRequest } from './api';
 import { applyPollingDirective, pollingDirective, visiblePoll } from './polling';
-import type { BazaarItem, Listing } from '../../shared/companion/types';
+import type { BazaarItem } from '../../shared/companion/types';
 
 export interface PortfolioMarket {
-  bazaar: BazaarItem[]; listings: Listing[];
-  versions?: {bazaar:string|null;auctions:string|null};
+  bazaar: BazaarItem[]; listings: never[];
+  versions?: {bazaar:string|null};
 }
 export async function portfolioMarket(assets:string[],signal?:AbortSignal):Promise<PortfolioMarket> {
+  assets=assets.filter(id=>/^bz_[A-Za-z0-9_:-]{1,100}$/.test(id));
+  if(!assets.length)return {bazaar:[],listings:[]};
   if(fixtureMode)return {bazaar:(await import('./fixtures')).bazaarFixtures(),listings:[]};
   try {return await marketRequest(`portfolio-prices?assets=${encodeURIComponent([...new Set(assets)].sort().join(','))}`,signal);}
   catch(error) {
@@ -24,6 +26,7 @@ export async function portfolioMarket(assets:string[],signal?:AbortSignal):Promi
  * Gate before tokens or network. Hidden/unmounted portfolios relinquish demand;
  * bounded server leases handle crashes and lost disconnects. */
 export function visiblePortfolioPresence(user:User,assets:string[]) {
+  assets=assets.filter(id=>/^bz_[A-Za-z0-9_:-]{1,100}$/.test(id));
   if(fixtureMode||!assets.length||pollingDirective().mode==='paused')return ()=>{};
   const tab=crypto.randomUUID();let registered=false,closed=false;
   const url=new URL(`${(import.meta.env.VITE_MARKET_API_URL??'').replace(/\/$/,'')}/api/companion/presence`,location.origin);

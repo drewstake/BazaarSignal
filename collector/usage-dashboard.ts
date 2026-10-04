@@ -150,7 +150,7 @@ export function collectionStatus(ledger:LiveAllowanceState|null, control:any, sc
       validateLive(ledger,now);
       pressure=livePressure(ledger,now);
       state=hourlyTrialActive(now)?'Hourly test':pressure>=.5?'Warning':'Active';
-      reason=(hourlyTrialActive(now)?'Hourly collection opportunities and browser checks during the temporary test. ':'Collection cadence follows resource capacity; auction collection is disabled. ')+APP_BUDGET_PAUSE_DESCRIPTION;
+      reason=(hourlyTrialActive(now)?'Hourly collection opportunities and browser checks during the temporary test. ':'Collection cadence follows resource capacity; only Bazaar collection is supported. ')+APP_BUDGET_PAUSE_DESCRIPTION;
       const wait=collectorBudgetDeferral(ledger,now);
       if(wait){budgetRetryAt=wait.retryAt;state='Paused';reason=`The next collection reservation would reach the app budget pause threshold for ${wait.key}. No counters were cleared. ${APP_BUDGET_PAUSE_DESCRIPTION}`;}
     } catch { state=ledger.expiresAt<=now?'Expired':'Paused'; reason=ledger.reason??'Application allowance is missing, invalid, stopped or expired.'; }

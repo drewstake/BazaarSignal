@@ -11,7 +11,7 @@ const features = [
     id: "holdings",
     title: "Track holdings",
     description:
-      "Keep a record of the items you own across Bazaar and Auction House.",
+      "Keep a record of the items you own on the Bazaar.",
   },
   {
     id: "returns",
@@ -83,7 +83,7 @@ export default function NightMarketLanding({
         </header>
         <main className="nm-main" id="main-content" tabIndex={-1}>
           <section className="nm-hero" aria-labelledby="nm-title">
-            <p className="nm-eyebrow">BAZAAR + AUCTION HOUSE</p>
+            <p className="nm-eyebrow">SKYBLOCK BAZAAR</p>
             <h1 id="nm-title">
               Your SkyBlock<span className="nm-headline-line">portfolio.</span>
               <span className="nm-headline-accent">At a glance.</span>

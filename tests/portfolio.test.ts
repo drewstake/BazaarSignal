@@ -21,8 +21,6 @@ import {
   type HoldingNotification,
 } from "../shared/companion/notifications";
 import { normalizeBazaar } from "../shared/companion/bazaar";
-import { normalizeVariant } from "../collector/normalize";
-import type { Listing } from "../shared/companion/types";
 import { deliver, emptyState } from "../apps-script/core";
 import {
   queueCrossings,
@@ -93,7 +91,7 @@ auction.id = auctionVariant(
   1,
   auction.configuration,
 ).fingerprint;
-const listings = (prices = [100, 110, 120], stamp = now - 1000): Listing[] =>
+const listings = (prices = [100, 110, 120], stamp = now - 1000) =>
   prices.map((price, i) => ({
     id: `listing-${i}`,
     seller: `seller-${i}`,
@@ -166,37 +164,6 @@ describe("portfolio holdings and valuations", () => {
       stale: true,
     });
     expect(portfolioTotals([holding], [], [], now).pnl).toBeNull();
-  });
-  it("uses the upstream canonical fingerprint including every modifier and stack size", () => {
-    const normalized = normalizeVariant(
-      { i: [{ Count: 1, tag: { ExtraAttributes: { id: "NECRON_HANDLE" } } }] },
-      { NECRON_HANDLE: { tier: "LEGENDARY", name: "Necron Handle" } },
-    );
-    expect(normalized.fingerprint).toBe(auction.id);
-    expect(
-      auctionVariant(auction.itemId, auction.name, 2, auction.configuration)
-        .fingerprint,
-    ).not.toBe(auction.id);
-  });
-  it("requires three exact auction asks and labels stale samples without mixing variants or quantities", () => {
-    expect(valueHolding(auction, [], listings(), now)).toMatchObject({
-      referencePrice: 100,
-      value: 1000,
-      comparables: 3,
-      liquidation: null,
-    });
-    const different = listings();
-    different[2].variant = { ...different[2].variant, quantity: 2 };
-    expect(valueHolding(auction, [], different, now).value).toBeNull();
-    expect(
-      valueHolding(auction, [], listings([100, 110]), now).value,
-    ).toBeNull();
-    expect(
-      valueHolding(auction, [], listings([100, 110, 120], now - 600000), now)
-        .freshness,
-    ).toBe("stale");
-    const future = listings([100, 110, 120], now + 60000);
-    expect(valueHolding(auction, [], future, now).value).toBeNull();
   });
 });
 describe("percentage notifications", () => {
@@ -485,7 +452,7 @@ describe("shared portfolio demand", () => {
       paused: true,
     });
     expect(jobs).toEqual([]);
-    expect(d.auctions).toEqual([]);
+    expect(d.auctions).toBeUndefined();
     await collectPortfolioDemand(collector, d, true);
     expect(jobs).toEqual(["catalog", "election", "bazaar"]);
     // Even a previously aggregated report cannot turn auction collection back on.
@@ -493,4 +460,18 @@ describe("shared portfolio demand", () => {
     const auctionOnly=aggregateDemand([{holding:auction,portfolioDeleted:false}],now);
     expect(demandJobs(auctionOnly,now)).toEqual([]);
   });
+});
+
+it('preserves legacy holdings but never values them from old auction evidence',()=>{
+  expect(validPortfolioHolding(auction)).toBe(true);
+  expect(valueHolding(auction, [], listings(), now)).toMatchObject({value:null,referencePrice:null,sampledAt:null,freshness:'unavailable',source:'unsupported-asset'});
+  expect(portfolioTotals([holding,auction],[bazaar()],listings(),now).missing).toBe(1);
+});
+
+it('legacy auction evidence cannot create notifications or mail',()=>{
+  const ledger={state:emptyState('owner'),crossings:{}};
+  const n={...notification,holdingId:auction.id,source:'auction-exact-lowest-ask-v1'};
+  queueCrossings(ledger,n,auction,{id:'default',name:'Saved',createdAt:now,updatedAt:now,revision:1,deleted:false},
+    {bazaar:[],listings:listings()},now,true);
+  expect(ledger.state.mail).toEqual([]);expect(ledger.crossings).toEqual({});
 });

@@ -17,7 +17,7 @@ import {
 } from "../shared/companion/portfolio";
 import { PORTFOLIO_EVALUATION_ENABLED } from "../shared/companion/portfolio-policy";
 import { EMAIL_DELIVERY_ENABLED } from '../shared/automation-policy';
-import type { BazaarItem, Listing } from "../shared/companion/types";
+import type { BazaarItem } from "../shared/companion/types";
 import { deliver, emptyState, type Mail, type State } from "./core";
 import {
   checkAdmission,
@@ -31,7 +31,6 @@ import {
   readDoc,
 } from "./store";
 import { sharedMarket } from "./companion";
-import { AUCTION_COLLECTION_ENABLED } from '../shared/market-features';
 declare const PropertiesService: any, ScriptApp: any, MailApp: any;
 
 export const decodeFields = (fields: Record<string, any>): any =>
@@ -134,7 +133,7 @@ function loadLedger(uid: string, readDocument = readDoc) {
 }
 export interface PriceEvidence {
   bazaar: BazaarItem[];
-  listings: Listing[];
+  listings: unknown[];
   fixture?: boolean;
 }
 const evidence = (assets: string[] = []): PriceEvidence => {
@@ -142,7 +141,7 @@ const evidence = (assets: string[] = []): PriceEvidence => {
     throw new Error(
       "Market data: Portfolio evaluation is paused; a fresh sample cannot be captured.",
     );
-  const enabledAssets = assets.filter(id => !id.startsWith('v1_') || AUCTION_COLLECTION_ENABLED);
+  const enabledAssets = assets.filter(id => /^bz_[A-Za-z0-9_:-]{1,100}$/.test(id));
   if (!enabledAssets.length) return { bazaar: [], listings: [] };
   return sharedMarket(
     `portfolio-prices?assets=${encodeURIComponent([...new Set(enabledAssets)].sort().join(","))}`,
@@ -203,6 +202,7 @@ export function portfolioNotificationRequest(
       p.data.deleted ||
       !validPortfolioHolding(h.data) ||
       h.data.deleted ||
+      h.data.kind !== "bazaar" ||
       h.data.id !== request.holdingId)
   )
     throw new Error("Invalid or deleted portfolio holding.");
@@ -242,10 +242,7 @@ export function portfolioNotificationRequest(
     checkAdmission(control.state, admission, now);
     control.state.admissions++;
   }
-  const source =
-    h.data?.kind === "auction"
-      ? "auction-exact-lowest-ask-v1"
-      : "bazaar-bid-v1";
+  const source = removing ? current?.source ?? "bazaar-bid-v1" : "bazaar-bid-v1";
   let capturedPrice = current?.capturedPrice ?? null,
     capturedAt = current?.capturedAt ?? null;
   if (enabled && input.baseline === "sample") {
@@ -337,7 +334,7 @@ export function queueCrossings(
   // Bound pending and retained deliveries; never advance a crossing without room for its event.
   // Each event includes both delivery and workflow records; leave ample space
   // below Firestore's document limit even with maximum-length names and IDs.
-  if (ledger.state.mail.length >= 250) return;
+  if (h.kind !== "bazaar" || ledger.state.mail.length >= 250) return;
   const value = valueHolding(h, prices.bazaar, prices.listings, now);
   const result = evaluateNotification(
     n,
@@ -406,7 +403,7 @@ export function portfolioMailText(mail: Mail, name: string) {
       `Reference price: ${e.price} coins per recorded unit.`,
       `Sample: ${new Date(e.sampledAt).toISOString()}. Source: ${e.source}.`,
       "",
-      "Bazaar references are before fees and slippage. Auction references are exact-variant asking prices, not completed sales or guaranteed proceeds.",
+      "Bazaar references are before fees and slippage.",
       "This threshold rearms after a fresh price moves back inside it. Manage or pause it in Notifications.",
       "https://bazaarsignal.web.app/#view=notifications",
       "",
@@ -498,7 +495,8 @@ export function runPortfolioNotifications(
           !validPortfolio(p.data) ||
           p.data.deleted ||
           !validPortfolioHolding(h.data) ||
-          h.data.deleted
+          h.data.deleted ||
+          h.data.kind !== "bazaar"
         ) {
           cancelPending(ledger.value, n.id);
           ledger.value.crossings[n.id] = {

@@ -1,6 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest";
 // Keep the deferred auction engine covered under an explicitly enabled fixture.
-vi.mock('../shared/market-features',()=>({AUCTION_COLLECTION_ENABLED:true}));
 vi.mock('../shared/companion/portfolio-policy',()=>({PORTFOLIO_COLLECTION_ENABLED:true}));
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -13,7 +12,6 @@ import { MarketCollector } from "../collector/engine";
 import { Coordinator } from "../collector/coordinator";
 import {
   defaultPolicy,
-  auctionInterval,
   configuredPolicy,
 } from "../collector/policy";
 import { marketHandler } from "../collector/http";
@@ -70,7 +68,7 @@ function upstream(now: () => number, pages = 4) {
     });
   });
 }
-it('Bazaar stays on five-minute clock slots despite jitter while auction and metadata scans remain slower',async()=>{
+it('Bazaar stays on five-minute clock slots despite jitter while metadata scans remain slower',async()=>{
   let now=Date.parse('2026-10-02T03:00:25Z');const store=connect(),fetcher=upstream(()=>now);
   const c=new MarketCollector(store,livePolicy,fetcher,()=>now,()=>0,()=>{},MARKET_REFRESH_MS);
   await c.tick();
@@ -80,7 +78,7 @@ it('Bazaar stays on five-minute clock slots despite jitter while auction and met
   expect(fetcher).toHaveBeenCalledTimes(previousCalls+1);
   expect((await c.rawBazaar()).lastUpdated).toBe(now);
   expect((await c.coordinator.state()).jobs.bazaar.nextAt).toBe(Date.parse('2026-10-02T03:10:00Z'));
-  expect((await c.coordinator.state()).jobs.auctions.nextAt).toBe(Date.parse('2026-10-02T04:00:00Z'));
+  expect((await c.coordinator.state()).jobs.auctions).toBeUndefined();
 });
 async function get(c: MarketCollector, path: string) {
   let code = 200,
@@ -112,7 +110,7 @@ it("concurrent cold readers share one decoded snapshot allocation", async () => 
   expect(snapshots[0]).not.toBeNull();
   expect(snapshots.every(s => s === snapshots[0])).toBe(true);
   expect(reads.mock.calls.filter(([key]) => key === "bazaar")).toHaveLength(1);
-  expect(fetcher).toHaveBeenCalledTimes(7);
+  expect(fetcher).toHaveBeenCalledTimes(3);
 });
 
 it('cached browsing serves aging and failed snapshots without upstream requests or invented prices', async () => {
@@ -161,7 +159,7 @@ it("100 backend instances, concurrent users, portfolio reads and tabs issue exac
     () => new MarketCollector(connect(path), defaultPolicy, fetcher, () => now),
   );
   await Promise.all(collectors.map((c) => c.tick()));
-  expect(fetcher).toHaveBeenCalledTimes(46); // 43 pages + Bazaar + catalog + election.
+  expect(fetcher).toHaveBeenCalledTimes(3); // Bazaar + catalog + election.
   for (let reload = 0; reload < 3; reload++) {
     await Promise.all(
       collectors.map(async (c, i) => {
@@ -169,7 +167,7 @@ it("100 backend instances, concurrent users, portfolio reads and tabs issue exac
           get(c, "/api/companion/bazaar"),
           get(
             c,
-            "/api/companion/portfolio-auctions",
+            "/api/companion/bazaar",
           ),
           get(c, "/api/companion/portfolio-prices"),
           get(c, "/api/companion/raw-bazaar"),
@@ -179,26 +177,26 @@ it("100 backend instances, concurrent users, portfolio reads and tabs issue exac
     );
   }
   await Promise.all(collectors.map((c) => c.tick()));
-  expect(fetcher).toHaveBeenCalledTimes(46);
-  expect((await collectors[0].status()).requestBudget.total).toBe(46);
-  expect((await collectors[0].status()).intervalMs).toBe(145000);
+  expect(fetcher).toHaveBeenCalledTimes(3);
+  expect((await collectors[0].status()).requestBudget.total).toBe(3);
+  expect((await collectors[0].status()).intervalMs).toBe(60000);
 });
 it("read misses and expired caches never trigger upstream requests, and force parameters are rejected", async () => {
   let now = Date.now();
   const fetcher = upstream(() => now),
     c = new MarketCollector(connect(), defaultPolicy, fetcher, () => now);
-  expect((await get(c, "/api/companion/portfolio-auctions")).code).toBe(503);
+  expect((await get(c, "/api/companion/bazaar")).code).toBe(503);
   expect((await get(c, "/api/companion/bazaar?force=1")).code).toBe(400);
   expect(fetcher).not.toHaveBeenCalled();
   await c.tick();
   const count = fetcher.mock.calls.length,
-    before = await c.store.read("auctions");
+    before = await c.store.read("bazaar");
   now += 181000;
-  expect((await get(c, "/api/companion/portfolio-auctions")).body.status.stale).toBe(
+  expect((await get(c, "/api/companion/bazaar")).body.status.stale).toBe(
     true,
   );
   expect((await c.status()).stale).toBe(true);
-  expect(await c.store.read("auctions")).toBe(before);
+  expect(await c.store.read("bazaar")).toBe(before);
   expect(fetcher).toHaveBeenCalledTimes(count);
 });
 it("an unchanged Bazaar generation reuses its complete blob and observation identity", async () => {
@@ -207,21 +205,9 @@ it("an unchanged Bazaar generation reuses its complete blob and observation iden
   await c.tick();const snapshot=await store.read("bazaar");
   await c.coordinator.change(state=>{state.jobs.bazaar.nextAt=0;return {result:undefined};});
   const writes=vi.spyOn(store,"commit");await c.tick();
-  expect(fetcher).toHaveBeenCalledTimes(8);
+  expect(fetcher).toHaveBeenCalledTimes(4);
   expect(writes.mock.calls.filter(args=>args[3])).toHaveLength(0);
   expect(await store.read("bazaar")).toBe(snapshot);
-});
-it('an unchanged auction first page prevents another full pagination or upload',async()=>{
-  const now=Date.now(),store=connect(),fetcher=upstream(()=>now,43),measure=vi.fn();
-  const c=new MarketCollector(store,defaultPolicy,fetcher,()=>now,()=>0,measure);
-  await c.tick();const previous=await store.read('auctions');
-  await c.coordinator.change(state=>{state.jobs.auctions.nextAt=0;return {result:undefined};});
-  const writes=vi.spyOn(store,'commit');await c.tick();
-  expect(fetcher).toHaveBeenCalledTimes(47);
-  expect(writes.mock.calls.filter(args=>args[3])).toHaveLength(0);
-  expect(await store.read('auctions')).toBe(previous);
-  expect(measure).toHaveBeenCalledWith('auctionsGenerationProbesUnchanged');
-  expect(measure.mock.calls.filter(([name])=>name==='auctionsRefreshesCompleted')).toHaveLength(1);
 });
 it('unchanged metadata checks preserve blobs and derived versions while refreshing fee verification', async () => {
   let now = Date.now(), generation = now, failElection = false;
@@ -272,12 +258,12 @@ it('metadata content changes republish affected market snapshots even within the
   const before = await c.read('bazaar');
   changed = true; now += 1000;
   await c.coordinator.change(state => {
-    for (const key of ['election','bazaar','auctions']) state.jobs[key].nextAt = 0;
+    for (const key of ['election','bazaar']) state.jobs[key].nextAt = 0;
     return { result: undefined };
   });
   const commits = vi.spyOn(store, 'commit');
   await c.tick();
-  expect(commits.mock.calls.flatMap(args => args[3] ? [args[3].key] : [])).toEqual(['election','bazaar','auctions']);
+  expect(commits.mock.calls.flatMap(args => args[3] ? [args[3].key] : [])).toEqual(['election','bazaar']);
   const after = await c.read<any>('bazaar');
   expect(after!.upstreamAt).toBe(before!.upstreamAt);
   expect(after!.version).not.toBe(before!.version);
@@ -310,14 +296,14 @@ it("payload eviction is cache-only on reads and the independent scheduler recove
     c = new MarketCollector(s, defaultPolicy, fetcher, () => now);
   await c.tick();
   const before = fetcher.mock.calls.length;
-  await s.commit("auctions", await s.read("auctions"), "null");
+  await s.commit("bazaar", await s.read("bazaar"), "null");
   const other = new MarketCollector(s, defaultPolicy, fetcher, () => now);
-  expect((await get(other, "/api/companion/portfolio-auctions")).code).toBe(503);
+  expect((await get(other, "/api/companion/bazaar")).code).toBe(503);
   await other.tick();
   expect(fetcher).toHaveBeenCalledTimes(before);
   now += 120001;
   await other.tick();
-  expect((await get(other, "/api/companion/portfolio-auctions")).code).toBe(200);
+  expect((await get(other, "/api/companion/bazaar")).code).toBe(200);
 });
 it("Price Alerts price/book reads bypass authentication and never fetch upstream, including when stale", async () => {
   let now=Date.now();const fetcher=upstream(()=>now),c=new MarketCollector(connect(),defaultPolicy,fetcher,()=>now);
@@ -330,30 +316,6 @@ it("Price Alerts price/book reads bypass authentication and never fetch upstream
   expect((await get(c,"/api/companion/snapshot")).body.status).toMatchObject({error:null,stale:true});
   expect((await get(c,"/api/companion/book?itemId=TEST")).code).toBe(200);
   expect(fetcher).toHaveBeenCalledTimes(count);
-});
-it("counts discovery, stops unaffordable pagination, preserves reserve, survives restart and recovers", async () => {
-  let now = Date.now();
-  const path = database(),
-    fetcher = upstream(() => now, 6),
-    policy = { ...defaultPolicy, requestLimit: 10 };
-  const c = new MarketCollector(connect(path), policy, fetcher, () => now);
-  await c.tick();
-  expect(fetcher).toHaveBeenCalledTimes(4); // 3 metadata/Bazaar, then one page-count discovery.
-  expect(await c.store.read("auctions")).toBeNull();
-  expect((await c.status()).error).toContain("Insufficient shared budget");
-  const restarted = new MarketCollector(
-    connect(path),
-    policy,
-    fetcher,
-    () => now,
-  );
-  await restarted.tick();
-  expect(fetcher).toHaveBeenCalledTimes(4);
-  // After expiry, catalog is cached and all six pages fit beside Bazaar/election.
-  now += 300001;
-  await restarted.tick();
-  expect(await c.store.read("auctions")).not.toBeNull();
-  expect((await c.status()).requestBudget.used).toBeLessThanOrEqual(8);
 });
 it("charges all retries and rejects exhausted budgets before network I/O", async () => {
   let now = Date.now();
@@ -418,7 +380,7 @@ it("honors shared 429 Retry-After and per-minute rate headers across instances",
   expect((await other.status()).error).toBeNull();
   const co = other.coordinator;
   await co.change((c) => {
-    c.jobs.auctions.nextAt = 0;
+    c.jobs.bazaar.nextAt = 0;
     return { result: undefined };
   });
   await co.acquire();
@@ -439,14 +401,14 @@ it("honors shared 429 Retry-After and per-minute rate headers across instances",
   await co.acquire();
   await co.charge("after-reset", false);
 });
-it("failed or mixed pagination cannot replace the last complete snapshot; recovery publishes atomically", async () => {
+it("malformed Bazaar data cannot replace the last complete snapshot; recovery publishes atomically", async () => {
   let now = Date.now(),
     mixed = false;
   const good = upstream(() => now, 4),
     fetcher = vi.fn(async (input: string | URL | Request) => {
       const r = await good(input),
         data = await r.json();
-      if (mixed && String(input).includes("page=2")) data.lastUpdated++;
+      if (mixed && String(input).includes("/bazaar")) data.products = null;
       return new Response(JSON.stringify(data));
     });
   const c = new MarketCollector(
@@ -457,16 +419,16 @@ it("failed or mixed pagination cannot replace the last complete snapshot; recove
     () => 0,
   );
   await c.tick();
-  const prior = await c.store.read("auctions");
+  const prior = await c.store.read("bazaar");
   now += 120001;
   mixed = true;
   await c.tick();
-  expect(await c.store.read("auctions")).toBe(prior);
-  expect((await c.status()).error).toContain("changed during pagination");
+  expect(await c.store.read("bazaar")).toBe(prior);
+  expect((await c.status()).error).toContain("stale or malformed");
   mixed = false;
   now += 5001;
   await c.tick();
-  expect(await c.store.read("auctions")).not.toBe(prior);
+  expect(await c.store.read("bazaar")).not.toBe(prior);
   expect((await c.status()).error).toBeNull();
 });
 it("an expired worker cannot publish or spend after another instance takes its lease", async () => {
@@ -481,16 +443,16 @@ it("an expired worker cannot publish or spend after another instance takes its l
   await expect(
     a.change((c) => {
       a.assert(c);
-      return { result: true, payload: { key: "auctions", value: "partial" } };
+      return { result: true, payload: { key: "bazaar", value: "partial" } };
     }),
   ).rejects.toThrow("lease lost");
   await expect(a.charge("old-worker", false)).rejects.toThrow("lease lost");
-  expect(await a.store.read("auctions")).toBeNull();
+  expect(await a.store.read("bazaar")).toBeNull();
   await b.change((c) => {
     b.assert(c);
-    return { result: true, payload: { key: "auctions", value: "complete" } };
+    return { result: true, payload: { key: "bazaar", value: "complete" } };
   });
-  expect(await a.store.read("auctions")).toBe("complete");
+  expect(await a.store.read("bazaar")).toBe("complete");
 });
 it("network retries spend the shared reserve and use bounded backoff", async () => {
   vi.useFakeTimers();
@@ -501,7 +463,7 @@ it("network retries spend the shared reserve and use bounded backoff", async () 
     .mockRejectedValueOnce(new Error("network interrupted"))
     .mockResolvedValueOnce(new Response("{}", { status: 503 }))
     .mockResolvedValue(new Response('{"success":true}'));
-  const work = co.fetchJson("skyblock/auctions?page=0", network);
+  const work = co.fetchJson("skyblock/bazaar", network);
   await vi.advanceTimersByTimeAsync(2000);
   await expect(work).resolves.toMatchObject({ data: { success: true } });
   expect(network).toHaveBeenCalledTimes(3);
@@ -524,13 +486,13 @@ it("uses store time for distributed leases and budgets despite host clock skew",
   expect(await b.acquire()).toBe(true);
   await expect(a.charge("page=1", false)).rejects.toThrow("lease lost");
 });
-it("failed pagination drains concurrent pages, retains data and retries after backoff", async () => {
+it("failed Bazaar refresh retains data and retries after backoff", async () => {
   let now = Date.now(),
     fail = false;
   const good = upstream(() => now),
     policy = { ...defaultPolicy, maxRetries: 0 };
   const fetcher = vi.fn(async (url: string | URL | Request) =>
-    fail && String(url).endsWith("page=1")
+    fail && String(url).endsWith("/bazaar")
       ? new Response("{}", { status: 503 })
       : good(url),
   );
@@ -542,11 +504,11 @@ it("failed pagination drains concurrent pages, retains data and retries after ba
     () => 0,
   );
   await c.tick();
-  const prior = await c.store.read("auctions");
+  const prior = await c.store.read("bazaar");
   now += 120001;
   fail = true;
   await c.tick();
-  expect(await c.store.read("auctions")).toBe(prior);
+  expect(await c.store.read("bazaar")).toBe(prior);
   expect((await c.status()).error).toContain("503");
   const count = fetcher.mock.calls.length;
   await c.tick();
@@ -556,12 +518,7 @@ it("failed pagination drains concurrent pages, retains data and retries after ba
   await c.tick();
   expect((await c.status()).error).toBeNull();
 });
-it("interval planning includes actual page count, cadence, fetch duration and a 20% reserve", () => {
-  expect(auctionInterval(defaultPolicy, 43, 18000)).toBe(145000);
-  expect(
-    auctionInterval({ ...defaultPolicy, requestLimit: 300 }, 43, 18000),
-  ).toBe(120000);
-  expect(auctionInterval(defaultPolicy, 43, 200000)).toBe(205000);
+it("configuration preserves the protective upstream reserve", () => {
   vi.stubEnv("HYPIXEL_RESERVE", "0.19");
   expect(() => configuredPolicy()).toThrow("reserve");
 });

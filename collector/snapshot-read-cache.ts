@@ -1,6 +1,6 @@
 import type { Snapshot } from "./engine";
 
-const keys = new Set(["catalog", "election", "bazaar", "auctions"]);
+const keys = new Set(["catalog", "election", "bazaar"]);
 function freeze(value: any): any {
   if (value && typeof value === "object" && !Object.isFrozen(value)) {
     Object.freeze(value);

@@ -45,7 +45,7 @@ import {
   type HoldingNotification,
   type NotificationInput,
 } from "../../shared/companion/notifications";
-import type { BazaarItem, Listing } from "../../shared/companion/types";
+import type { BazaarItem } from "../../shared/companion/types";
 import HoldingEditor from "./HoldingEditor";
 import NotificationEditor from "./NotificationEditor";
 import "./portfolio.css";
@@ -238,7 +238,7 @@ export default function PortfolioApp() {
             ) : (
               <section className="intro">
                 <div>
-                  <p className="eyebrow">BAZAAR + AUCTION HOUSE</p>
+                  <p className="eyebrow">SKYBLOCK BAZAAR</p>
                   <h1>
                     Your SkyBlock portfolio.
                     <br />
@@ -344,7 +344,6 @@ function Workspace({
     [notice, setNotice] = useState(""),
     [reload, setReload] = useState(0);
   const [bazaar, setBazaar] = useState<BazaarItem[]>([]),
-    [auctions, setAuctions] = useState<Listing[]>([]),
     [now, setNow] = useState(Date.now()),
     [marketError, setMarketError] = useState(""),
     [emailEnabled, setEmailEnabled] = useState(false);
@@ -429,7 +428,7 @@ function Workspace({
       alive = false;
     };
   }, [selected?.id, user, reload, route.view]);
-  const priceAssets = holdings.map(h=>h.id).sort().join(',');
+  const priceAssets = holdings.filter(h=>h.kind==='bazaar').map(h=>h.id).sort().join(',');
   useEffect(() => {
     if (!priceAssets || route.view !== "portfolios") return;
     return visiblePortfolioPresence(user,priceAssets.split(','));
@@ -441,7 +440,6 @@ function Workspace({
         const r = await portfolioMarket(priceAssets.split(','),signal);
         if (!signal.aborted) {
           setBazaar(r.bazaar);
-          setAuctions(r.listings);
           setMarketError('');
         }
       } catch (e) {
@@ -458,7 +456,7 @@ function Workspace({
     totals = portfolioTotals(
       holdings,
       bazaar,
-      auctions,
+      [],
       now,
       paused || fixtureMode,
     );
@@ -780,7 +778,7 @@ function Workspace({
                     </div>
                     {!!holdings.length && <p className="muted" role="status">
                       {paused ? 'Price collection paused.' : `Bazaar checks every ${Math.ceil((pollingDirective().bazaarMs??pollingDirective().pollMs)/60_000)} minutes while portfolios are visible.`}
-                      {' Auction House updates paused. Each price keeps its source time; samples older than three minutes are stale.'}
+                      {' Each price keeps its source time; samples older than three minutes are stale.'}
                     </p>}
                     {removal && (
                       <section
@@ -930,7 +928,7 @@ function Workspace({
                         <SkyIcon name="bazaar-crate" size={48} />
                         <div>
                           <h3>No holdings yet</h3>
-                          <p>Add a Bazaar item or Auction House asset.</p>
+                          <p>Add a Bazaar item.</p>
                         </div>
                       </section>
                     ) : (
@@ -995,7 +993,7 @@ function Workspace({
                                         {h.name}
                                       </span>
                                       <span className="holding-market">
-                                        {h.kind === "bazaar" ? "BZ" : "AH"}
+                                        {h.kind === "bazaar" ? "BZ" : "Unsupported"}
                                       </span>
                                     </button>
                                   </th>
@@ -1054,7 +1052,7 @@ function Workspace({
                                         <b>{h.name}</b> ·{" "}
                                         {h.kind === "bazaar"
                                           ? "Bazaar"
-                                          : `Auction House · stack of ${h.stackSize}`}{" "}
+                                          : "Unsupported saved asset"}{" "}
                                         · {exact(h.quantity)}{" "}
                                         {h.kind === "auction"
                                           ? "stacks"
@@ -1092,26 +1090,8 @@ function Workspace({
                                         </dl>
                                         <p className="reference">
                                           {v.reference}
-                                          {h.kind === "auction" &&
-                                            ` · ${v.comparables} comparable listings`}
                                         </p>
-                                        {h.kind === "auction" ? (
-                                          <>
-                                            <pre>{h.configuration}</pre>
-                                            <p>
-                                              At least three exact-configuration
-                                              listings are required. The cache
-                                              supplies up to 20 of the lowest
-                                              matching asks. Units here are
-                                              complete stacks, never
-                                              extrapolated individual items.
-                                            </p>
-                                            {v.uncertainty.map((r, i) => (
-                                              <p key={i}>{r}</p>
-                                            ))}
-                                            <p>{v.liquidationReason}</p>
-                                          </>
-                                        ) : v.liquidation ? (
+                                        {v.liquidation ? (
                                           <p>
                                             Full-quantity{" "}
                                             {v.freshness === "stale"
@@ -1137,13 +1117,13 @@ function Workspace({
                                       <div className="holding-bottom">
                                         <span className="notification-status">
                                           <Bell size={15} />
-                                          {notification
+                                          {h.kind !== "bazaar" ? "Monitoring unavailable for this saved asset" : notification
                                             ? `${notification.enabled ? "Enabled" : "Paused"} · ${notification.up === null ? "" : `↑ ${notification.up}% `}${notification.down === null ? "" : `↓ ${notification.down}% `} · baseline ${exact(notificationBaseline(notification, h))}`
                                             : "Notifications off"}
                                         </span>
                                         <div className="actions">
                                           <button
-                                            disabled={busy}
+                                            disabled={busy || h.kind !== "bazaar"}
                                             onClick={() =>
                                               setEditor({
                                                 mode: "purchase",
@@ -1154,7 +1134,7 @@ function Workspace({
                                             Add purchase
                                           </button>
                                           <button
-                                            disabled={busy}
+                                            disabled={busy || h.kind !== "bazaar"}
                                             onClick={() =>
                                               setEditor({
                                                 mode: "edit",
@@ -1165,7 +1145,7 @@ function Workspace({
                                             Edit
                                           </button>
                                           <button
-                                            disabled={busy}
+                                            disabled={busy || h.kind !== "bazaar"}
                                             onClick={() => {
                                               setNotificationEditor(h);
                                               setEditor(null);

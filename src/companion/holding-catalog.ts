@@ -1,10 +1,9 @@
 import bazaarRows from "./bazaar-catalog.json";
-import auctionRows from "./auction-catalog.json";
 
 export interface HoldingCatalogItem {
   id: string;
   name: string;
-  kind: "bazaar" | "auction";
+  kind: "bazaar";
 }
 
 const normalize = (value: string) =>
@@ -18,7 +17,6 @@ const normalize = (value: string) =>
 
 const catalog: HoldingCatalogItem[] = [
   ...bazaarRows.map(([id, name]) => ({ id, name, kind: "bazaar" as const })),
-  ...auctionRows.map(([id, name]) => ({ id, name, kind: "auction" as const })),
 ];
 const byId = new Map(catalog.map((item) => [item.id, item]));
 const searchable = catalog.map((item) => ({

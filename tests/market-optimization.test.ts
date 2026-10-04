@@ -75,7 +75,7 @@ it("snapshot CAS rejects lease expiry during upload and preserves the last compl
   const f = offlineGoogle(() => now),
     store = trialGoogleStore(f.config),
     owner = new Coordinator(store, defaultPolicy);
-  f.snapshot("auctions", raw("old"));
+  f.snapshot("bazaar", raw("old"));
   await owner.acquire();
   const old = await store.read("control");
   const put = store.blobs.put;
@@ -85,11 +85,11 @@ it("snapshot CAS rejects lease expiry during upload and preserves the last compl
   };
   expect(
     await store.commit("control", old, old!, {
-      key: "auctions",
+      key: "bazaar",
       value: raw("late"),
     }),
   ).toBe(false);
-  expect(JSON.parse((await store.read("auctions"))!).version).toBe("old");
+  expect(JSON.parse((await store.read("bazaar"))!).version).toBe("old");
   expect(f.objects.size).toBe(2); // Uncertain/staged upload kept for bounded cleanup.
 });
 
@@ -97,18 +97,18 @@ it("cache coalesces one immutable generation, invalidates, bounds memory and iso
   const cache = new SnapshotReadCache(200),
     load = vi.fn(async () => raw("one"));
   const all = await Promise.all(
-    Array.from({ length: 30 }, () => cache.read("auctions", "one", load)),
+    Array.from({ length: 30 }, () => cache.read("bazaar", "one", load)),
   );
   expect(load).toHaveBeenCalledOnce();
   expect(all.every((s) => s === all[0])).toBe(true);
   expect(() => (all[0]!.data as any).nested.push("mutation")).toThrow();
-  await cache.read("auctions", "two", async () => raw("two"));
-  expect((await cache.read("auctions", "two", load))!.version).toBe("two");
+  await cache.read("bazaar", "two", async () => raw("two"));
+  expect((await cache.read("bazaar", "two", load))!.version).toBe("two");
   await cache.read("bazaar", "one", load);
   expect(cache.retainedBytes).toBeLessThanOrEqual(200);
   const large = vi.fn(async () => raw("x".repeat(300)));
-  await cache.read("auctions", "large", large);
-  await cache.read("auctions", "large", large);
+  await cache.read("bazaar", "large", large);
+  await cache.read("bazaar", "large", large);
   expect(large).toHaveBeenCalledTimes(2);
   expect(cache.retainedBytes).toBeLessThanOrEqual(200);
   const separate = new SnapshotReadCache();
@@ -126,27 +126,27 @@ it("an in-flight old generation cannot satisfy a new generation; failed loads ar
   const cache = new SnapshotReadCache();
   let release!: (s: string) => void;
   const old = cache.read(
-    "auctions",
+    "bazaar",
     "old",
     () =>
       new Promise<string>((resolve) => {
         release = resolve;
       }),
   );
-  const latest = cache.read("auctions", "new", async () => raw("new"));
+  const latest = cache.read("bazaar", "new", async () => raw("new"));
   release(raw("old"));
   expect((await old)!.version).toBe("old");
   expect((await latest)!.version).toBe("new");
   await expect(
-    cache.read("auctions", "failure", async () => {
+    cache.read("bazaar", "failure", async () => {
       throw new Error("download failed");
     }),
   ).rejects.toThrow("download failed");
   expect(
-    (await cache.read("auctions", "failure", async () => raw("recovered")))!
+    (await cache.read("bazaar", "failure", async () => raw("recovered")))!
       .version,
   ).toBe("recovered");
-  expect(await cache.read("auctions", "removed", async () => null)).toBeNull();
+  expect(await cache.read("bazaar", "removed", async () => null)).toBeNull();
   expect(cache.retainedBytes).toBe(0);
 });
 
@@ -193,7 +193,7 @@ function runtimeFixture() {
     }),
   );
   f.snapshot(
-    "auctions",
+    "bazaar",
     JSON.stringify({
       version: "one",
       observedAt: now,
@@ -280,8 +280,8 @@ it("every ordinary API route stays inside the smaller miss reservation, includin
     "/api/market",
     "/api/companion/auctions",
     "/api/companion/status",
-    `/api/companion/auctions/${"a".repeat(32)}`,
-    `/api/companion/auctions/${"a".repeat(32)}/check`,
+    `/api/companion/bazaar/${"a".repeat(32)}`,
+    `/api/companion/bazaar/${"a".repeat(32)}/check`,
     "/api/companion/auctions?filters=bad-json",
     "/api/companion/bazaar?refresh=true",
     "/api/companion/unknown",
@@ -453,7 +453,7 @@ it("larger upstream bodies stop at 128 MiB and retain the entire durable failed-
   const network = session.network(transport);
   const consume = async () => {
     const response = await network(
-      "https://api.hypixel.net/v2/skyblock/auctions?page=0",
+      "https://api.hypixel.net/v2/skyblock/bazaar",
     );
     const reader = response.body!.getReader();
     try {

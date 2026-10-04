@@ -28,7 +28,7 @@ export function collectionEnvelope(profile: CollectionProfile): Counters {
 
 export const LIVE_HOUR = MARKET_HOUR;
 const collectionInterval = (now: number) => hourlyTrialActive(now) ? LIVE_HOUR : MARKET_REFRESH_MS;
-export const livePolicy = { ...defaultPolicy, bazaarMs: MARKET_REFRESH_MS, auctionMinMs: LIVE_HOUR,
+export const livePolicy = { ...defaultPolicy, bazaarMs: MARKET_REFRESH_MS,
   electionMs: LIVE_HOUR };
 export interface LiveAllowanceState {
   version: 1; id: string; startsAt: number; expiresAt: number;
@@ -247,7 +247,7 @@ class LiveSession extends TrialSession {
     if(this.cadence)return {...base,pollMs:this.cadence.pollMs,bazaarMs:this.cadence.bazaarMs,auctionMs:this.cadence.auctionMs,
       reason:this.cadence.reasons.join('; ')||'Collection follows verified free-tier capacity'};
     return { ...base, pollMs: collectionInterval(base.serverNow),
-      reason: (trial?`Hourly test until ${new Date(HOURLY_TRIAL_END).toISOString()}. `:'Five-minute Bazaar collection; auction collection is disabled. ')+APP_BUDGET_PAUSE_DESCRIPTION };
+      reason: (trial?`Hourly test until ${new Date(HOURLY_TRIAL_END).toISOString()}. `:'Five-minute Bazaar collection; only Bazaar collection is supported. ')+APP_BUDGET_PAUSE_DESCRIPTION };
   }
 }
 // Only an admitted, fully accounted invocation may recover from a transport

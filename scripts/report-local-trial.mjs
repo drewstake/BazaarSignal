@@ -38,7 +38,6 @@ const summary = {
     physicalHypixelRequestsPerHour: c.physicalHypixelRequests * 3600 / seconds,
     physicalHypixelRequests31Days: c.physicalHypixelRequests * factor,
     bazaarRefreshesPerHour: c.bazaarRefreshesCompleted * 3600 / seconds,
-    auctionRefreshesPerHour: c.auctionsRefreshesCompleted * 3600 / seconds,
     publications31Days: c.changedSnapshotPublications * factor,
     classAWith56OnePageCleanupsDaily31Days: c.changedSnapshotPublications * factor + 56 * 31,
     classAPercentOf5000: (c.changedSnapshotPublications * factor + 56 * 31) / 5000 * 100,

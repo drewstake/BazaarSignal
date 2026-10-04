@@ -1,9 +1,7 @@
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex } from "@noble/hashes/utils.js";
-import { isFresh, isValidSample } from "../market";
 import { validPosition, valuePosition, type Position } from "./positions";
-import { valueActiveListings } from "./active-auctions";
-import type { BazaarItem, ItemVariant, Json, Listing } from "./types";
+import type { BazaarItem, ItemVariant, Json } from "./types";
 
 export interface Portfolio {
   id: string;
@@ -13,7 +11,7 @@ export interface Portfolio {
   revision: number;
   deleted: boolean;
 }
-// Auction quantity is the number of identical stacks owned. Cost is per stack.
+// Legacy auction records remain readable/deletable, but cannot be priced or monitored.
 export interface Asset {
   kind: "bazaar" | "auction";
   configuration: string;
@@ -86,6 +84,7 @@ function utf8(text: string) {
   }
   return Uint8Array.from(bytes);
 }
+/** Compatibility validation for saved records only. Not a supported market asset. */
 export function auctionVariant(
   itemId: string,
   name: string,
@@ -197,7 +196,7 @@ export interface HoldingValue {
 export function valueHolding(
   holding: Holding,
   bazaar: BazaarItem[],
-  auctions: Listing[],
+  retiredListings: unknown[],
   now = Date.now(),
   lastKnown = false,
 ): HoldingValue {
@@ -214,90 +213,25 @@ export function valueHolding(
       comparables: null,
       uncertainty: [],
     };
-  const unavailable: HoldingValue = {
+  return {
     referencePrice: null,
     value: null,
     pnl: null,
     returnPercent: null,
     sampledAt: null,
     freshness: "unavailable",
-    source: "auction-exact-lowest-ask-v1",
-    reference: "Lowest exact-variant BIN asking price per stack",
+    source: "unsupported-asset",
+    reference: "This saved asset is no longer supported.",
     liquidation: null,
-    liquidationReason:
-      "Auction asking prices are not executable liquidation proceeds.",
-    comparables: 0,
-    uncertainty: [
-      "Insufficient exact-variant comparables. Sale prices are not guaranteed.",
-    ],
-  };
-  if (!validPortfolioHolding(holding)) return unavailable;
-  const variant = auctionVariant(
-    holding.itemId,
-    holding.name,
-    holding.stackSize,
-    holding.configuration,
-  );
-  const matching = auctions.filter(
-    (l) =>
-      l.variant.complete &&
-      l.variant.fingerprint === variant.fingerprint &&
-      l.variant.itemId === variant.itemId &&
-      l.variant.quantity === variant.quantity &&
-      l.variant.rarity === variant.rarity &&
-      isValidSample(l.upstreamAt, now) &&
-      isValidSample(l.observedAt, now) &&
-      isFresh(l.upstreamAt, l.observedAt),
-  );
-  if (!matching.length) return unavailable;
-  const stamp = Math.max(...matching.map((l) => l.upstreamAt));
-  const pool = matching.filter((l) => l.upstreamAt === stamp);
-  const observed = Math.max(...pool.map((l) => l.observedAt));
-  // A synthetic comparison subject is never a price: only actual exact asks enter the utility.
-  const subject: Listing = {
-    id: "portfolio-reference",
-    variant,
-    price: 1,
-    start: stamp,
-    end: observed + 1,
-    upstreamAt: stamp,
-    observedAt: observed,
-    status: "active",
-  };
-  const comparison = valueActiveListings(subject, pool, observed);
-  if (comparison.count < 3 || comparison.estimate === null)
-    return { ...unavailable, sampledAt: stamp, comparables: comparison.count };
-  const price = comparison.estimate,
-    value = price * holding.quantity;
-  if (!Number.isFinite(value) || value > Number.MAX_SAFE_INTEGER)
-    return unavailable;
-  const pnl = value - holding.costBasis;
-  return {
-    ...unavailable,
-    referencePrice: price,
-    value,
-    pnl,
-    returnPercent: (pnl / holding.costBasis) * 100,
-    sampledAt: stamp,
-    freshness:
-      lastKnown || !isFresh(stamp, now) || pool.some((l) => l.end <= now)
-        ? "stale"
-        : "fresh",
-    comparables: comparison.count,
-    uncertainty: [
-      `${comparison.confidence} confidence; asking prices, not completed sales.`,
-      ...comparison.reasons.filter(
-        (r) =>
-          !r.startsWith("Conservative resale") &&
-          !r.startsWith("Asking prices"),
-      ),
-    ],
+    liquidationReason: "Only Bazaar holdings receive price updates.",
+    comparables: null,
+    uncertainty: [],
   };
 }
 export function portfolioTotals(
   holdings: Holding[],
   bazaar: BazaarItem[],
-  auctions: Listing[],
+  retiredListings: unknown[],
   now = Date.now(),
   lastKnown = false,
 ) {
@@ -305,7 +239,7 @@ export function portfolioTotals(
     .filter((h) => !h.deleted)
     .map((holding) => ({
       holding,
-      valuation: valueHolding(holding, bazaar, auctions, now, lastKnown),
+      valuation: valueHolding(holding, bazaar, retiredListings, now, lastKnown),
     }));
   const priced = rows.filter((r) => r.valuation.value !== null);
   const costBasis = rows.reduce((sum, r) => sum + r.holding.costBasis, 0),

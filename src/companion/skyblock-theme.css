@@ -345,11 +345,6 @@
   filter: drop-shadow(0 2px 0 #000a);
   transition: transform 0.15s;
 }
-.market-tabs .sky-auction-gavel {
-  width: 40px;
-  height: 40px;
-  margin: -10px -4px;
-}
 .market-tabs > button:hover .tab-icon,
 .market-tabs > a:hover .tab-icon,
 .market-tabs > :focus-visible .tab-icon {

@@ -42,7 +42,6 @@ try {
   const report = {
     measuredAt: new Date().toISOString(),
     requests,
-    auctions: await collector.status(),
     bazaar: await collector.status("bazaar"),
   };
   mkdirSync(".local", { recursive: true });

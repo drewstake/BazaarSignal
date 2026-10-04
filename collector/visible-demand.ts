@@ -3,7 +3,7 @@ import type { Demand } from './portfolio-demand';
 
 export interface VisibleLease { owner: string; assets: string[]; expiresAt: number }
 export type VisibleDemand = Record<string, VisibleLease>;
-export const validAssetKey = (id: string) => /^bz_[A-Za-z0-9_:-]{1,100}$|^v1_[a-f0-9]{64}$/.test(id);
+export const validAssetKey = (id: string) => /^bz_[A-Za-z0-9_:-]{1,100}$/.test(id);
 
 /** Authenticated presence is a separate mutation; cache GETs never create demand.
  * Store only hashed principals and public asset keys, never portfolio contents.
@@ -27,6 +27,5 @@ export function changeVisibleDemand(previous: VisibleDemand | undefined, uid: st
 export function visibleDemand(leases: VisibleDemand | undefined, now: number): Demand {
   const assets=new Set(Object.values(leases??{}).filter(v=>v.expiresAt>now).flatMap(v=>v.assets));
   return {version:1,sampledAt:now,complete:true,
-    bazaar:[...assets].filter(id=>id.startsWith('bz_')).map(id=>id.slice(3)).sort(),
-    auctions:[...assets].filter(id=>id.startsWith('v1_')).sort()};
+    bazaar:[...assets].filter(id=>id.startsWith('bz_')).map(id=>id.slice(3)).sort()};
 }

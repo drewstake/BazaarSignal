@@ -72,7 +72,8 @@ export interface CapacityPlan {
     source: string; verifiedAt: number; scopeComplete: boolean;
     requestLimit: number; windowMs: number; reserve: number;
     bazaarSourceMs: number; bazaarDurationMs: number;
-    auctionSourceMs: number; auctionDurationMs: number; auctionPages: number;
+    /** Older plans can retain these historical measurements; no auction work is admitted. */
+    auctionSourceMs?: number; auctionDurationMs?: number; auctionPages?: number;
   };
 }
 export interface LegacyCapacity {
@@ -112,7 +113,7 @@ export function capacityProblems(p: CapacityPlan | undefined, now: number): stri
   if(Object.keys(p.meters??{}).some(key=>!Object.hasOwn(capacityMeters,key)))issues.push('Unclassified allowance dimension');
   const u = p.upstream;
   if (!u || !u.source || !u.scopeComplete || !Number.isFinite(u.verifiedAt) || u.verifiedAt > now || now-u.verifiedAt>900_000 ||
-    ![u.requestLimit,u.windowMs,u.bazaarSourceMs,u.bazaarDurationMs,u.auctionSourceMs,u.auctionDurationMs,u.auctionPages].every(n => nonnegative(n) && n > 0) ||
+    ![u.requestLimit,u.windowMs,u.bazaarSourceMs,u.bazaarDurationMs].every(n => nonnegative(n) && n > 0) ||
     u.reserve < .2 || u.reserve > .8 || !Number.isFinite(u.reserve)) issues.push('Verified upstream entitlement, shared usage and source timing are required');
   return issues;
 }
@@ -122,7 +123,7 @@ export function capacityProblems(p: CapacityPlan | undefined, now: number): stri
  * potential OPTIONS per reader group. Retried network work is in the envelopes.
  * Steady-state daily windows are independently checked over a 25-hour DST day. */
 export function chooseCadence(p: CapacityPlan | undefined, legacy: LegacyCapacity,
-  collector: Counters, browser: Counters, now: number, auctions = false): CadenceDecision {
+  collector: Counters, browser: Counters, now: number): CadenceDecision {
   const reasons = capacityProblems(p, now);
   const paused = (why: string[]): CadenceDecision => ({mode:'paused',bazaarMs:0,auctionMs:0,pollMs:0,reasons:why,projections:[]});
   if (reasons.length) return paused(reasons);
@@ -134,7 +135,6 @@ export function chooseCadence(p: CapacityPlan | undefined, legacy: LegacyCapacit
     // an additional maximum, and every probe/retry/metadata request is included.
     const upstreamCalls = Math.ceil(Math.max(300_000,u.windowMs)/interval) * (collector.hypixelRequests ?? 0);
     if (interval < Math.max(60_000,u.bazaarSourceMs,u.bazaarDurationMs+5000) ||
-      (auctions && interval < Math.max(120_000,u.auctionSourceMs,u.auctionDurationMs+5000)) ||
       upstreamCalls > Math.min(96,Math.floor(u.requestLimit*(1-u.reserve)))) continue;
     const projections: CadenceDecision['projections'] = [];
     failures=[];
@@ -157,7 +157,7 @@ export function chooseCadence(p: CapacityPlan | undefined, legacy: LegacyCapacit
       if ((limit===0?total>0:total>=ceiling) || (period==='daily' && (limit===0?fullDay>0:fullDay>=ceiling))) failures.push(`app-${period}-${key}`);
     }
     if (!failures.length) return {mode:interval<=90_000?'normal':'slow',bazaarMs:interval,
-      auctionMs:auctions?interval:0,pollMs:interval,reasons:interval>90_000?['Slower cadence required by separate allowance projections']:[],projections};
+      auctionMs:0,pollMs:interval,reasons:interval>90_000?['Slower cadence required by separate allowance projections']:[],projections};
   }
   return paused(failures.length?failures.map(k=>`No sustainable cadence: ${k}`):['Upstream limits do not support a reviewed cadence']);
 }

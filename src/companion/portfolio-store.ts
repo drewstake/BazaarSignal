@@ -220,6 +220,8 @@ export async function saveHolding(
   portfolioId: string,
   change: HoldingChange,
 ) {
+  if (change.kind !== 'bazaar' && change.mode !== 'delete')
+    throw new Error('Only Bazaar holdings are supported. Saved unsupported holdings can be removed.');
   const { database, check } = portfolioSession(uid),
     id = assetId(change.itemId, change),
     parent = doc(database, "users", uid, "portfolios", pathId(portfolioId)),

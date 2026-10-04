@@ -5,11 +5,7 @@ import {
   quantityFromCostInput,
   type CostMode,
 } from "../../shared/companion/positions";
-import {
-  assetId,
-  auctionVariant,
-  type Holding,
-} from "../../shared/companion/portfolio";
+import { assetId, type Holding } from "../../shared/companion/portfolio";
 import type { HoldingChange } from "./portfolio-store";
 import { exact, ItemArt } from "./components";
 import HoldingSearch from "./HoldingSearch";
@@ -28,9 +24,7 @@ export default function HoldingEditor({
   save: (change: HoldingChange) => Promise<void>;
   cancel: () => void;
 }) {
-  const [itemId, setId] = useState(holding?.itemId ?? ""),
-    [name, setName] = useState(holding?.name ?? ""),
-    [manual, setManual] = useState(false);
+  const [itemId, setId] = useState(holding?.itemId ?? "");
   const [quantity, setQuantity] = useState(
       mode === "edit" ? String(holding!.quantity) : "",
     ),
@@ -43,11 +37,7 @@ export default function HoldingEditor({
   const [quantityMode, setQuantityMode] = useState("manual"),
     [averageCost, setAverageCost] = useState(""),
     [totalSpent, setTotalSpent] = useState("");
-  const [stack, setStack] = useState(String(holding?.stackSize ?? 1)),
-    [rarity, setRarity] = useState("LEGENDARY"),
-    [enchantments, setEnchantments] = useState("{}"),
-    [modifiers, setModifiers] = useState("{}"),
-    [submitted, setSubmitted] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     heading.current?.focus();
@@ -56,23 +46,15 @@ export default function HoldingEditor({
     inferred = quantityFromCostInput(averageCost, totalSpent),
     input = calculated ? inferred : positionInput(quantity, cost, costMode),
     selected = holdingCatalogItem(itemId),
-    kind = holding?.kind ?? selected?.kind ?? (manual ? "auction" : "bazaar");
+    kind = "bazaar" as const;
   let configuration = holding?.configuration ?? "",
     error = input.error ?? "",
     combined: ReturnType<typeof addPurchase> | null = null;
   try {
-    if (!holding && !selected && !manual)
+    if (!holding && !selected)
       throw new Error("Choose an item from the search results.");
-    if (kind === "auction") {
-      if (!holding)
-        configuration = JSON.stringify({
-          rarity,
-          enchantments: JSON.parse(enchantments),
-          modifiers: JSON.parse(modifiers),
-        });
-      auctionVariant(itemId, name, Number(stack), configuration);
-      if (!name.trim()) throw new Error("Enter the item name.");
-    }
+    if (holding && holding.kind !== "bazaar")
+      throw new Error("This saved asset is no longer supported.");
     if (mode === "purchase" && !input.error)
       combined = addPurchase(holding!, input);
   } catch (e) {
@@ -114,14 +96,14 @@ export default function HoldingEditor({
     const asset = {
       kind,
       configuration,
-      stackSize: kind === "bazaar" ? 1 : Number(stack),
+      stackSize: 1,
     };
     assetId(itemId, asset);
     await save({
       ...asset,
       mode,
       itemId,
-      name: holding?.name ?? (kind === "bazaar" ? selected!.name : name.trim()),
+      name: holding?.name ?? selected!.name,
       quantity: input.quantity,
       costBasis: input.costBasis,
       expected: holding,
@@ -159,114 +141,14 @@ export default function HoldingEditor({
             <HoldingSearch
               onSelect={(item) => {
                 setId(item?.id ?? "");
-                setName(item?.name ?? "");
-                setManual(false);
                 setSubmitted(false);
-                setStack("1");
-                setRarity("LEGENDARY");
-                setEnchantments("{}");
-                setModifiers("{}");
-              }}
-              onCustom={(query) => {
-                setId("");
-                setName(query.trim());
-                setManual(true);
-                setSubmitted(false);
-                setStack("1");
-                setRarity("LEGENDARY");
-                setEnchantments("{}");
-                setModifiers("{}");
               }}
             />
-            {selected && !manual && (
+            {selected && (
               <div className="selected-holding-item asset-title">
                 <ItemArt id={selected.id} size="small" />
                 <strong>{selected.name}</strong>
-                <span className="market-badge">
-                  {kind === "bazaar" ? "Bazaar" : "Auction House"}
-                </span>
-              </div>
-            )}
-            {manual && (
-              <div className="form-grid">
-                <label>
-                  SkyBlock item ID
-                  <input
-                    autoFocus
-                    value={itemId}
-                    onChange={(e) => setId(e.target.value.trim().toUpperCase())}
-                    placeholder="NECRON_HANDLE"
-                  />
-                </label>
-                <label>
-                  Item name
-                  <input
-                    maxLength={140}
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </label>
-              </div>
-            )}
-            {kind === "auction" && (
-              <div className="auction-configuration">
-                <div className="form-grid">
-                  <label>
-                    Items in each identical stack
-                    <input
-                      inputMode="numeric"
-                      value={stack}
-                      onChange={(e) => setStack(e.target.value)}
-                    />
-                  </label>
-                  <label>
-                    Rarity
-                    <select
-                      aria-label="Rarity"
-                      value={rarity}
-                      onChange={(e) => setRarity(e.target.value)}
-                    >
-                      {[
-                        "COMMON",
-                        "UNCOMMON",
-                        "RARE",
-                        "EPIC",
-                        "LEGENDARY",
-                        "MYTHIC",
-                        "DIVINE",
-                        "SPECIAL",
-                        "VERY_SPECIAL",
-                      ].map((r) => (
-                        <option key={r}>{r}</option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-                <p>
-                  Define the exact asset configuration. Include every
-                  enchantment and normalized modifier (reforge, upgrades, pet
-                  details, attributes, skins). Empty objects mean none.
-                  Different configurations and stack sizes are separate
-                  holdings.
-                </p>
-                <label>
-                  Enchantments (JSON object)
-                  <textarea
-                    value={enchantments}
-                    onChange={(e) => setEnchantments(e.target.value)}
-                    placeholder={'{"sharpness": 5}'}
-                  />
-                </label>
-                <label>
-                  Modifiers (JSON object)
-                  <textarea
-                    value={modifiers}
-                    onChange={(e) => setModifiers(e.target.value)}
-                    placeholder={
-                      '{"modifier": "withered", "hot_potato_count": 10}'
-                    }
-                  />
-                </label>
+                <span className="market-badge">Bazaar</span>
               </div>
             )}
           </>
@@ -304,11 +186,7 @@ export default function HoldingEditor({
           ) : (
             <>
               <label>
-                {mode === "purchase"
-                  ? "Additional quantity"
-                  : kind === "auction"
-                    ? "Identical stacks owned"
-                    : "Quantity owned"}
+                {mode === "purchase" ? "Additional quantity" : "Quantity owned"}
                 <input
                   inputMode="numeric"
                   value={quantity}
@@ -347,12 +225,11 @@ export default function HoldingEditor({
           {calculated
             ? " Quantity = total coins spent ÷ average purchase price, rounded to the nearest whole quantity."
             : ""}
-          {kind === "auction" ? " Average price is per identical stack." : ""}
         </p>
         <div className="derived" aria-live="polite">
           {calculated ? (
             <>
-              Calculated {kind === "auction" ? "identical stacks" : "quantity"}:{" "}
+              Calculated quantity:{" "}
               <strong>{input.error ? "—" : exact(input.quantity)}</strong>
               {!inferred.error && inferred.rounded && (
                 <p className="muted">

@@ -4,7 +4,7 @@ import { MarketCollector, message } from "./engine";
 import { parseSampledMarket } from "../apps-script/core";
 
 export type MarketResponder = (req: IncomingMessage, res: ServerResponse, status: number, body?: unknown) => Promise<void>;
-export const retiredMarketRoute = (path: string) => path === '/api/companion/player-names' || /^\/api\/companion\/auctions(?:\/|$)/.test(path);
+export const retiredMarketRoute = (path: string) => path === '/api/companion/player-names' || path === '/api/companion/portfolio-auctions' || /^\/api\/companion\/auctions(?:\/|$)/.test(path);
 export const respondMarket: MarketResponder = async (req,res,status,body) => {
   if(body === undefined){res.writeHead(status).end();return;}
   const json=JSON.stringify(body),etag=`"${createHash("sha256").update(json).digest("hex")}"`;
@@ -55,7 +55,7 @@ export function marketHandler(collector: MarketCollector, respond: MarketRespond
       if ((req.url?.length ?? 0) > 10000) throw new Error("Query too long");
       let body: unknown;
       if (retiredMarketRoute(url.pathname)) {
-        await respond(req,res,410,{error:"Auction discovery has retired. Use portfolio valuation references."});return;
+        await respond(req,res,410,{error:"Auction House support has been removed. Only Bazaar prices are available."});return;
       }
       if (url.searchParams.has("force") || url.searchParams.has("refresh")) {
         await respond(req,res,400,{
@@ -66,10 +66,10 @@ export function marketHandler(collector: MarketCollector, respond: MarketRespond
       }
       if (url.pathname === "/api/companion/bazaar")
         body = await collector.bazaar();
-      else if (url.pathname === '/api/companion/portfolio-auctions' || url.pathname === '/api/companion/portfolio-prices') {
+      else if (url.pathname === '/api/companion/portfolio-prices') {
         const assets=[...new Set((url.searchParams.get('assets')??'').split(',').filter(Boolean))].sort();
         if(assets.length>100||assets.some(id=>!/^v1_[a-f0-9]{64}$|^bz_[A-Za-z0-9_:-]{1,100}$/.test(id)))throw new Error('Invalid asset keys.');
-        body=url.pathname.endsWith('portfolio-auctions')?await collector.portfolioAuctions(assets):await collector.portfolioPrices(assets);
+        body=await collector.portfolioPrices(assets);
       }
       else if (url.pathname === "/api/companion/raw-bazaar")
         body = await collector.rawBazaar();
@@ -100,11 +100,8 @@ export function marketHandler(collector: MarketCollector, respond: MarketRespond
             error: status.error,
           },
         };
-      } else if (url.pathname === "/api/companion/auctions") {
-        await respond(req,res,410,{error:'Auction discovery has retired. Use portfolio valuation references.'});return;
       } else if (url.pathname === "/api/companion/status")
         body = {
-          auctions: await collector.status(),
           bazaar: await collector.status("bazaar"),
         };
       else {

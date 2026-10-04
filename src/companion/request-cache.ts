@@ -64,7 +64,7 @@ function observe(body: any, cached = false) {
  */
 export async function cachedMarketRequest<T>(url: string, signal?: AbortSignal): Promise<T> {
   const pathname = new URL(url).pathname;
-  const reusable = /^\/api\/companion\/(bazaar|auctions|snapshot|book|portfolio-auctions|portfolio-prices)$/.test(pathname);
+  const reusable = /^\/api\/companion\/(bazaar|snapshot|book|portfolio-prices)$/.test(pathname);
   const work = async () => {
     const old = reusable ? await read(url) : undefined;
     const firstRead = !seen.has(url); seen.add(url);

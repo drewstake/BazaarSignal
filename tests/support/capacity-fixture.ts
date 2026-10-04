@@ -8,7 +8,7 @@ export function capacityFixture(now:number,days=31):LiveAllowanceState {
   const p:CapacityPlan={version:1,evidence:'OFFLINE synthetic complete evidence, never install',verifiedAt:now,validUntil:now+900000,
     readerGroups:1,browserResponseBytes:64*1024,ingressBoundEvidence:'Synthetic ingress, no real requests',meters:{} as CapacityPlan['meters'],
     upstream:{source:'Synthetic upstream only',verifiedAt:now,scopeComplete:true,requestLimit:120,windowMs:300000,reserve:.2,
-      bazaarSourceMs:60000,bazaarDurationMs:1000,auctionSourceMs:60000,auctionDurationMs:16000,auctionPages:46}};
+      bazaarSourceMs:60000,bazaarDurationMs:1000}};
   for(const [key,unit]of Object.entries(capacityMeters))p.meters[key as keyof typeof capacityMeters]={
     unit,scope:'Offline fixture: complete appropriate account/project/user scope',scopeComplete:true,eligible:true,source:'Offline fixture',
     periodStart:now,periodEnd:now+(daily.has(key)?25*3600000:days*86400000),measuredAt:now,

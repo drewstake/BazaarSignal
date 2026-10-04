@@ -193,12 +193,13 @@ async function main() {
   if (plan.pausedCodeOnly) {
     for (const [file, gates] of [
       ['shared/companion/portfolio-policy.ts', ['PORTFOLIO_COLLECTION_ENABLED', 'PORTFOLIO_EVALUATION_ENABLED']],
-      ['shared/market-features.ts', ['AUCTION_COLLECTION_ENABLED']],
       ['shared/automation-policy.ts', ['BACKGROUND_JOBS_ENABLED', 'EMAIL_DELIVERY_ENABLED']],
     ]) for (const gate of gates)
       if (!readFileSync(file, 'utf8').includes(`export const ${gate} = false;`))
         throw new Error(`Paused code release requires ${gate}=false`);
   }
+  if (readFileSync('market-functions/lib/index.cjs', 'utf8').includes('skyblock/auctions'))
+    throw new Error('Retired auction collection must not be included in the release');
   const blob = digest => {
     if (!/^sha256:[a-f0-9]{64}$/.test(digest)) throw new Error('Invalid blob digest');
     const bytes = readFileSync(resolve(receipt.layout, 'blobs/sha256', digest.slice(7)));

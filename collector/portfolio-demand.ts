@@ -3,14 +3,14 @@ import {
   type Holding,
 } from "../shared/companion/portfolio";
 import { PORTFOLIO_COLLECTION_ENABLED } from "../shared/companion/portfolio-policy";
-import { AUCTION_COLLECTION_ENABLED } from '../shared/market-features';
 import type { MarketCollector } from "./engine";
 export interface Demand {
   version: 1;
   sampledAt: number;
   complete: boolean;
   bazaar: string[];
-  auctions: string[];
+  /** Accepted only for older saved reports; never collected. */
+  auctions?: string[];
 }
 export interface DemandReader {
   reserveReads(count: number): Promise<void>;
@@ -64,8 +64,7 @@ export function aggregateDemand(
   rows: Iterable<{ holding: Holding; portfolioDeleted: boolean }>,
   now = Date.now(),
 ): Demand {
-  const bazaar = new Set<string>(),
-    auctions = new Set<string>();
+  const bazaar = new Set<string>();
   let scanned = 0;
   for (const { holding, portfolioDeleted } of rows) {
     if (++scanned > 100000)
@@ -74,11 +73,9 @@ export function aggregateDemand(
       );
     if (!validPortfolioHolding(holding))
       throw new Error("Invalid private holding; demand scan incomplete.");
-    if (holding.deleted || portfolioDeleted || (holding.kind === 'auction' && !AUCTION_COLLECTION_ENABLED)) continue;
-    (holding.kind === "bazaar" ? bazaar : auctions).add(
-      holding.kind === "bazaar" ? holding.itemId : holding.id,
-    );
-    if (bazaar.size + auctions.size > 5000)
+    if (holding.deleted || portfolioDeleted || holding.kind !== 'bazaar') continue;
+    bazaar.add(holding.itemId);
+    if (bazaar.size > 5000)
       throw new Error("Shared tracked-asset capacity reached.");
   }
   return {
@@ -86,7 +83,6 @@ export function aggregateDemand(
     sampledAt: now,
     complete: true,
     bazaar: [...bazaar].sort(),
-    auctions: [...auctions].sort(),
   };
 }
 export function demandJobs(d: Demand, now = Date.now()) {
@@ -98,22 +94,13 @@ export function demandJobs(d: Demand, now = Date.now()) {
     d.sampledAt > now + 30000 ||
     now - d.sampledAt > 3600000 ||
     !Array.isArray(d.bazaar) ||
-    !Array.isArray(d.auctions) ||
-    d.bazaar.length + d.auctions.length > 5000 ||
-    d.bazaar.some((id) => !/^[A-Za-z0-9_:-]{1,100}$/.test(id)) ||
-    d.auctions.some((id) => !/^v1_[a-f0-9]{64}$/.test(id))
+    d.bazaar.length > 5000 ||
+    d.bazaar.some((id) => !/^[A-Za-z0-9_:-]{1,100}$/.test(id))
   )
     throw new Error(
       "Missing, incomplete or stale portfolio demand. Collection stays paused.",
     );
-  const needsAuctions = AUCTION_COLLECTION_ENABLED && d.auctions.length > 0;
-  if (!d.bazaar.length && !needsAuctions) return [];
-  return [
-    "catalog",
-    "election",
-    ...(d.bazaar.length ? ["bazaar"] : []),
-    ...(needsAuctions ? ["auctions"] : []),
-  ];
+  return d.bazaar.length ? ['catalog', 'election', 'bazaar'] : [];
 }
 /** A single shared collector retains CAS leases, request charging and backoff. */
 export async function collectPortfolioDemand(

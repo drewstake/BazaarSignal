@@ -98,7 +98,7 @@ export class Coordinator {
       payload?: { key: string; value: string };
     },
   ): Promise<T> {
-    // Parallel page requests share this owner. Avoid self-inflicted conflicts;
+    // Parallel accounting requests share this owner. Avoid self-inflicted conflicts;
     // independent owners still require durable CAS for every mutation.
     const result = this.changes.then(() => this.changeOnce(work));
     this.changes = result.catch(() => {});
@@ -111,7 +111,10 @@ export class Coordinator {
       const old = await this.store.read("control");
       await this.syncClock();
       const c: Control = old ? JSON.parse(old) : this.empty();
-      if (JSON.stringify(c.policy) !== JSON.stringify(this.policy))
+      // Keep the stored policy and all accounting intact. The retired auction
+      // interval has no executable consumer; every active policy field must match.
+      const { auctionMinMs: _retired, ...activePolicy } = c.policy as MarketPolicy & { auctionMinMs?: number };
+      if (JSON.stringify(activePolicy) !== JSON.stringify(this.policy))
         throw new Error(
           "Collector policy differs from the shared policy. Stop all workers before changing configuration.",
         );
@@ -128,13 +131,13 @@ export class Coordinator {
     }
     throw new Error("Market coordination busy; no upstream request issued.");
   }
-  acquire() {
+  acquire(dueKeys?: string[]) {
     return this.change((c) => {
       if (c.lease && c.lease.until > this.now()) return { result: false };
       if (c.blockedUntil > this.now()) return { result: false };
       if (
-        Object.keys(c.jobs).length >= 4 &&
-        Object.values(c.jobs).every((j) => j.nextAt > this.now())
+        dueKeys?.length &&
+        dueKeys.every((key) => c.jobs[key]?.nextAt > this.now())
       )
         return { result: false };
       c.lease = { owner: this.owner, until: this.now() + this.policy.leaseMs };
@@ -201,7 +204,7 @@ export class Coordinator {
     };
     if (remaining < required)
       throw new Deferred(
-        `Insufficient shared budget for ${required} auction pages`,
+        `Insufficient shared budget for ${required} requests`,
         Math.max(
           now + 1000,
           readyAt(requests, this.policy.requestLimit),

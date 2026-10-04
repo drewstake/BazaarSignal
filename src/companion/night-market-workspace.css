@@ -387,8 +387,7 @@
   :is(
     .notification-row,
     .holding-metrics,
-    .holding-bottom,
-    .auction-configuration
+    .holding-bottom
   ) {
   border-color: var(--line);
 }
@@ -447,14 +446,6 @@
   .holding-search-dropdown
   [role="option"][aria-selected="true"] {
   background: #154737;
-}
-.night-workspace .holding-search-dropdown .custom-item-action {
-  border: 0;
-  border-top: 1px solid var(--line);
-  background: #102e3e;
-  box-shadow: none;
-  color: #80ffbd;
-  justify-content: flex-start;
 }
 .night-workspace .holding-search .market-badge,
 .night-workspace .selected-holding-item .market-badge {

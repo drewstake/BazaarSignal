@@ -418,30 +418,30 @@ test("portfolio CRUD, cost calculation, purchases, unavailable prices, identity 
   ).toBeVisible();
   await create(page, "Replacement portfolio");
 });
-test("Auction House and Bazaar holdings share one portfolio and notification baseline form stays useful offline", async ({
+test("Bazaar holdings share one portfolio and notification baseline form stays useful offline", async ({
   page,
 }, info) => {
-  await signIn(page, `auction-${info.project.name}-${Date.now()}`);
+  await signIn(page, `bazaar-${info.project.name}-${Date.now()}`);
   await create(page, "Equipment");
   await page.getByRole("button", { name: "Add holding", exact: true }).click();
   const form = page.getByRole("form", { name: "Add holding" });
   await expect(form.getByLabel("Market", { exact: true })).toHaveCount(0);
   await form
     .getByRole("combobox", { name: "Search", exact: true })
-    .fill("necron handle");
+    .fill("enchanted diamond block");
   await form
-    .getByRole("option", { name: "Necron's Handle (NECRON_HANDLE)" })
+    .getByRole("option", { name: "Enchanted Diamond Block (ENCHANTED_DIAMOND_BLOCK)" })
     .click();
-  await form.getByLabel("Identical stacks owned").fill("2");
+  await form.getByLabel("Quantity owned", {exact:true}).fill("2");
   await form.getByLabel(/ · coins$/).fill("600m");
   await form.getByRole("button", { name: "Save holding" }).click();
   await expect(form).toHaveCount(0);
-  const card = page.getByRole("rowgroup", { name: "Necron's Handle holding" });
+  const card = page.getByRole("rowgroup", { name: "Enchanted Diamond Block holding" });
   await expect(card).toContainText("1,200,000,000");
   await expect(card.locator('td[title="Value unavailable"]')).toBeVisible();
   await expandHolding(card);
   await card.getByText("Valuation details", { exact: true }).click();
-  await expect(card).toContainText("not executable liquidation");
+  await expect(card).toContainText("liquidation unavailable");
   await expandHolding(card);
   await card.getByRole("button", { name: "Set notification" }).click();
   const notification = page.getByRole("form", { name: "Holding notification" });
@@ -523,7 +523,7 @@ test("a stale creation form opens the existing portfolio instead of creating ano
     }),
   ).toEqual(["Existing portfolio"]);
 });
-test("one search selects either market and never saves a stale item selection", async ({
+test("Bazaar search rejects auction and unlisted items and never saves a stale selection", async ({
   page,
 }, info) => {
   await signIn(page, `search-${info.project.name}-${Date.now()}`);
@@ -547,8 +547,8 @@ test("one search selects either market and never saves a stale item selection", 
   await search.fill("NECRON_HANDLE");
   await search.press("ArrowDown");
   await search.press("Enter");
-  await expect(form.getByLabel("Identical stacks owned")).toBeVisible();
-  await expect(form.getByLabel("Modifiers (JSON object)")).toBeVisible();
+  await expect(form.getByRole("listbox").getByRole("option")).toHaveCount(0);
+  await expect(form.getByLabel("Modifiers (JSON object)")).toHaveCount(0);
   await search.fill("BOOSTER_COOKIE");
   await search.press("ArrowDown");
   await search.press("Enter");
@@ -562,17 +562,12 @@ test("one search selects either market and never saves a stale item selection", 
     page.getByRole("rowgroup", { name: "Booster Cookie holding" }),
   ).toHaveCount(0);
   await search.focus();
-  await form.getByRole("button", { name: "Add an unlisted item" }).click();
-  await form.getByLabel("SkyBlock item ID").fill("UNLISTED_TEST_SWORD");
-  await expect(form.getByLabel("Item name", { exact: true })).toHaveValue(
-    "Unlisted test sword",
-  );
-  await expect(form.getByLabel("Identical stacks owned")).toHaveValue("2");
-  await form.getByRole("button", { name: "Save holding", exact: true }).click();
+  await expect(form.getByRole('button', { name: 'Add an unlisted item' })).toHaveCount(0);
+  await search.fill('BOOSTER_COOKIE');
+  await search.press('ArrowDown');await search.press('Enter');
+  await form.getByRole('button', { name: 'Save holding', exact: true }).click();
   await expect(form).toHaveCount(0);
-  await expect(
-    page.getByRole("rowgroup", { name: "Unlisted test sword holding" }),
-  ).toContainText("Auction House");
+  await expect(page.getByRole('rowgroup', {name:'Booster Cookie holding'})).toContainText('2 items');
 });
 test("legacy positions migrate once on login and persist through reload", async ({
   page,

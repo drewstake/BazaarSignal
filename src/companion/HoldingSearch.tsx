@@ -6,10 +6,8 @@ import "./holding-search.css";
 
 export default function HoldingSearch({
   onSelect,
-  onCustom,
 }: {
   onSelect: (item: HoldingCatalogItem | null) => void;
-  onCustom: (query: string) => void;
 }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -56,7 +54,7 @@ export default function HoldingSearch({
               : undefined
           }
           value={query}
-          placeholder="Search any item by name or ID…"
+          placeholder="Search Bazaar items by name or ID…"
           onFocus={() => setOpen(true)}
           onChange={(event) => {
             setQuery(event.target.value);
@@ -108,29 +106,16 @@ export default function HoldingSearch({
                     <strong>{item.name}</strong>
                     <small>{item.id}</small>
                   </span>
-                  <span className="market-badge">
-                    {item.kind === "bazaar" ? "Bazaar" : "Auction House"}
-                  </span>
+                  <span className="market-badge">Bazaar</span>
                 </button>
               </li>
             ))}
           </ul>
           {!results.length && (
             <p role="status">
-              No matching items. Try another name or add an unlisted item.
+              No matching Bazaar items. Try another name or item ID.
             </p>
           )}
-          <button
-            type="button"
-            className="custom-item-action"
-            onClick={() => {
-              setOpen(false);
-              setActive(-1);
-              onCustom(query);
-            }}
-          >
-            Add an unlisted item
-          </button>
         </div>
       </div>
       <p className="muted search-hint" id={`${id}-hint`}>

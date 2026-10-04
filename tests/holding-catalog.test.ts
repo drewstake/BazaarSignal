@@ -4,18 +4,14 @@ import {
   searchHoldingItems,
 } from "../src/companion/holding-catalog";
 
-describe("unified holding search", () => {
-  it("finds both markets by name and ID without a market choice", () => {
+describe("Bazaar holding search", () => {
+  it("finds Bazaar items by name and ID and excludes retired auction assets", () => {
     expect(searchHoldingItems("booster cookie")[0]).toMatchObject({
       id: "BOOSTER_COOKIE",
       kind: "bazaar",
     });
-    expect(searchHoldingItems("NECRON_HANDLE")[0]).toMatchObject({
-      id: "NECRON_HANDLE",
-      kind: "auction",
-    });
-    expect(searchHoldingItems("necron’s handle")[0].id).toBe("NECRON_HANDLE");
-    expect(searchHoldingItems("necron handle")[0].id).toBe("NECRON_HANDLE");
+    expect(searchHoldingItems('NECRON_HANDLE')).toEqual([]);
+    expect(holdingCatalogItem('NECRON_HANDLE')).toBeUndefined();
   });
   it("ranks exact matches ahead of broad matches and supports multiple words", () => {
     expect(searchHoldingItems("diamond")[0].id).toBe("DIAMOND");

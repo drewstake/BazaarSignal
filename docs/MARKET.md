@@ -1,5 +1,7 @@
 # Historical market implementation notes
 
+Auction implementation was removed locally on October 4, 2026. See [the current Bazaar-only contract](PORTFOLIOS.md). Auction architecture and benchmarks below are historical, not current capability.
+
 The current product is the portfolio tracker described in [PORTFOLIOS.md](PORTFOLIOS.md). Discovery and watchlists below describe retired interfaces; this document does not authorize collection or deployment.
 
 # Market companion: setup and operating notes

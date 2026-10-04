@@ -88,17 +88,6 @@
   font-size: 11px;
   white-space: nowrap;
 }
-.holding-search-dropdown .custom-item-action {
-  width: 100%;
-  justify-content: flex-start;
-  border: 0;
-  border-top: 1px solid var(--line);
-  border-radius: 0;
-  padding: 12px 17px;
-  color: var(--green);
-  font-size: 13px;
-  box-shadow: none;
-}
 .holding-search-dropdown p {
   padding: 12px 17px;
   margin: 0;
@@ -123,11 +112,6 @@
 }
 .selected-holding-item strong {
   overflow-wrap: anywhere;
-}
-.auction-configuration {
-  border-top: 1px solid var(--line);
-  padding-top: 16px;
-  margin-top: 16px;
 }
 @media (max-width: 700px) {
   .holding-search-dropdown [role="option"] {
