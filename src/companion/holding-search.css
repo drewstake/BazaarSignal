@@ -1,0 +1,135 @@
+.holding-search {
+  position: relative;
+  margin-bottom: 20px;
+}
+.holding-search label {
+  margin-bottom: 8px;
+}
+.holding-search-input {
+  position: relative;
+}
+.holding-search-input > svg {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+.holding-search-input input {
+  padding-left: 41px;
+  min-height: 48px;
+}
+.holding-search-dropdown {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  right: 0;
+  z-index: 7;
+  border: 1px solid #c9bb9c;
+  border-radius: 8px;
+  background: var(--card);
+  box-shadow: 0 8px 25px #44362020;
+  overflow: hidden;
+}
+.holding-search-dropdown ul {
+  list-style: none;
+  padding: 5px;
+  margin: 0;
+  max-height: 290px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.holding-search-dropdown [role="option"] {
+  width: 100%;
+  text-align: left;
+  justify-content: flex-start;
+  gap: 12px;
+  border: 0;
+  border-radius: 5px;
+  padding: 9px 12px;
+}
+.holding-search-dropdown [role="option"][aria-selected="true"] {
+  background: var(--green-bg);
+}
+.holding-search-dropdown .item-art {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+.holding-search-dropdown button > span:not(.market-badge) {
+  min-width: 0;
+}
+.holding-search-dropdown strong {
+  display: block;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.holding-search-dropdown small {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+.holding-search-dropdown .market-badge {
+  margin-left: auto;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.holding-search-dropdown .custom-item-action {
+  width: 100%;
+  justify-content: flex-start;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  padding: 12px 17px;
+  color: var(--green);
+  font-size: 13px;
+}
+.holding-search-dropdown p {
+  padding: 12px 17px;
+  margin: 0;
+}
+.holding-search .search-hint {
+  font-size: 12px;
+  margin: 6px 0 0;
+}
+.selected-holding-item {
+  margin: -5px 0 20px;
+  padding: 10px 13px;
+  background: #eff2e5;
+  border: 1px solid #d5dfc3;
+  border-radius: 6px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.selected-holding-item .item-art {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+.selected-holding-item strong {
+  overflow-wrap: anywhere;
+}
+.auction-configuration {
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+  margin-top: 16px;
+}
+@media (max-width: 700px) {
+  .holding-search-dropdown [role="option"] {
+    gap: 8px;
+    padding: 9px 7px;
+    flex-wrap: wrap;
+  }
+  .holding-search-dropdown .market-badge {
+    font-size: 10px;
+  }
+  .holding-search-dropdown strong {
+    font-size: 13px;
+  }
+  .holding-search-dropdown .item-art {
+    width: 28px;
+    height: 28px;
+  }
+}

@@ -41,8 +41,8 @@ const add = async (
 ) => {
   await page.getByRole("button", { name: "Add holding", exact: true }).click();
   const form = page.getByRole("form", { name: "Add holding" });
-  await form.getByLabel("Search Bazaar items").fill(id);
-  await form.getByLabel("Bazaar item", { exact: true }).selectOption(id);
+  await form.getByRole("combobox", { name: "Search", exact: true }).fill(id);
+  await form.getByRole("option", { name: new RegExp(`\\(${id}\\)$`) }).click();
   await form.getByLabel("Quantity owned", { exact: true }).fill(quantity);
   await form.getByLabel(/ · coins$/).fill(cost);
   await form.getByRole("button", { name: "Save holding", exact: true }).click();
@@ -329,14 +329,18 @@ test("Auction House variants, separate portfolios and notification baseline form
   await create(page, "Equipment");
   await page.getByRole("button", { name: "Add holding", exact: true }).click();
   const form = page.getByRole("form", { name: "Add holding" });
-  await form.getByLabel("Market", { exact: true }).selectOption("auction");
-  await form.getByLabel("SkyBlock item ID").fill("NECRON_HANDLE");
-  await form.getByLabel("Item name", { exact: true }).fill("Necron Handle");
+  await expect(form.getByLabel("Market", { exact: true })).toHaveCount(0);
+  await form
+    .getByRole("combobox", { name: "Search", exact: true })
+    .fill("necron handle");
+  await form
+    .getByRole("option", { name: "Necron's Handle (NECRON_HANDLE)" })
+    .click();
   await form.getByLabel("Identical stacks owned").fill("2");
   await form.getByLabel(/ · coins$/).fill("600m");
   await form.getByRole("button", { name: "Save holding" }).click();
   await expect(form).toHaveCount(0);
-  const card = page.getByRole("article", { name: "Necron Handle holding" });
+  const card = page.getByRole("article", { name: "Necron's Handle holding" });
   await expect(card).toContainText("1,200,000,000");
   await expect(card).toContainText("Value unavailable");
   await card.getByText("Valuation details", { exact: true }).click();
@@ -382,6 +386,58 @@ test("Auction House variants, separate portfolios and notification baseline form
     page.getByRole("article", { name: "Booster Cookie holding" }),
   ).toHaveCount(0);
 });
+test("one search selects either market and never saves a stale item selection", async ({
+  page,
+}, info) => {
+  await signIn(page, `search-${info.project.name}-${Date.now()}`);
+  await create(page, "Search test");
+  await page.getByRole("button", { name: "Add holding", exact: true }).click();
+  const form = page.getByRole("form", { name: "Add holding" });
+  const search = form.getByRole("combobox", { name: "Search", exact: true });
+  await expect(form.getByLabel("Market", { exact: true })).toHaveCount(0);
+  await expect(form.getByLabel("Bazaar item", { exact: true })).toHaveCount(0);
+  await search.fill("diamond");
+  await expect(form.getByRole("option").first()).toHaveAccessibleName(
+    "Diamond (DIAMOND)",
+  );
+  await noOverflow(page);
+  await page.screenshot({
+    path: `.local/holding-search-${info.project.name}.png`,
+    fullPage: true,
+  });
+  await search.press("Escape");
+  await expect(search).toHaveAttribute("aria-expanded", "false");
+  await search.fill("NECRON_HANDLE");
+  await search.press("ArrowDown");
+  await search.press("Enter");
+  await expect(form.getByLabel("Identical stacks owned")).toBeVisible();
+  await expect(form.getByLabel("Modifiers (JSON object)")).toBeVisible();
+  await search.fill("BOOSTER_COOKIE");
+  await search.press("ArrowDown");
+  await search.press("Enter");
+  await expect(form.getByLabel("Modifiers (JSON object)")).toHaveCount(0);
+  await form.getByLabel("Quantity owned", { exact: true }).fill("2");
+  await form.getByLabel(/ · coins$/).fill("10m");
+  await search.fill("Unlisted test sword");
+  await form.getByRole("button", { name: "Save holding", exact: true }).click();
+  await expect(form.getByRole("alert")).toContainText("Choose an item");
+  await expect(
+    page.getByRole("article", { name: "Booster Cookie holding" }),
+  ).toHaveCount(0);
+  await search.focus();
+  await form.getByRole("button", { name: "Add an unlisted item" }).click();
+  await form.getByLabel("SkyBlock item ID").fill("UNLISTED_TEST_SWORD");
+  await expect(form.getByLabel("Item name", { exact: true })).toHaveValue(
+    "Unlisted test sword",
+  );
+  await expect(form.getByLabel("Identical stacks owned")).toHaveValue("2");
+  await form.getByRole("button", { name: "Save holding", exact: true }).click();
+  await expect(form).toHaveCount(0);
+  await expect(
+    page.getByRole("article", { name: "Unlisted test sword holding" }),
+  ).toContainText("Auction House");
+});
+
 test("redesigned overview keeps exact values and keyboard-accessible management actions", async ({
   page,
 }, info) => {

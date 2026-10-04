@@ -11,8 +11,8 @@ import {
 } from "../../shared/companion/portfolio";
 import type { HoldingChange } from "./portfolio-store";
 import { exact, ItemArt } from "./components";
-import catalogRows from "./bazaar-catalog.json";
-const catalog = catalogRows.map(([id, name]) => ({ id, name }));
+import HoldingSearch from "./HoldingSearch";
+import { holdingCatalogItem } from "./holding-catalog";
 
 export default function HoldingEditor({
   mode,
@@ -27,10 +27,9 @@ export default function HoldingEditor({
   save: (change: HoldingChange) => Promise<void>;
   cancel: () => void;
 }) {
-  const [kind, setKind] = useState(holding?.kind ?? "bazaar"),
-    [itemId, setId] = useState(holding?.itemId ?? ""),
+  const [itemId, setId] = useState(holding?.itemId ?? ""),
     [name, setName] = useState(holding?.name ?? ""),
-    [query, setQuery] = useState("");
+    [manual, setManual] = useState(false);
   const [quantity, setQuantity] = useState(
       mode === "edit" ? String(holding!.quantity) : "",
     ),
@@ -50,16 +49,14 @@ export default function HoldingEditor({
     heading.current?.focus();
   }, []);
   const input = positionInput(quantity, cost, costMode),
-    selected = catalog.find((i) => i.id === itemId),
-    choices = catalog
-      .filter((i) =>
-        `${i.name} ${i.id}`.toLowerCase().includes(query.toLowerCase()),
-      )
-      .slice(0, 80);
+    selected = holdingCatalogItem(itemId),
+    kind = holding?.kind ?? selected?.kind ?? (manual ? "auction" : "bazaar");
   let configuration = holding?.configuration ?? "",
     error = input.error ?? "",
     combined: ReturnType<typeof addPurchase> | null = null;
   try {
+    if (!holding && !selected && !manual)
+      throw new Error("Choose an item from the search results.");
     if (kind === "auction") {
       if (!holding)
         configuration = JSON.stringify({
@@ -69,7 +66,7 @@ export default function HoldingEditor({
         });
       auctionVariant(itemId, name, Number(stack), configuration);
       if (!name.trim()) throw new Error("Enter the item name.");
-    } else if (!selected) throw new Error("Choose a Bazaar item.");
+    }
     if (mode === "purchase" && !input.error)
       combined = addPurchase(holding!, input);
   } catch (e) {
@@ -134,74 +131,61 @@ export default function HoldingEditor({
           </div>
         ) : (
           <>
-            <label>
-              Market
-              <select
-                aria-label="Market"
-                value={kind}
-                onChange={(e) => {
-                  setKind(e.target.value as typeof kind);
-                  setId("");
-                }}
-              >
-                <option value="bazaar">Bazaar</option>
-                <option value="auction">Auction House</option>
-              </select>
-            </label>
-            {kind === "bazaar" ? (
-              <>
+            <HoldingSearch
+              onSelect={(item) => {
+                setId(item?.id ?? "");
+                setName(item?.name ?? "");
+                setManual(false);
+                setSubmitted(false);
+                setStack("1");
+                setRarity("LEGENDARY");
+                setEnchantments("{}");
+                setModifiers("{}");
+              }}
+              onCustom={(query) => {
+                setId("");
+                setName(query.trim());
+                setManual(true);
+                setSubmitted(false);
+                setStack("1");
+                setRarity("LEGENDARY");
+                setEnchantments("{}");
+                setModifiers("{}");
+              }}
+            />
+            {selected && !manual && (
+              <div className="selected-holding-item asset-title">
+                <ItemArt id={selected.id} size="small" />
+                <strong>{selected.name}</strong>
+                <span className="market-badge">
+                  {kind === "bazaar" ? "Bazaar" : "Auction House"}
+                </span>
+              </div>
+            )}
+            {manual && (
+              <div className="form-grid">
                 <label>
-                  Search Bazaar items
+                  SkyBlock item ID
                   <input
-                    type="search"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Booster Cookie, Diamond…"
+                    autoFocus
+                    value={itemId}
+                    onChange={(e) => setId(e.target.value.trim().toUpperCase())}
+                    placeholder="NECRON_HANDLE"
                   />
                 </label>
                 <label>
-                  Bazaar item
-                  <select
-                    aria-label="Bazaar item"
-                    value={itemId}
-                    onChange={(e) => setId(e.target.value)}
-                  >
-                    <option value="">Choose an item</option>
-                    {selected && !choices.includes(selected) && (
-                      <option value={selected.id}>{selected.name}</option>
-                    )}
-                    {choices.map((i) => (
-                      <option key={i.id} value={i.id}>
-                        {i.name}
-                      </option>
-                    ))}
-                  </select>
+                  Item name
+                  <input
+                    maxLength={140}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
                 </label>
-                <p className="muted">
-                  Item names are available offline. Showing up to 80 matches.
-                </p>
-              </>
-            ) : (
-              <>
+              </div>
+            )}
+            {kind === "auction" && (
+              <div className="auction-configuration">
                 <div className="form-grid">
-                  <label>
-                    SkyBlock item ID
-                    <input
-                      value={itemId}
-                      onChange={(e) =>
-                        setId(e.target.value.trim().toUpperCase())
-                      }
-                      placeholder="NECRON_HANDLE"
-                    />
-                  </label>
-                  <label>
-                    Item name
-                    <input
-                      maxLength={140}
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                    />
-                  </label>
                   <label>
                     Items in each identical stack
                     <input
@@ -258,7 +242,7 @@ export default function HoldingEditor({
                     }
                   />
                 </label>
-              </>
+              </div>
             )}
           </>
         )}
