@@ -1,0 +1,234 @@
+.night-workspace .account-workspace .page-title {
+  margin-bottom: 24px;
+  padding-bottom: 0;
+  border: 0;
+}
+.night-workspace .account-workspace .page-title h1 {
+  margin: 0;
+}
+.night-workspace .account-workspace .night-account {
+  overflow: hidden;
+  border: 1px solid #356470;
+  border-radius: 4px;
+  background: #081929;
+  box-shadow: 0 12px 32px #0003;
+}
+.night-workspace .account-workspace .account-profile {
+  background: radial-gradient(ellipse at 15% 40%, #1236367a, transparent 65%);
+}
+.night-workspace .account-workspace .account-identity {
+  padding: 34px 38px;
+  min-width: 0;
+}
+.night-workspace .account-workspace .account-avatar {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 24px;
+  color: #8affe0;
+  font: 700 38px/1 var(--display);
+  border: 1px solid #69cda7;
+  background: linear-gradient(145deg, #1f5447, #0c2b33);
+  box-shadow:
+    inset 0 0 0 4px #091e2b,
+    0 0 25px #63ffb812;
+  clip-path: polygon(
+    6px 0,
+    calc(100% - 6px) 0,
+    calc(100% - 6px) 6px,
+    100% 6px,
+    100% calc(100% - 6px),
+    calc(100% - 6px) calc(100% - 6px),
+    calc(100% - 6px) 100%,
+    6px 100%,
+    6px calc(100% - 6px),
+    0 calc(100% - 6px),
+    0 6px,
+    6px 6px
+  );
+}
+.night-workspace .account-workspace .account-google {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #abc0d6;
+}
+.night-workspace .account-workspace .account-google svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.night-workspace .account-workspace .account-identity h2 {
+  margin: 0 0 6px;
+  font: 700 clamp(27px, 2.8vw, 38px)/1.1 var(--display);
+  overflow-wrap: anywhere;
+}
+.night-workspace .account-workspace .account-email {
+  margin: 0;
+  color: #b8cde1;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.night-workspace .account-workspace .account-private {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 20px;
+  padding: 4px 9px;
+  border: 1px solid #32735c;
+  background: #103c2d66;
+  color: #8ee9b9;
+  font-size: 11px;
+  border-radius: 3px;
+}
+.night-workspace .account-workspace .account-preferences {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 20px;
+  padding: 26px 38px;
+  border-top: 1px solid #2b485a;
+  background: linear-gradient(120deg, #102a36, #0b1c2b);
+}
+.night-workspace .account-workspace .account-mail-icon {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  color: #79eac7;
+  background: #183c3f;
+  border: 1px solid #396466;
+  border-radius: 4px;
+}
+.night-workspace .account-workspace .account-preference-copy h2 {
+  font:
+    600 17px/1.2 Arial,
+    sans-serif;
+  color: #edf5fb;
+  margin: 0 0 5px;
+}
+.night-workspace .account-workspace .account-preference-copy p {
+  color: #9bb2c9;
+  margin: 0 0 7px;
+  font-size: 13px;
+}
+.night-workspace .account-workspace .account-preference-copy a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #85e8c1;
+  text-decoration: none;
+}
+.night-workspace .account-workspace .account-preference-copy a:hover {
+  text-decoration: underline;
+}
+.night-workspace .account-workspace .account-email-control {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  margin: 0;
+  font-weight: 400;
+  cursor: pointer;
+}
+.night-workspace .account-workspace .account-toggle-state {
+  color: #c3d6e7;
+  font-size: 13px;
+  min-width: 20px;
+}
+.night-workspace .account-workspace .account-email-control input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.night-workspace .account-workspace .account-toggle-track {
+  width: 54px;
+  height: 28px;
+  border: 1px solid #587082;
+  background: #253a4b;
+  border-radius: 3px;
+  pointer-events: none;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.night-workspace .account-workspace .account-toggle-track::after {
+  content: "";
+  display: block;
+  width: 20px;
+  height: 20px;
+  margin: 3px;
+  background: #a8bdcc;
+  border-radius: 1px;
+  box-shadow: 0 2px 3px #0004;
+  transition: transform 0.15s;
+}
+.night-workspace
+  .account-workspace
+  .account-email-control
+  input:checked
+  + .account-toggle-track {
+  border-color: #65d0a7;
+  background: #216c51;
+}
+.night-workspace
+  .account-workspace
+  .account-email-control
+  input:checked
+  + .account-toggle-track::after {
+  transform: translateX(26px);
+  background: #9bffd4;
+}
+.night-workspace
+  .account-workspace
+  .account-email-control
+  input:focus-visible
+  + .account-toggle-track {
+  outline: 2px solid #a6ffe0;
+  outline-offset: 4px;
+}
+.night-workspace .account-workspace .account-email-control input:disabled {
+  cursor: wait;
+}
+.night-workspace
+  .account-workspace
+  .account-email-control
+  input:disabled
+  + .account-toggle-track {
+  opacity: 0.55;
+}
+@media (max-width: 700px) {
+  .night-workspace .account-workspace .account-identity {
+    padding: 26px 22px;
+  }
+  .night-workspace .account-workspace .account-avatar {
+    margin-bottom: 18px;
+  }
+  .night-workspace .account-workspace .account-preferences {
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    padding: 22px;
+  }
+  .night-workspace .account-workspace .account-mail-icon {
+    display: none;
+  }
+  .night-workspace .account-workspace .account-toggle-state {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .night-workspace .account-workspace .account-toggle-track,
+  .night-workspace .account-workspace .account-toggle-track::after {
+    transition: none;
+  }
+}

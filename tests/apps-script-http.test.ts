@@ -1,4 +1,6 @@
 import { describe,it,expect,vi,beforeEach } from 'vitest';
+// Explicitly enabled historical delivery fixture; actual release defaults off.
+vi.mock('../shared/automation-policy',()=>({BACKGROUND_JOBS_ENABLED:true,EMAIL_DELIVERY_ENABLED:true}));
 import { createHash,createHmac } from 'node:crypto';
 import { doGet,doPost,scheduledPoll,scheduledMinuteTick } from '../apps-script/backend';
 import { emptyState,createAlert,parseMarket } from '../apps-script/core';

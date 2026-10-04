@@ -5,12 +5,18 @@ import { trialGoogleStore } from '../collector/trial-google';
 import { livePolicy, validateLive, type LiveAllowanceState } from '../collector/allowance-live';
 import { stopTrialInfrastructure } from '../collector/trial-shutdown';
 import { MARKET_COLLECTION_SCHEDULE } from '../shared/market-schedule';
+import { PORTFOLIO_COLLECTION_ENABLED } from '../shared/companion/portfolio-policy';
+import { capacityProblems } from '../collector/capacity-plan';
 
 const args=process.argv.slice(2),file=args[0],action=args[1]??'--inspect';
 if(!file || args.length>2 || !['--inspect','--prepare','--activate'].includes(action))
   throw new Error('Usage: activate-live-market <reviewed-plan.json> [--inspect|--prepare|--activate]');
 const plan=JSON.parse(readFileSync(file,'utf8')),state=plan.liveAllowance as LiveAllowanceState;
+if(action!=='--inspect'&&!PORTFOLIO_COLLECTION_ENABLED)
+  throw new Error('Local preparation only: production collection and activation remain disabled');
 validateLive(state,Date.now());
+if(action!=='--inspect'&&capacityProblems(state.capacity,Date.now()).length)
+  throw new Error('Complete current allowance and shared-scope evidence required');
 if(plan.project!=='bazaarsignal-510305'||plan.operatingMode!=='free-tier'||state.id!==plan.id || state.expiresAt!==Date.parse(plan.expiresAt))
   throw new Error('Wrong live release identity');
 const require=createRequire(resolve('package.json')),auth=require('firebase-tools/lib/auth');
@@ -62,6 +68,7 @@ try {
   }
   if(action==='--activate') {
     const ledger=JSON.parse((await store.read('live-allowance'))??'null');validateLive(ledger,Date.now());
+    if(capacityProblems(ledger.capacity,Date.now()).length)throw new Error('Persisted capacity evidence is missing or expired');
     if(ledger.id!==plan.id||scheduled.schedule!==MARKET_COLLECTION_SCHEDULE)throw new Error('Prepared ledger/schedule mismatch');
     await call(`https://cloudscheduler.googleapis.com/v1/${job}:resume`,'POST',{});
     report.changes.push('Five-minute schedule resumed');save();

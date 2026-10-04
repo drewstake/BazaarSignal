@@ -13,7 +13,7 @@ it('explicit auction collection and valuation do no storage or upstream work whi
   const read=vi.spyOn(s,'read'),write=vi.spyOn(s,'commit');
   await collector.tick(['auctions']);
   await expect(collector.portfolioAuctions(['v1_'+'a'.repeat(64)])).rejects.toThrow('disabled');
-  expect(await collector.portfolioPrices(['v1_'+'a'.repeat(64)])).toEqual({bazaar:[],listings:[],fixture:false});
+  expect(await collector.portfolioPrices(['v1_'+'a'.repeat(64)])).toMatchObject({bazaar:[],listings:[],fixture:false});
   expect(read).not.toHaveBeenCalled();expect(write).not.toHaveBeenCalled();expect(network).not.toHaveBeenCalled();
 });
 
@@ -32,7 +32,7 @@ it.each([false,true])('live collection skips auctions with portfolio demand=%s a
       {lastUpdated:now,products:{COOKIE:{buy_summary:[{amount:10,orders:1,pricePerUnit:100}],sell_summary:[{amount:10,orders:1,pricePerUnit:90}]}}};
     return Response.json({success:true,...data});
   });
-  const shutdown=vi.fn(),runtime=createLiveRuntime({id:state.id,expiresAt:state.expiresAt,store:()=>s,shutdown,network,now:()=>now,
+  const shutdown=vi.fn(),runtime=createLiveRuntime({requireCapacity:false,id:state.id,expiresAt:state.expiresAt,store:()=>s,shutdown,network,now:()=>now,
     ...(withDemand?{portfolioDemand:async()=>({version:1 as const,sampledAt:now,complete:true,bazaar:['COOKIE'],auctions:['v1_'+'a'.repeat(64)]})}:{})});
   await runtime.collect('first');expect(network).toHaveBeenCalledTimes(3);
   now+=MARKET_REFRESH_MS;await runtime.collect('next');expect(network).toHaveBeenCalledTimes(4);

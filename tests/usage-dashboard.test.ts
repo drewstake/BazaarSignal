@@ -17,9 +17,9 @@ it('reports the bounded hourly test, automatic fallback and hard stop without cl
     day:pacificDay(HOURLY_TRIAL_START),observed:{},evidence:'offline fixture'};
   const active=collectionStatus(ledger,null,'ENABLED',HOURLY_TRIAL_START);
   expect(active.state).toBe('Hourly test');expect(active.hourlyTrialEndsAt).toBe(HOURLY_TRIAL_END);
-  expect(active.pressure).toBeGreaterThan(.65);expect(active.reason).toContain('95%');
+  expect(active.pressure).toBeGreaterThan(.65);expect(active.reason).toContain('90%');
   const after=collectionStatus(ledger,null,'ENABLED',HOURLY_TRIAL_END);
-  expect(after.state).toBe('Slowed');expect(after.hourlyTrialEndsAt).toBeUndefined();
+  expect(after.state).toBe('Warning');expect(after.hourlyTrialEndsAt).toBeUndefined();
   expect(collectionStatus(ledger,null,'PAUSED',HOURLY_TRIAL_START).state).toBe('Paused');
   expect(collectionStatus({...ledger,stoppedAt:HOURLY_TRIAL_START},null,'ENABLED',HOURLY_TRIAL_START).hourlyTrialEndsAt).toBeUndefined();
 });
@@ -118,7 +118,7 @@ it('reads status and reservations without resetting counters, collecting, or con
   expect(d.rows.find(r=>r.id==='run-cpu')?.measured).toBeNull();
   expect(await s.read('live-allowance')).toBe(raw);
   expect(network.mock.calls.length).toBeLessThan(35);
-  expect(collectionStatus({...ledger,monthlyReserved:{cpuSeconds:80000}},null,'ENABLED',now).state).toBe('Slowed');
+  expect(collectionStatus({...ledger,monthlyReserved:{cpuSeconds:80000}},null,'ENABLED',now).state).toBe('Warning');
   expect(collectionStatus({...ledger,stoppedAt:now,reason:'budget reached'},null,'PAUSED',now).state).toBe('Paused');
   expect(collectionStatus(ledger,null,'ENABLED',now+86400001).state).toBe('Expired');
 });
@@ -155,10 +155,23 @@ it('separates measured allowance status, projection risk, unknowns, and storage-
   for(const patch of [{measured:null},{measured:NaN},{measured:-1},{allowance:0},{allowance:null},{allowance:Infinity},{allowanceComparable:false},{state:'not-reported'}])expect(currentStatus({...row,...patch} as UsageRow)).toBe('Unknown');
   expect(currentStatus(row,true)).toBe('Unknown');expect(needsAttention(row,true)).toBe(false);
   expect(projectionStatus({...row,kind:'rolling'})).toBe('Unknown');expect(projectionStatus({...row,kind:'capacity'})).toBe('Unknown');
-  expect(sortResources([{...row,id:'healthy',projected:50},{...row,id:'unknown',measured:null},{...row,id:'over',measured:110},row]).map(r=>r.id)).toEqual(['over','test','unknown','healthy']);
+  expect(sortResources([{...row,id:'healthy',projected:50},{...row,id:'unknown',measured:null},{...row,id:'over',measured:110},row]).map(r=>r.id)).toEqual(['over','healthy','test','unknown']);
   expect(imageStorageEstimate({...row,id:'images',measurementBasis:'artifact-registry-sizeBytes',measured:.75*1024**3})).toBeCloseTo(.025,5);
   expect(imageStorageEstimate({...row,id:'images',measured:null})).toBeNull();
   expect(allowanceMath(5,-10,0,7200000,3600000).percent).toBeNull();
+});
+
+it('sorts by reported percentage rather than raw usage or projected risk, with unknowns last',()=>{
+  const base={resource:'Test',state:'measured',projected:null,kind:'monthly',periodLabel:'Monthly'} as UsageRow;
+  const rows=[
+    {...base,id:'low',measured:9000,allowance:100000,projected:200000},
+    {...base,id:'high',measured:1,allowance:2},
+    {...base,id:'unknown',measured:null,allowance:100},
+    {...base,id:'zero',measured:0,allowance:100},
+    {...base,id:'incomparable',measured:900,allowance:1,allowanceComparable:false},
+  ];
+  expect(sortResources(rows).map(r=>r.id)).toEqual(['high','low','zero','incomparable','unknown']);
+  expect(rows[0].id).toBe('low');
 });
 
 it('uses repository storage-cost metadata, rejects missing/invalid totals and never falls back to the Monitoring image gauge',async()=>{

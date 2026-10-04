@@ -71,6 +71,32 @@ export function positionInput(
     } as const;
   return { quantity, costBasis, averagePrice: costBasis / quantity } as const;
 }
+export function quantityFromCostInput(averageText: string, totalText: string) {
+  const average = parseCoinAmount(averageText),
+    total = parseCoinAmount(totalText);
+  if (average === null || total === null)
+    return {
+      error:
+        "Enter a positive average purchase price and total coins spent, such as 12.2m or 3.5b.",
+    } as const;
+  const calculated = total / average;
+  if (
+    !Number.isFinite(calculated) ||
+    calculated < 1 ||
+    calculated > MAX_POSITION_QUANTITY
+  )
+    return {
+      error:
+        "Calculated quantity must be from 1 to 1,000,000,000. Check the average price and total spent.",
+    } as const;
+  const quantity = Math.round(calculated),
+    input = positionInput(String(quantity), totalText, "total");
+  if (input.error) return input;
+  return {
+    ...input,
+    rounded: Math.abs(calculated - quantity) > Number.EPSILON * calculated * 4,
+  } as const;
+}
 export function addPurchase(
   current: Pick<Position, "quantity" | "costBasis">,
   purchase: Pick<Position, "quantity" | "costBasis">,

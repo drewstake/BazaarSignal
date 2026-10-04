@@ -1,4 +1,4 @@
 // A source guard prevents accidental redeployment, not billing protection.
 // There is deliberately no command-line override or billing-enable path.
-console.error('Generic Firebase Functions deployment is blocked. The user authorized a conservative live free-tier profile; deploy its reviewed image and allowance ledger through private-trial-release.mjs and activate-live-market.ts. This guard prevents accidentally replacing the live budget controls with an unreviewed release.');
+console.error('Deployment remains blocked during local free-tier preparation. Collection, evaluation, email and scheduled work must stay paused. Complete scope-aware capacity evidence and separate activation authorization are required; see docs/FREE-TIER-PREPARATION.md.');
 process.exitCode = 1;

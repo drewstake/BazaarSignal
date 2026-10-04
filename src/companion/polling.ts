@@ -1,7 +1,7 @@
 import { PORTFOLIO_COLLECTION_ENABLED } from '../../shared/companion/portfolio-policy';
 import { MARKET_REFRESH_MS, nextMarketRead } from '../../shared/market-schedule';
 export const PAUSED_MESSAGE = "Updates paused to protect the free allowance";
-export type PollDirective = { mode: "normal" | "warning" | "slow" | "paused"; pollMs: number; retryAt?: number; reason?: string; expiresAt?: number; serverNow?: number; trialId?: string };
+export type PollDirective = { mode: "normal" | "warning" | "slow" | "paused"; pollMs: number; bazaarMs?: number; auctionMs?: number; retryAt?: number; reason?: string; expiresAt?: number; serverNow?: number; trialId?: string };
 const configuredEnd = Date.parse(import.meta.env.VITE_MARKET_TRIAL_END ?? "");
 const configuredTrialId = import.meta.env.VITE_MARKET_TRIAL_ID;
 const liveMode = import.meta.env.VITE_MARKET_OPERATING_MODE === "free-tier";

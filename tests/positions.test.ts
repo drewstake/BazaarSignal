@@ -4,6 +4,7 @@ import {
   parseCoinAmount,
   parsePositionQuantity,
   positionInput,
+  quantityFromCostInput,
   positionPortfolio,
   validPosition,
   valuePosition,
@@ -100,6 +101,40 @@ describe("position entry", () => {
       positionInput("1000000000", "1000000000000000", "average").error,
     ).toBeTruthy();
     expect(positionInput("1", "0.001", "total").error).toBeTruthy();
+  });
+  it("calculates whole quantities from average price and total spent, preserving basis", () => {
+    expect(quantityFromCostInput("12.2M", "3.5014b")).toEqual({
+      quantity: 287,
+      costBasis: 3501400000,
+      averagePrice: 12200000,
+      rounded: false,
+    });
+    expect(quantityFromCostInput("10,000", "35K")).toEqual({
+      quantity: 4,
+      costBasis: 35000,
+      averagePrice: 8750,
+      rounded: true,
+    });
+    expect(quantityFromCostInput("0.1", "0.3")).toMatchObject({
+      quantity: 3,
+      rounded: false,
+    });
+    expect(quantityFromCostInput("1", "1B")).toMatchObject({
+      quantity: 1000000000,
+      rounded: false,
+    });
+    for (const [average, total] of [
+      ["", "10m"],
+      ["10m", ""],
+      ["0", "10m"],
+      ["NaN", "10m"],
+      ["1m", "1,00m"],
+      ["10m", "9m"],
+      ["1", "1000000001"],
+      ["1", "1000000000000001"],
+      ["0.001", "0.001"],
+    ])
+      expect(quantityFromCostInput(average, total).error).toBeTruthy();
   });
   it("combines additional purchases using aggregate basis, with bounds", () => {
     const result = addPurchase(position, {

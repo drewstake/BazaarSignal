@@ -169,21 +169,19 @@ it("uses the production notification validator, saves atomically, and rejects st
     }),
   ).rejects.toThrow("paused");
 });
-it("rejects foreign origins and unauthenticated access, and labels owner cached reports as stale", async () => {
+it("rejects foreign origins and unauthenticated access before reporting, and derives staleness from real report times", async () => {
   const verify = vi.fn(async (value: unknown) => {
     if (value !== "valid") throw new Error("unauthenticated");
     return identity;
   });
-  const handler = localWorkspaceHandler("unused", {
-    verify,
-    report: async () => ({
+  const report = vi.fn(async () => ({
       generatedAt: now - 86400000,
       nextMeasurementAt: now - 84000000,
       rows: [],
       collection: {},
       spending: {},
-    }),
-  });
+    }));
+  const handler = localWorkspaceHandler("unused", {verify, report});
   const server = createServer((req, res) => {
     void handler(req, res, () => res.writeHead(404).end());
   });
@@ -202,6 +200,7 @@ it("rejects foreign origins and unauthenticated access, and labels owner cached 
     ).toBe(403);
     expect(verify).not.toHaveBeenCalled();
     expect((await fetch(url)).status).toBe(401);
+    expect(report).not.toHaveBeenCalled();
     const result = await fetch(url, {
       headers: { Authorization: "Bearer valid" },
     });
@@ -209,7 +208,11 @@ it("rejects foreign origins and unauthenticated access, and labels owner cached 
     const body = await result.json();
     expect(body.stale).toBe(true);
     expect(body.generatedAt).toBe(now - 86400000);
-    expect(body.localReport).toContain("not a live");
+    report.mockResolvedValue({...body, stale: false, generatedAt: now, nextMeasurementAt: now + 1800000});
+    const fresh = await (await fetch(url, {headers: {Authorization: "Bearer valid"}})).json();
+    expect(fresh.stale).toBe(false);
+    expect(fresh.generatedAt).toBe(now);
+    expect(report).toHaveBeenCalledTimes(2);
     verify.mockResolvedValue({
       ...identity,
       uid: "someone-else",
@@ -218,6 +221,7 @@ it("rejects foreign origins and unauthenticated access, and labels owner cached 
     expect(
       (await fetch(url, { headers: { Authorization: "Bearer valid" } })).status,
     ).toBe(403);
+    expect(report).toHaveBeenCalledTimes(2);
   } finally {
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }

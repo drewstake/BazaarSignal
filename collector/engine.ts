@@ -417,7 +417,10 @@ export class MarketCollector {
   async portfolioPrices(assets:string[] = []) {
     const keys=new Set(assets);
     const [bazaar,auctions]=await Promise.all([assets.some(id=>id.startsWith('bz_'))?this.read<BazaarData>('bazaar'):null,assets.some(id=>id.startsWith('v1_'))?this.portfolioAuctions(assets).catch(()=>null):null]);
-    return {bazaar:bazaar?.data.items.filter(i=>keys.has(`bz_${i.id}`))??[],listings:auctions?.listings??[],fixture:false};
+    return {bazaar:bazaar?.data.items.filter(i=>keys.has(`bz_${i.id}`))??[],listings:auctions?.listings??[],fixture:false,
+      versions:{bazaar:bazaar?.version??null,auctions:auctions?.version??null},
+      sources:{bazaar:bazaar?{upstreamAt:bazaar.upstreamAt,observedAt:bazaar.observedAt}:null,auctions:auctions?.status??null},
+      auctionUpdatesEnabled:AUCTION_COLLECTION_ENABLED};
   }
 }
 export const message = (e: unknown) =>

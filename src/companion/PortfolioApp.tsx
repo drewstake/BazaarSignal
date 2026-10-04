@@ -4,19 +4,23 @@ import type { User } from "firebase/auth";
 import {
   Bell,
   BriefcaseBusiness,
+  ChevronRight,
   LogOut,
+  Pencil,
   Plus,
   Settings,
   ShieldCheck,
+  TrendingUp,
+  Trash2,
 } from "lucide-react";
 import { auth, login, logout, watchAuth } from "../data";
 import { localWorkspace } from "../local-workspace";
 import { signInErrorMessage } from "../sign-in-error";
 import { SampleTime } from "../SampleTime";
-import { readAccount } from "../account";
 import { requestBackend } from "../backend";
 import { exact, percent, ItemArt, SkyIcon } from "./components";
-import { fixtureMode, getBazaar, marketRequest } from "./api";
+import { fixtureMode } from "./api";
+import { portfolioMarket, visiblePortfolioPresence } from './portfolio-market';
 import { pollingDirective, visiblePoll } from "./polling";
 import { ownerCandidate } from "./usage-access";
 import {
@@ -42,11 +46,15 @@ import {
   type NotificationInput,
 } from "../../shared/companion/notifications";
 import type { BazaarItem, Listing } from "../../shared/companion/types";
-import type { Workflow } from "../../shared/model";
 import HoldingEditor from "./HoldingEditor";
 import NotificationEditor from "./NotificationEditor";
 import "./portfolio.css";
 import "./skyblock-theme.css";
+import NightMarketLanding from "./NightMarketLanding";
+import "./night-market-workspace.css";
+import NightMarketAccount from "./NightMarketAccount";
+import NightMarketNotifications from "./NightMarketNotifications";
+import PortfolioValueChart from "./PortfolioValueChart";
 const UsageDashboard = lazy(() => import("./UsageDashboard"));
 type View = "portfolios" | "notifications" | "account" | "usage";
 export function portfolioRoute(hash = location.hash): {
@@ -123,8 +131,18 @@ export default function PortfolioApp() {
       setBusy(false);
     }
   }
+  if (!user && !route.disable) {
+    return (
+      <NightMarketLanding
+        view={route.view}
+        busy={busy}
+        error={error}
+        onSignIn={() => void signIn()}
+      />
+    );
+  }
   return (
-    <div className="portfolio-app">
+    <div className="portfolio-app night-workspace">
       <a
         className="skip-link"
         href="#main-content"
@@ -145,7 +163,7 @@ export default function PortfolioApp() {
           <nav className="market-tabs" aria-label="Main navigation">
             {(
               [
-                ["portfolios", "Portfolios", BriefcaseBusiness],
+                ["portfolios", "Portfolio", BriefcaseBusiness],
                 ["notifications", "Notifications", Bell],
                 ["account", "Account", Settings],
                 ...(ownerCandidate(user)
@@ -204,13 +222,6 @@ export default function PortfolioApp() {
       <main id="main-content" tabIndex={-1}>
         <div className="portfolio-frame">
           <div className="portfolio-paper">
-            {localWorkspace && (
-              <p className="notice local-workspace-notice">
-                Local workspace · Holdings and notification settings are saved
-                on this computer. Your production records are separate. Market
-                checks and email delivery are disabled.
-              </p>
-            )}
             {error && (
               <p role="alert" className="error">
                 {error}
@@ -227,16 +238,14 @@ export default function PortfolioApp() {
             ) : (
               <section className="intro">
                 <div>
-                  <p className="eyebrow">PERSONAL SKYBLOCK PORTFOLIOS</p>
+                  <p className="eyebrow">BAZAAR + AUCTION HOUSE</p>
                   <h1>
-                    Know what you own.
+                    Your SkyBlock portfolio.
                     <br />
-                    <span>See how it’s doing.</span>
+                    <span>At a glance.</span>
                   </h1>
                   <p className="intro-copy">
-                    Keep your Bazaar items and Auction House assets in one
-                    place. Record what you paid, follow estimated value, and
-                    choose the price changes that matter to you.
+                    Track your items, estimated value, and returns.
                   </p>
                   <button
                     className="primary"
@@ -246,9 +255,7 @@ export default function PortfolioApp() {
                     Sign in with Google
                   </button>
                   <p className="muted">
-                    Private to your account. Manually recorded holdings.
-                    <br />
-                    No connection to your in-game inventory.
+                    Private to you. Add items manually; no inventory sync.
                   </p>
                 </div>
                 <div className="intro-art" aria-hidden="true">
@@ -258,29 +265,19 @@ export default function PortfolioApp() {
                     alt=""
                   />
                   <img src="/assets/items/summoning_eye.webp" alt="" />
-                  <span>YOUR ITEMS. YOUR COST BASIS.</span>
                 </div>
                 <div className="intro-features">
                   <article>
-                    <b>Organize your holdings</b>
-                    <p>
-                      Create portfolios for your own goals and record additional
-                      purchases.
-                    </p>
+                    <BriefcaseBusiness size={20} aria-hidden="true" />
+                    <b>Track holdings</b>
                   </article>
                   <article>
-                    <b>Understand your returns</b>
-                    <p>
-                      Estimated value and unrealized P&L with clear valuation
-                      references.
-                    </p>
+                    <TrendingUp size={20} aria-hidden="true" />
+                    <b>See returns</b>
                   </article>
                   <article>
-                    <b>Choose your thresholds</b>
-                    <p>
-                      Holding-based percentage notifications, with an explicit
-                      baseline.
-                    </p>
+                    <Bell size={20} aria-hidden="true" />
+                    <b>Set price alerts</b>
                   </article>
                 </div>
               </section>
@@ -288,10 +285,6 @@ export default function PortfolioApp() {
           </div>
         </div>
       </main>
-      <footer>
-        Manually tracked. Market estimates can change. Not affiliated with
-        Hypixel.
-      </footer>
     </div>
   );
 }
@@ -366,19 +359,29 @@ function Workspace({
       "create" | "rename" | null
     >(null),
     [name, setName] = useState(""),
-    [removal, setRemoval] = useState<Holding | "portfolio" | null>(null);
+    [removal, setRemoval] = useState<Holding | "portfolio" | null>(null),
+    [expandedHolding, setExpandedHolding] = useState<string | null>(null);
   const selected =
     portfolios.find((p) => p.id === route.portfolioId) ??
     (!route.portfolioId ? portfolios[0] : undefined);
+  useEffect(() => setExpandedHolding(null), [selected?.id, route.view]);
+  useEffect(() => setNotice(""), [route.view]);
   useEffect(() => {
     let alive = true;
     setLoading(true);
     setError("");
-    if (route.view === "usage") { setLoading(false); return; }
+    if (route.view === "usage") {
+      setLoading(false);
+      return;
+    }
     Promise.all([
-      route.view === "account" ? Promise.resolve(portfolios) : reads.read('portfolios', () => loadPortfolios(user.uid)),
-      route.view === "account" ? Promise.resolve(notifications) : reads.read('notifications', () => loadNotifications(user.uid)),
-      reads.read('preference', () => emailPreference(user.uid)),
+      route.view === "account"
+        ? Promise.resolve(portfolios)
+        : reads.read("portfolios", () => loadPortfolios(user.uid)),
+      route.view === "account"
+        ? Promise.resolve(notifications)
+        : reads.read("notifications", () => loadNotifications(user.uid)),
+      reads.read("preference", () => emailPreference(user.uid)),
     ])
       .then(([p, n, e]) => {
         if (alive && auth?.currentUser === user) {
@@ -409,7 +412,10 @@ function Workspace({
       return;
     }
     setHoldingLoading(true);
-    reads.read(`holdings/${selected.id}`, () => loadHoldings(user.uid, selected.id))
+    reads
+      .read(`holdings/${selected.id}`, () =>
+        loadHoldings(user.uid, selected.id),
+      )
       .then((h) => {
         if (alive && auth?.currentUser === user) setHoldings(h);
       })
@@ -423,41 +429,26 @@ function Workspace({
       alive = false;
     };
   }, [selected?.id, user, reload, route.view]);
-  const needsBazaar = holdings.some((h) => h.kind === "bazaar"),
-    auctionAssets = holdings
-      .filter((h) => h.kind === "auction")
-      .map((h) => h.id)
-      .sort()
-      .join(","),
-    needsAuctions = !!auctionAssets;
+  const priceAssets = holdings.map(h=>h.id).sort().join(',');
   useEffect(() => {
-    if (!needsBazaar || route.view !== "portfolios") return;
+    if (!priceAssets || route.view !== "portfolios") return;
+    return visiblePortfolioPresence(user,priceAssets.split(','));
+  },[user,priceAssets,route.view]);
+  useEffect(() => {
+    if (!priceAssets || route.view !== "portfolios") return;
     return visiblePoll(async (signal) => {
       try {
-        const r = await getBazaar(signal);
+        const r = await portfolioMarket(priceAssets.split(','),signal);
         if (!signal.aborted) {
-          setBazaar(r.items);
-          setMarketError(r.error ?? "");
+          setBazaar(r.bazaar);
+          setAuctions(r.listings);
+          setMarketError('');
         }
       } catch (e) {
         if (!signal.aborted) setMarketError((e as Error).message);
       }
     });
-  }, [needsBazaar, route.view]);
-  useEffect(() => {
-    if (!needsAuctions || route.view !== "portfolios") return;
-    return visiblePoll(async (signal) => {
-      try {
-        const r = await marketRequest<{ listings: Listing[] }>(
-          `portfolio-auctions?assets=${encodeURIComponent(auctionAssets)}`,
-          signal,
-        );
-        if (!signal.aborted) setAuctions(r.listings);
-      } catch (e) {
-        if (!signal.aborted) setMarketError((e as Error).message);
-      }
-    });
-  }, [needsAuctions, auctionAssets, route.view]);
+  }, [priceAssets, route.view]);
   useEffect(() => {
     if (route.view !== "portfolios" || !holdings.length) return;
     const timer = setInterval(() => setNow(Date.now()), 5000);
@@ -471,7 +462,11 @@ function Workspace({
       now,
       paused || fixtureMode,
     );
-  async function action(work: () => Promise<unknown>, message: string, changed?: string) {
+  async function action(
+    work: () => Promise<unknown>,
+    message: string,
+    changed?: string,
+  ) {
     if (busy) return false;
     setBusy(true);
     setError("");
@@ -535,47 +530,46 @@ function Workspace({
     ) : (
       <section className="panel">
         <h1>Owner access only</h1>
-        <a href="#view=portfolios">Back to Portfolios</a>
+        <a href="#view=portfolios">Back to Portfolio</a>
       </section>
     );
   return (
-    <>
+    <div
+      className={
+        route.view === "portfolios"
+          ? "portfolio-workspace"
+          : route.view === "account"
+            ? "account-workspace"
+            : "notifications-workspace"
+      }
+    >
       <div className="page-title">
         <div>
-          <p className="eyebrow">YOUR PRIVATE ACCOUNT</p>
           <h1>
             {route.view === "portfolios"
-              ? "Portfolios"
+              ? "Portfolio"
               : route.view === "notifications"
                 ? "Notifications"
                 : "Account"}
           </h1>
-          <p>
-            {route.view === "portfolios"
-              ? "A clear view of your SkyBlock holdings. Manually recorded, not connected to your inventory."
-              : route.view === "notifications"
-                ? "Percentage changes for the holdings you choose."
-                : "Your identity and delivery preferences."}
-          </p>
+          {route.view !== "account" && (
+            <p>
+              {route.view === "portfolios"
+                ? "Track your items, cost, and returns."
+                : "Your price alerts, at a glance."}
+            </p>
+          )}
         </div>
-        {route.view === "portfolios" && (
-          <button
-            className="primary"
-            onClick={() => {
-              setName("");
-              setPortfolioEditor("create");
-            }}
-            disabled={busy}
-          >
-            <Plus size={18} />
-            New portfolio
-          </button>
-        )}
       </div>
       {error && (
         <div className="error" role="alert">
           {error}{" "}
-          <button onClick={() => { reads.invalidate(); setReload((v) => v + 1); }}>
+          <button
+            onClick={() => {
+              reads.invalidate();
+              setReload((v) => v + 1);
+            }}
+          >
             Reload saved data
           </button>
         </div>
@@ -585,217 +579,156 @@ function Workspace({
           {notice}
         </p>
       )}
-      <div className="market-note">
-        <span className="status-dot" />
-        {paused
-          ? "Market updates and new notification evaluation are paused."
-          : "Prices use the shared market cache."}{" "}
-        Your holdings remain editable.
-        {fixtureMode && (
-          <strong>
-            {" "}
-            Development fixtures — never eligible for notifications.
-          </strong>
-        )}
-      </div>
-      {loading && <p role="status">Loading private portfolios…</p>}
+      {route.view === "portfolios" && (!localWorkspace || fixtureMode) && (
+        <div className="market-note">
+          <span className="status-dot" />
+          {paused
+            ? "Market updates and notification checks paused. Holdings are editable."
+            : "Cached market prices · Holdings are editable."}
+          {fixtureMode && (
+            <strong>
+              {" "}
+              Development fixtures — never eligible for notifications.
+            </strong>
+          )}
+        </div>
+      )}
+      {loading && (
+        <p role="status">
+          {route.view === "account"
+            ? "Loading account…"
+            : route.view === "notifications"
+              ? "Loading alerts…"
+              : "Loading your portfolio…"}
+        </p>
+      )}
       {route.view === "account" ? (
-        <section className="panel account">
-          <h2>Signed in with Google</h2>
-          <p>{user.email}</p>
-          <p>
-            <ShieldCheck size={18} /> Your portfolios, quantities, acquisition
-            costs and notification settings are private to this account.
-          </p>
-          <label className="check">
-            <input
-              type="checkbox"
-              checked={emailEnabled}
-              disabled={busy}
-              onChange={(e) => {
-                const enabled = e.target.checked;
-                setEmailEnabled(enabled);
-                void action(
-                  () => emailPreference(user.uid, enabled),
-                  enabled
-                    ? "Email delivery enabled for your chosen holding notifications."
-                    : "Holding notification email delivery disabled.",
-                  "preference",
-                ).then((saved) => {
-                  if (!saved && auth?.currentUser === user)
-                    setEmailEnabled(!enabled);
-                });
-              }}
-            />
-            Allow email for my holding notifications
-          </label>
-          <p>
-            No holding notifications are created automatically. Delivery waits
-            for fresh eligible samples, verified identity, available quota and
-            an authorized service release.
-          </p>
-          <p>
-            Legacy price alerts keep their existing delivery settings until you
-            pause them in Notifications.
-          </p>
-        </section>
+        <NightMarketAccount
+          user={user}
+          emailEnabled={emailEnabled}
+          disabled={busy || loading}
+          paused={paused}
+          onEmailChange={(enabled) => {
+            setEmailEnabled(enabled);
+            void action(
+              () => emailPreference(user.uid, enabled),
+              enabled ? "Email delivery enabled." : "Email delivery disabled.",
+              "preference",
+            ).then((saved) => {
+              if (!saved && auth?.currentUser === user)
+                setEmailEnabled(!enabled);
+            });
+          }}
+        />
       ) : route.view === "notifications" ? (
-        <>
-          <section className="panel">
-            <h2>Holding notifications</h2>
-            <p>
-              Email delivery is {emailEnabled ? "enabled" : "off in Account"}.
-              Market evaluation is{" "}
-              {paused
-                ? "paused"
-                : "subject to fresh evidence and service availability"}
-              .
-            </p>
-            {!notifications.some((n) => !n.deleted) ? (
-              <p>
-                No holding notifications yet. Open a portfolio and choose{" "}
-                <b>Set notification</b> on a holding.
-              </p>
-            ) : (
-              notifications
-                .filter((n) => !n.deleted)
-                .map((n) => {
-                  const portfolio = portfolios.find(
-                    (p) => p.id === n.portfolioId,
-                  );
-                  return (
-                    <article className="notification-row" key={n.id}>
-                      <div>
-                        <b>
-                          {portfolio?.name ?? "Deleted portfolio"} ·{" "}
-                          {n.holdingName ?? "Holding"}
-                        </b>
-                        <p>
-                          {n.up !== null ? `Up ${n.up}% ` : ""}
-                          {n.down !== null ? `Down ${n.down}%` : ""} ·{" "}
-                          {n.baseline === "acquisition"
-                            ? "Average acquisition price"
-                            : `Captured sample: ${exact(n.capturedPrice)} coins`}
-                        </p>
-                        <span>
-                          {!portfolio
-                            ? "Stopped: portfolio deleted"
-                            : n.enabled
-                              ? "Enabled · waiting for eligible checks"
-                              : "Paused"}
-                        </span>
-                      </div>
-                      <div className="actions">
-                        <button
-                          onClick={() => navigate("portfolios", n.portfolioId)}
-                        >
-                          Open holding
-                        </button>
-                        <button
-                          disabled={busy || !portfolio}
-                          onClick={() =>
-                            void action(
-                              () =>
-                                changeNotification(
-                                  user.uid,
-                                  n.portfolioId,
-                                  n.holdingId,
-                                  n.enabled ? "pause" : "resume",
-                                  undefined,
-                                  n,
-                                ),
-                              "Notification updated.",
-                              "notifications",
-                            )
-                          }
-                        >
-                          {n.enabled ? "Pause" : "Resume"}
-                        </button>
-                        <button
-                          disabled={busy}
-                          onClick={() =>
-                            void action(
-                              () =>
-                                changeNotification(
-                                  user.uid,
-                                  n.portfolioId,
-                                  n.holdingId,
-                                  "delete",
-                                  undefined,
-                                  n,
-                                ),
-                              "Notification deleted.",
-                              "notifications",
-                            )
-                          }
-                        >
-                          Delete notification
-                        </button>
-                      </div>
-                    </article>
-                  );
-                })
-            )}
-          </section>
-          <LegacyAlerts user={user} />
-        </>
+        <NightMarketNotifications
+          notifications={notifications}
+          portfolios={portfolios}
+          emailEnabled={emailEnabled}
+          paused={paused}
+          fixture={fixtureMode}
+          loading={loading}
+          busy={busy}
+          openHolding={(portfolioId) => navigate("portfolios", portfolioId)}
+          change={(notification, operation) =>
+            void action(
+              () =>
+                changeNotification(
+                  user.uid,
+                  notification.portfolioId,
+                  notification.holdingId,
+                  operation,
+                  undefined,
+                  notification,
+                ),
+              operation === "delete"
+                ? "Notification deleted."
+                : "Notification updated.",
+              "notifications",
+            )
+          }
+        />
       ) : (
         <>
-          {portfolioEditor && (
-            <form
-              className="panel editor"
-              aria-label={
-                portfolioEditor === "create"
-                  ? "Create portfolio"
-                  : "Rename portfolio"
-              }
-              onSubmit={(e) => {
-                e.preventDefault();
-                void action(async () => {
-                  const p = await savePortfolio(
-                    user.uid,
-                    name,
-                    portfolioEditor === "rename" ? selected : undefined,
+          {!loading &&
+            portfolioEditor &&
+            (portfolioEditor === "rename"
+              ? !!selected
+              : !portfolios.length) && (
+              <form
+                className="panel editor"
+                aria-label={
+                  portfolioEditor === "create"
+                    ? "Create portfolio"
+                    : "Rename portfolio"
+                }
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void action(
+                    async () => {
+                      if (portfolioEditor === "create") {
+                        const existing = await loadPortfolios(user.uid);
+                        if (existing.length) {
+                          setPortfolioEditor(null);
+                          navigate("portfolios", existing[0].id);
+                          reads.invalidate("portfolios");
+                          setReload((v) => v + 1);
+                          throw new Error(
+                            "You already have a portfolio. You can add holdings to it or rename it.",
+                          );
+                        }
+                      }
+                      const p = await savePortfolio(
+                        user.uid,
+                        name,
+                        portfolioEditor === "rename" ? selected : undefined,
+                      );
+                      navigate("portfolios", p.id);
+                    },
+                    "Portfolio saved.",
+                    "portfolios",
                   );
-                  navigate("portfolios", p.id);
-                }, "Portfolio saved.", "portfolios");
-              }}
-            >
-              <h2>
-                {portfolioEditor === "create"
-                  ? "Create portfolio"
-                  : "Rename portfolio"}
-              </h2>
-              <label>
-                Portfolio name
-                <input
-                  autoFocus
-                  maxLength={80}
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </label>
-              <div className="actions">
-                <button className="primary" disabled={busy}>
-                  Save portfolio
-                </button>
-                <button type="button" onClick={() => setPortfolioEditor(null)}>
-                  Cancel
-                </button>
-              </div>
-            </form>
-          )}
-          {!loading && !portfolios.length && !portfolioEditor && (
+                }}
+              >
+                <h2>
+                  {portfolioEditor === "create"
+                    ? "Create portfolio"
+                    : "Rename portfolio"}
+                </h2>
+                <label>
+                  Portfolio name
+                  <input
+                    autoFocus
+                    maxLength={80}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                  />
+                </label>
+                <div className="actions">
+                  <button className="primary" disabled={busy}>
+                    Save portfolio
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPortfolioEditor(null)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+          {!loading && !error && !portfolios.length && !portfolioEditor && (
             <section className="panel empty">
               <SkyIcon name="watchlist-chest" size={72} />
-              <h2>Your first portfolio starts here</h2>
+              <h2>Your portfolio starts here</h2>
               <p>
                 Add only the items you own, with your actual quantities and
-                costs.
+                costs. Your account has one portfolio for all your holdings.
               </p>
               <button
                 className="primary"
+                disabled={busy}
                 onClick={() => {
                   setName("");
                   setPortfolioEditor("create");
@@ -807,27 +740,15 @@ function Workspace({
           )}
           {!!portfolios.length && (
             <div className="portfolio-layout">
-              <aside aria-label="Your portfolios">
-                <h2>Your portfolios</h2>
-                {portfolios.map((p) => (
-                  <a
-                    key={p.id}
-                    href={`#view=portfolios&portfolio=${p.id}`}
-                    aria-current={selected?.id === p.id ? "page" : undefined}
-                  >
-                    <BriefcaseBusiness size={17} />
-                    {p.name}
-                  </a>
-                ))}
-              </aside>
               <div className="portfolio-content">
                 {!selected ? (
                   <section className="panel">
                     <h2>Portfolio unavailable</h2>
                     <p>
-                      Choose an available portfolio. This link may refer to a
-                      deleted portfolio or another account.
+                      This link may refer to a deleted portfolio or another
+                      account.
                     </p>
+                    <a href="#view=portfolios">Back to your portfolio</a>
                   </section>
                 ) : (
                   <>
@@ -835,18 +756,32 @@ function Workspace({
                       <h2>{selected.name}</h2>
                       <div className="actions">
                         <button
+                          className="portfolio-icon-button"
+                          aria-label="Rename"
+                          title="Rename portfolio"
+                          disabled={busy}
                           onClick={() => {
                             setName(selected.name);
                             setPortfolioEditor("rename");
                           }}
                         >
-                          Rename
+                          <Pencil size={18} aria-hidden="true" />
                         </button>
-                        <button onClick={() => setRemoval("portfolio")}>
-                          Delete portfolio
+                        <button
+                          className="portfolio-icon-button"
+                          aria-label="Delete portfolio"
+                          title="Delete portfolio"
+                          disabled={busy}
+                          onClick={() => setRemoval("portfolio")}
+                        >
+                          <Trash2 size={18} aria-hidden="true" />
                         </button>
                       </div>
                     </div>
+                    {!!holdings.length && <p className="muted" role="status">
+                      {paused ? 'Price collection paused.' : `Bazaar checks every ${Math.ceil((pollingDirective().bazaarMs??pollingDirective().pollMs)/60_000)} minutes while portfolios are visible.`}
+                      {' Auction House updates paused. Each price keeps its source time; samples older than three minutes are stale.'}
+                    </p>}
                     {removal && (
                       <section
                         className="panel confirm"
@@ -898,42 +833,57 @@ function Workspace({
                         </div>
                       </section>
                     )}
-                    <dl className="summary">
-                      <Metric
-                        label="Total cost basis"
-                        value={totals.costBasis}
-                      />
-                      <Metric
-                        label="Estimated value"
-                        value={totals.value}
-                        note={
-                          totals.missing
-                            ? "Incomplete valuation"
-                            : totals.stale
-                              ? "Last-known estimate"
-                              : "Indicative value"
-                        }
-                      />
-                      <Metric
-                        label="Unrealized P&L"
-                        value={totals.pnl}
-                        note={percent(totals.returnPercent)}
-                        profit
-                      />
-                    </dl>
-                    {!!totals.missing && (
-                      <p className="coverage">
-                        {totals.missing} of {holdings.length} holdings have no
-                        usable price. P&L compares available value with only its
-                        matching cost basis ({exact(totals.valuedBasis)} coins).
-                        Total acquisition cost includes all holdings.
-                      </p>
+                    {!!holdings.length && (
+                      <dl className="summary">
+                        <Metric label="Cost basis" value={totals.costBasis} />
+                        <Metric
+                          label="Estimated value"
+                          value={totals.value}
+                          note={
+                            totals.missing
+                              ? "Incomplete valuation"
+                              : totals.stale
+                                ? "Last-known estimate"
+                                : undefined
+                          }
+                        />
+                        <Metric
+                          label="Unrealized P&L"
+                          value={totals.pnl}
+                          note={
+                            totals.returnPercent === null
+                              ? undefined
+                              : percent(totals.returnPercent)
+                          }
+                          profit
+                        />
+                      </dl>
                     )}
-                    {marketError && (
+                    <PortfolioValueChart
+                      key={`${user.uid}:${selected.id}`}
+                      uid={user.uid}
+                      portfolioId={selected.id}
+                      totals={totals}
+                      loading={loading || holdingLoading}
+                      fixture={fixtureMode}
+                    />
+                    {!!totals.missing && (
+                      <details className="coverage">
+                        <summary>
+                          {totals.missing} of {holdings.length} holdings have no
+                          usable price.
+                        </summary>
+                        <p>
+                          P&L uses priced holdings and their matching cost basis
+                          ({exact(totals.valuedBasis)} coins). Total cost
+                          includes all holdings.
+                        </p>
+                      </details>
+                    )}
+                    {!!holdings.length && marketError && (
                       <details className="market-detail">
                         <summary>
-                          Market data is unavailable; holdings are still
-                          editable
+                          Market data unavailable · Holdings are editable
                         </summary>
                         <p>{marketError}</p>
                       </details>
@@ -976,174 +926,271 @@ function Workspace({
                     {holdingLoading ? (
                       <p role="status">Loading holdings…</p>
                     ) : !holdings.length ? (
-                      <section className="panel empty">
-                        <SkyIcon name="bazaar-crate" size={60} />
-                        <h3>No holdings yet</h3>
-                        <p>
-                          Record a Bazaar item or an exact Auction House asset
-                          variant to get started.
-                        </p>
+                      <section className="panel empty holdings-empty">
+                        <SkyIcon name="bazaar-crate" size={48} />
+                        <div>
+                          <h3>No holdings yet</h3>
+                          <p>Add a Bazaar item or Auction House asset.</p>
+                        </div>
                       </section>
                     ) : (
-                      totals.rows.map(({ holding: h, valuation: v }) => {
-                        const notification = nFor(h);
-                        return (
-                          <article
-                            className="holding panel"
-                            key={h.id}
-                            aria-label={`${h.name} holding`}
-                          >
-                            <div className="holding-top">
-                              <div className="asset-title">
-                                <span className="holding-art">
-                                  <ItemArt id={h.itemId} size="small" />
-                                </span>
-                                <div>
-                                  <h3>{h.name}</h3>
-                                  <span className="muted">
-                                    {h.kind === "bazaar"
-                                      ? "Bazaar"
-                                      : `Auction House · stack of ${h.stackSize}`}{" "}
-                                    · {exact(h.quantity)}{" "}
-                                    {h.kind === "auction" ? "stacks" : "items"}
-                                  </span>
-                                </div>
-                              </div>
-                              <div
-                                className={`holding-return ${v.pnl !== null && v.pnl < 0 ? "loss" : "gain"}`}
+                      <div
+                        className="holdings-table-scroll"
+                        tabIndex={0}
+                        role="region"
+                        aria-label="Holdings table"
+                      >
+                        <table className="holdings-table">
+                          <caption>
+                            Prices in coins · Select an item for details and
+                            actions
+                          </caption>
+                          <thead>
+                            <tr>
+                              <th scope="col">Item</th>
+                              <th scope="col">Quantity</th>
+                              <th scope="col">Avg. cost</th>
+                              <th scope="col">Cost basis</th>
+                              <th scope="col">Unit price</th>
+                              <th scope="col">Est. value</th>
+                              <th scope="col">Total P&L</th>
+                              <th scope="col">Return %</th>
+                            </tr>
+                          </thead>
+                          {totals.rows.map(({ holding: h, valuation: v }) => {
+                            const notification = nFor(h);
+                            const expanded = expandedHolding === h.id;
+                            const profitClass =
+                              v.pnl === null
+                                ? "muted"
+                                : v.pnl < 0
+                                  ? "loss"
+                                  : "gain";
+                            return (
+                              <tbody
+                                key={h.id}
+                                aria-label={`${h.name} holding`}
                               >
-                                <strong>
-                                  {v.pnl === null
-                                    ? "Value unavailable"
-                                    : `${exact(v.pnl)} coins`}
-                                </strong>
-                                <span>
-                                  {v.pnl === null
-                                    ? "Waiting for price evidence"
-                                    : `${percent(v.returnPercent)} unrealized return`}
-                                </span>
-                              </div>
-                            </div>
-                            <dl className="holding-metrics">
-                              <Metric
-                                label="Average acquisition"
-                                value={h.costBasis / h.quantity}
-                              />
-                              <Metric label="Cost basis" value={h.costBasis} />
-                              <Metric
-                                label="Reference per unit"
-                                value={v.referencePrice}
-                              />
-                              <Metric
-                                label="Estimated position value"
-                                value={v.value}
-                              />
-                            </dl>
-                            <p className="reference">
-                              {v.reference}
-                              {h.kind === "auction" &&
-                                ` · ${v.comparables} comparable listings`}
-                            </p>
-                            <p className="sample">
-                              {v.sampledAt ? (
-                                <>
-                                  <b>
-                                    {v.freshness === "stale"
-                                      ? "Last-known estimate"
-                                      : "Fresh sample"}
-                                  </b>{" "}
-                                  ·{" "}
-                                  <SampleTime
-                                    timestamp={v.sampledAt}
-                                    now={now}
-                                  />
-                                </>
-                              ) : (
-                                "No usable price sample"
-                              )}
-                            </p>
-                            <details>
-                              <summary>Valuation details</summary>
-                              {h.kind === "auction" ? (
-                                <>
-                                  <pre>{h.configuration}</pre>
-                                  <p>
-                                    At least three exact-configuration listings
-                                    are required. The cache supplies up to 20 of
-                                    the lowest matching asks. Units here are
-                                    complete stacks, never extrapolated
-                                    individual items.
-                                  </p>
-                                  {v.uncertainty.map((r, i) => (
-                                    <p key={i}>{r}</p>
-                                  ))}
-                                  <p>{v.liquidationReason}</p>
-                                </>
-                              ) : v.liquidation ? (
-                                <p>
-                                  Full-quantity{" "}
-                                  {v.freshness === "stale" ? "last-known " : ""}
-                                  after-tax liquidation estimate:{" "}
-                                  <b>
-                                    {exact(v.liquidation.value)} coins
-                                  </b> · {v.liquidation.taxPercent}% tax. Entire
-                                  quantity fits visible bids. Unrealized P&L
-                                  above uses the indicative top bid before fees
-                                  and slippage.
-                                </p>
-                              ) : (
-                                <p>
-                                  Full-quantity after-tax liquidation
-                                  unavailable: {v.liquidationReason}
-                                </p>
-                              )}
-                            </details>
-                            <div className="holding-bottom">
-                              <span className="notification-status">
-                                <Bell size={15} />
-                                {notification
-                                  ? `${notification.enabled ? "Enabled" : "Paused"} · ${notification.up === null ? "" : `↑ ${notification.up}% `}${notification.down === null ? "" : `↓ ${notification.down}% `} · baseline ${exact(notificationBaseline(notification, h))}`
-                                  : "Notifications off"}
-                              </span>
-                              <div className="actions">
-                                <button
-                                  disabled={busy}
-                                  onClick={() =>
-                                    setEditor({ mode: "purchase", holding: h })
-                                  }
+                                <tr
+                                  className={`holding-row ${expanded ? "expanded" : ""}`}
                                 >
-                                  Add purchase
-                                </button>
-                                <button
-                                  disabled={busy}
-                                  onClick={() =>
-                                    setEditor({ mode: "edit", holding: h })
-                                  }
+                                  <th scope="row">
+                                    <button
+                                      className="holding-toggle"
+                                      aria-label={`${expanded ? "Hide" : "Show"} details for ${h.name}`}
+                                      aria-expanded={expanded}
+                                      aria-controls={`holding-details-${h.id}`}
+                                      onClick={() =>
+                                        setExpandedHolding(
+                                          expanded ? null : h.id,
+                                        )
+                                      }
+                                    >
+                                      <ChevronRight size={14} />
+                                      <ItemArt id={h.itemId} size="small" />
+                                      <span
+                                        className="holding-name"
+                                        title={h.name}
+                                      >
+                                        {h.name}
+                                      </span>
+                                      <span className="holding-market">
+                                        {h.kind === "bazaar" ? "BZ" : "AH"}
+                                      </span>
+                                    </button>
+                                  </th>
+                                  <td
+                                    title={
+                                      h.kind === "auction"
+                                        ? `Complete stacks of ${h.stackSize} items`
+                                        : "Items owned"
+                                    }
+                                  >
+                                    {exact(h.quantity)}
+                                  </td>
+                                  <td>{exact(h.costBasis / h.quantity)}</td>
+                                  <td>{exact(h.costBasis)}</td>
+                                  <td
+                                    title={
+                                      v.referencePrice === null
+                                        ? "Price unavailable"
+                                        : v.reference
+                                    }
+                                  >
+                                    {exact(v.referencePrice)}
+                                  </td>
+                                  <td
+                                    title={
+                                      v.value === null
+                                        ? "Value unavailable"
+                                        : v.freshness === "stale"
+                                          ? "Last-known estimate"
+                                          : "Indicative market value"
+                                    }
+                                  >
+                                    {exact(v.value)}
+                                    {v.freshness === "stale" &&
+                                      v.value !== null && (
+                                        <span className="stale-tag">stale</span>
+                                      )}
+                                  </td>
+                                  <td className={profitClass}>
+                                    {exact(v.pnl)}
+                                  </td>
+                                  <td className={profitClass}>
+                                    {percent(v.returnPercent)}
+                                  </td>
+                                </tr>
+                                <tr
+                                  className="holding-detail-row"
+                                  hidden={!expanded}
                                 >
-                                  Edit
-                                </button>
-                                <button
-                                  disabled={busy}
-                                  onClick={() => {
-                                    setNotificationEditor(h);
-                                    setEditor(null);
-                                  }}
-                                >
-                                  {notification
-                                    ? "Edit notification"
-                                    : "Set notification"}
-                                </button>
-                                <button
-                                  disabled={busy}
-                                  onClick={() => setRemoval(h)}
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </div>
-                          </article>
-                        );
-                      })
+                                  <td colSpan={8}>
+                                    <div
+                                      className="holding-expanded"
+                                      id={`holding-details-${h.id}`}
+                                    >
+                                      <p className="holding-identity">
+                                        <b>{h.name}</b> ·{" "}
+                                        {h.kind === "bazaar"
+                                          ? "Bazaar"
+                                          : `Auction House · stack of ${h.stackSize}`}{" "}
+                                        · {exact(h.quantity)}{" "}
+                                        {h.kind === "auction"
+                                          ? "stacks"
+                                          : "items"}
+                                      </p>
+                                      <p className="sample">
+                                        {v.sampledAt ? (
+                                          <>
+                                            <b>
+                                              {v.freshness === "stale"
+                                                ? "Last-known estimate"
+                                                : "Fresh sample"}
+                                            </b>{" "}
+                                            ·{" "}
+                                            <SampleTime
+                                              timestamp={v.sampledAt}
+                                              now={now}
+                                            />
+                                          </>
+                                        ) : (
+                                          "No usable price sample"
+                                        )}
+                                      </p>
+                                      <details className="holding-details">
+                                        <summary>Valuation details</summary>
+                                        <dl className="holding-metrics">
+                                          <Metric
+                                            label="Average acquisition"
+                                            value={h.costBasis / h.quantity}
+                                          />
+                                          <Metric
+                                            label="Reference per unit"
+                                            value={v.referencePrice}
+                                          />
+                                        </dl>
+                                        <p className="reference">
+                                          {v.reference}
+                                          {h.kind === "auction" &&
+                                            ` · ${v.comparables} comparable listings`}
+                                        </p>
+                                        {h.kind === "auction" ? (
+                                          <>
+                                            <pre>{h.configuration}</pre>
+                                            <p>
+                                              At least three exact-configuration
+                                              listings are required. The cache
+                                              supplies up to 20 of the lowest
+                                              matching asks. Units here are
+                                              complete stacks, never
+                                              extrapolated individual items.
+                                            </p>
+                                            {v.uncertainty.map((r, i) => (
+                                              <p key={i}>{r}</p>
+                                            ))}
+                                            <p>{v.liquidationReason}</p>
+                                          </>
+                                        ) : v.liquidation ? (
+                                          <p>
+                                            Full-quantity{" "}
+                                            {v.freshness === "stale"
+                                              ? "last-known "
+                                              : ""}
+                                            after-tax liquidation estimate:{" "}
+                                            <b>
+                                              {exact(v.liquidation.value)} coins
+                                            </b>{" "}
+                                            · {v.liquidation.taxPercent}% tax.
+                                            Entire quantity fits visible bids.
+                                            Unrealized P&L above uses the
+                                            indicative top bid before fees and
+                                            slippage.
+                                          </p>
+                                        ) : (
+                                          <p>
+                                            Full-quantity after-tax liquidation
+                                            unavailable: {v.liquidationReason}
+                                          </p>
+                                        )}
+                                      </details>
+                                      <div className="holding-bottom">
+                                        <span className="notification-status">
+                                          <Bell size={15} />
+                                          {notification
+                                            ? `${notification.enabled ? "Enabled" : "Paused"} · ${notification.up === null ? "" : `↑ ${notification.up}% `}${notification.down === null ? "" : `↓ ${notification.down}% `} · baseline ${exact(notificationBaseline(notification, h))}`
+                                            : "Notifications off"}
+                                        </span>
+                                        <div className="actions">
+                                          <button
+                                            disabled={busy}
+                                            onClick={() =>
+                                              setEditor({
+                                                mode: "purchase",
+                                                holding: h,
+                                              })
+                                            }
+                                          >
+                                            Add purchase
+                                          </button>
+                                          <button
+                                            disabled={busy}
+                                            onClick={() =>
+                                              setEditor({
+                                                mode: "edit",
+                                                holding: h,
+                                              })
+                                            }
+                                          >
+                                            Edit
+                                          </button>
+                                          <button
+                                            disabled={busy}
+                                            onClick={() => {
+                                              setNotificationEditor(h);
+                                              setEditor(null);
+                                            }}
+                                          >
+                                            {notification
+                                              ? "Edit notification"
+                                              : "Set notification"}
+                                          </button>
+                                          <button
+                                            disabled={busy}
+                                            onClick={() => setRemoval(h)}
+                                          >
+                                            Delete
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              </tbody>
+                            );
+                          })}
+                        </table>
+                      </div>
                     )}
                   </>
                 )}
@@ -1152,7 +1199,7 @@ function Workspace({
           )}
         </>
       )}
-    </>
+    </div>
   );
 }
 function Metric({
@@ -1177,72 +1224,5 @@ function Metric({
       </dd>
       {note && <span>{note}</span>}
     </div>
-  );
-}
-function LegacyAlerts({ user }: { user: User }) {
-  const [alerts, setAlerts] = useState<Workflow[]>([]),
-    [error, setError] = useState(""),
-    [busy, setBusy] = useState(false),
-    [loaded, setLoaded] = useState(false);
-  async function load() {
-    setBusy(true);
-    setError("");
-    try {
-      const data = await readAccount(user);
-      if (auth?.currentUser === user) {
-        setAlerts(data.workflows);
-        setLoaded(true);
-      }
-    } catch (e) {
-      if (auth?.currentUser === user) setError((e as Error).message);
-    } finally {
-      if (auth?.currentUser === user) setBusy(false);
-    }
-  }
-  return (
-    <section className="panel legacy">
-      <h2>Legacy price alerts</h2>
-      <p>
-        Previous price targets have not been converted or re-enabled. Their
-        records and disable links are preserved. Existing queued mail may still
-        be delivered. New evaluation of legacy price targets has stopped.
-      </p>
-      <button disabled={busy} onClick={() => void load()}>
-        {busy ? "Loading…" : "Review legacy alerts"}
-      </button>
-      {error && <p role="alert">{error}</p>}
-      {loaded && !alerts.length && <p>No legacy alerts.</p>}
-      {alerts.map((a) => (
-        <div className="notification-row" key={a.id}>
-          <span>
-            {a.itemName} ·{" "}
-            {a.paused
-              ? "Disabled"
-              : a.stage === "completed"
-                ? "Completed"
-                : "Legacy record; new evaluation stopped"}
-          </span>
-          <button
-            disabled={busy || a.paused}
-            onClick={async () => {
-              setBusy(true);
-              try {
-                await requestBackend(
-                  { action: "legacy-pause", id: a.id },
-                  await user.getIdToken(),
-                );
-                await load();
-              } catch (e) {
-                if (auth?.currentUser === user) setError((e as Error).message);
-              } finally {
-                if (auth?.currentUser === user) setBusy(false);
-              }
-            }}
-          >
-            Disable legacy alert
-          </button>
-        </div>
-      ))}
-    </section>
   );
 }

@@ -9,6 +9,9 @@ import { TrialSession, TrialStopped, invocationEnvelope, type Counters } from '.
 import { hourlyTrialActive, HOURLY_TRIAL_END } from '../shared/hourly-trial';
 import { SnapshotReadCache } from './snapshot-read-cache';
 import { MARKET_HOUR, MARKET_REFRESH_MS } from '../shared/market-schedule';
+import { chooseCadence, reserveCapacity, type CapacityPlan, type CadenceDecision } from './capacity-plan';
+import { changeVisibleDemand, visibleDemand, type VisibleDemand } from './visible-demand';
+import { APP_BUDGET_PAUSE_FRACTION, APP_BUDGET_PAUSE_PERCENT, APP_BUDGET_PAUSE_DESCRIPTION } from '../shared/app-budget-policy';
 
 export const LIVE_HOUR = MARKET_HOUR;
 const collectionInterval = (now: number) => hourlyTrialActive(now) ? LIVE_HOUR : MARKET_REFRESH_MS;
@@ -20,6 +23,8 @@ export interface LiveAllowanceState {
   dailyLimits: Counters; dailyReserved: Counters; day: string;
   observed: Counters; lastCollectorHour?: number; lastCollectorAt?: number; stoppedAt?: number; reason?: string;
   evidence: string;
+  capacity?: CapacityPlan;
+  visible?: VisibleDemand;
 }
 export const pacificDay = (now: number) => new Intl.DateTimeFormat('en-CA', {
   timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit',
@@ -42,12 +47,12 @@ export function nextPacificReset(now:number) {
   return high;
 }
 export class LiveBudgetDeferred extends TrialStopped {
-  constructor(readonly key:string,readonly retryAt:number,readonly expiresAt:number,readonly trialId:string) {
-    super(`Free-tier operating budget reached: ${key}`);
+  constructor(readonly key:string,readonly retryAt:number,readonly expiresAt:number,readonly trialId:string,readonly reservationPause=false) {
+    super(reservationPause?`${APP_BUDGET_PAUSE_PERCENT}% app reservation pause: ${key}`:`Free-tier operating budget reached: ${key}`);
   }
 }
-const deferredBudget=(s:LiveAllowanceState,key:string,now:number)=>new LiveBudgetDeferred(key,
-  Object.hasOwn(liveDailyMaximums,key)?Math.min(nextPacificReset(now),s.expiresAt):s.expiresAt,s.expiresAt,s.id);
+const deferredBudget=(s:LiveAllowanceState,key:string,now:number,reservationPause=false)=>new LiveBudgetDeferred(key,
+  Object.hasOwn(liveDailyMaximums,key)?Math.min(nextPacificReset(now),s.expiresAt):s.expiresAt,s.expiresAt,s.id,reservationPause);
 const scopeKeys = new Set([...Object.keys(liveMaximums), ...Object.keys(liveDailyMaximums)]);
 export function validateLive(s: LiveAllowanceState | null, now: number) {
   if (!s || s.version !== 1 || !/^free-[a-zA-Z0-9_-]+$/.test(s.id) || !s.evidence ||
@@ -73,8 +78,10 @@ function hold(s: LiveAllowanceState, costs: Counters, now: number) {
     if (!scopeKeys.has(key)) continue; // Invocation-only byte/capacity bounds remain enforced by TrialSession.
     const daily = Object.hasOwn(liveDailyMaximums, key);
     const used = daily ? s.dailyReserved : s.monthlyReserved, limits = daily ? s.dailyLimits : s.monthlyLimits;
-    if ((used[key] ?? 0) + amount > limits[key]) throw deferredBudget(s,key,now);
+    if ((used[key] ?? 0) + amount > limits[key]) throw deferredBudget(s,key,now,true);
   }
+  const pause=reservationBudgetDeferral(s,costs,now);
+  if(pause)throw pause;
   for (const [key, amount] of Object.entries(costs)) if (scopeKeys.has(key)) {
     const used = Object.hasOwn(liveDailyMaximums, key) ? s.dailyReserved : s.monthlyReserved;
     used[key] = (used[key] ?? 0) + amount;
@@ -85,17 +92,21 @@ export function livePressure(s: LiveAllowanceState, now:number) {
     ...Object.entries(s.dailyLimits).filter(([,n])=>n>0).map(([k,n])=>s.day===pacificDay(now)?(s.dailyReserved[k]??0)/n:0));
 }
 export function collectorBudgetDeferral(s:LiveAllowanceState,now:number) {
-  const costs={...invocationEnvelope('collector'),cpuSeconds:100,memoryGiBSeconds:100,egressBytes:64*1024,firestoreReads:700,firestoreWrites:296};
-  for(const [key,amount] of Object.entries(costs)) {
-    if(!scopeKeys.has(key)||amount===0)continue;
-    const daily=Object.hasOwn(liveDailyMaximums,key);
-    const used=daily?(s.day===pacificDay(now)?s.dailyReserved[key]??0:0):s.monthlyReserved[key]??0;
-    if(used+amount>(daily?s.dailyLimits[key]:s.monthlyLimits[key])*(hourlyTrialActive(now)?.95:1))return deferredBudget(s,key,now);
+  return reservationBudgetDeferral(s,liveInvocationCharge('collector'),now);
+}
+function reservationBudgetDeferral(s:LiveAllowanceState,costs:Counters,now:number) {
+  for(const [daily,limits,reserved] of [[false,s.monthlyLimits,s.monthlyReserved],[true,s.dailyLimits,s.dailyReserved]] as const) {
+    for(const [key,limit] of Object.entries(limits)) {
+      const used=daily&&s.day!==pacificDay(now)?0:reserved[key]??0;
+      const amount=costs[key]??0;
+      if(limit===0?used+amount>0:used+amount>=limit*APP_BUDGET_PAUSE_FRACTION)
+        return deferredBudget(s,key,now,true);
+    }
   }
   return null;
 }
 export class LiveLedger {
-  constructor(private store: CacheStore, private clock = Date.now) {}
+  constructor(private store: CacheStore, private clock = Date.now, private requireCapacity = true) {}
   private async change<T>(fn: (state: LiveAllowanceState, now: number) => T) {
     for (let i = 0; i < 8; i++) {
       const raw = await this.store.read('live-allowance');
@@ -110,13 +121,23 @@ export class LiveLedger {
   async admit(kind: 'collector' | 'browser', id: string, sellerLookup=true) {
     return this.change((s, now) => {
       const hour = Math.floor(now / LIVE_HOUR);
-      const hourlyTrial=hourlyTrialActive(now);
-      const interval=collectionInterval(now),slot=Math.floor(now/interval);
+      // Apply the same per-resource cutoff before planning, in this CAS. This
+      // refuses even zero-cost work once another app budget is already at 90%.
+      const budgetPause=reservationBudgetDeferral(s,{},now);
+      if(budgetPause)throw budgetPause;
+      let decision: CadenceDecision | undefined;
+      if(this.requireCapacity) {
+        decision=chooseCadence(s.capacity,{...s,dailyEnd:nextPacificReset(now)},liveInvocationCharge('collector'),liveInvocationCharge('browser'),now);
+        if(decision.mode==='paused')throw new TrialStopped(decision.reasons.join('; '));
+        // No full private-account scan or upstream work for idle portfolios.
+        if(kind==='collector'&&!demandJobs(visibleDemand(s.visible,now),now).length)return null;
+      }
+      const interval=decision?.bazaarMs??collectionInterval(now),slot=Math.floor(now/interval);
+      if(kind==='collector'&&this.requireCapacity&&s.lastCollectorAt!==undefined&&now-s.lastCollectorAt<interval)return null;
       // Preserve legacy admission for its entire hour when no precise marker exists.
       // Upgrades retain every reservation and cannot replay an ambiguous old run.
       if (kind === 'collector' && (s.lastCollectorAt === undefined
         ? (s.lastCollectorHour ?? -1) >= hour : s.lastCollectorAt >= slot*interval)) return null;
-      if (kind === 'collector' && !hourlyTrial && livePressure(s,now)>=.65 && slot%2) return null;
       const costs: Counters = { ...invocationEnvelope(kind), cpuSeconds: kind === 'collector' ? 100 : 20,
         memoryGiBSeconds: kind === 'collector' ? 100 : 20,
         egressBytes: kind === 'collector' ? 64*1024 : 16*1024,
@@ -131,11 +152,9 @@ export class LiveLedger {
         Object.assign(costs, { sellerRequests: 0, firestoreReads: 8, firestoreWrites: 0,
           storageClassB: 1, storageEgressBytes: 8 * 1024 ** 2 });
       }
+      if(kind==='browser'&&this.requireCapacity)costs.egressBytes=Math.max(costs.egressBytes,s.capacity!.browserResponseBytes);
       // Cover admission and finish RPCs even though they precede/follow the session.
       const charge:Counters={ ...costs, firestoreReads: costs.firestoreReads + 100, firestoreWrites: costs.firestoreWrites + 40 };
-      // The temporary faster cadence may not consume the final 5% of any budget.
-      // Skip without spending/resetting reservations; browser access retains headroom.
-      if(kind==='collector' && hourlyTrial && collectorBudgetDeferral(s,now))return null;
       if(kind==='browser') {
         // Protect the full existing collector charge for every remaining UTC
         // hour before Pacific midnight, retaining the existing baseline reserve.
@@ -150,13 +169,32 @@ export class LiveLedger {
         }
       }
       hold(s, charge, now);
-      if (kind === 'collector') { s.lastCollectorHour = hour; s.lastCollectorAt = slot*interval; }
+      if(this.requireCapacity) {
+        try { reserveCapacity(s.capacity,charge,now); } catch(error) { throw new TrialStopped((error as Error).message); }
+      }
+      if (kind === 'collector') { s.lastCollectorHour = hour; s.lastCollectorAt = this.requireCapacity?now:slot*interval; }
       const peak=livePressure(s,now);
-      return new LiveSession(this, s.id, id, s.expiresAt, costs, this.clock, now - this.clock(), peak>=.65&&!hourlyTrial?'slow':peak>=.5?'warning':'normal');
+      const session=new LiveSession(this, s.id, id, s.expiresAt, costs, this.clock, now - this.clock(), decision?.mode??(peak>=.5?'warning':'normal'));
+      session.cadence=decision; session.demand=this.requireCapacity?visibleDemand(s.visible,now):undefined;
+      session.responseBytes=this.requireCapacity?s.capacity!.browserResponseBytes:undefined;
+      if(this.requireCapacity) {
+        session.capacityDeadline=Math.min(s.capacity!.validUntil,...Object.values(s.capacity!.meters).map(m=>m.periodEnd));
+        const offset=now-this.clock();session.capacityClock=()=>this.clock()+offset;
+      }
+      return session;
     });
   }
   async add(id: string, costs: Counters) {
-    await this.change((s, now) => { if (s.id !== id) throw new TrialStopped('Live release changed'); hold(s, costs, now); });
+    await this.change((s, now) => {
+      if (s.id !== id) throw new TrialStopped('Live release changed'); hold(s, costs, now);
+      if(this.requireCapacity)try { reserveCapacity(s.capacity,costs,now); } catch(error) { throw new TrialStopped((error as Error).message); }
+    });
+  }
+  async presence(uid:string,tab:string,assets:string[],active:boolean,interval:number) {
+    await this.change((s,now)=>{
+      if(!this.requireCapacity||!s.capacity)throw new TrialStopped('Visible demand requires verified capacity');
+      s.visible=changeVisibleDemand(s.visible,uid,tab,assets,active,now,interval,s.capacity.readerGroups);
+    });
   }
   async finish(id: string, _invocationId: string, observed: Counters) {
     await this.change(s => {
@@ -177,10 +215,25 @@ export class LiveLedger {
   }
 }
 class LiveSession extends TrialSession {
+  cadence?: CadenceDecision;
+  demand?: Demand;
+  responseBytes?: number;
+  capacityDeadline?: number;
+  capacityClock?: ()=>number;
+  override assertOpen() {
+    super.assertOpen();
+    if(this.capacityDeadline!==undefined&&this.capacityClock!()>=this.capacityDeadline)
+      throw new TrialStopped('Capacity evidence or allowance period expired');
+  }
+  override signal(timeoutMs=20_000,parent?:AbortSignal|null) {
+    return super.signal(Math.min(timeoutMs,this.capacityDeadline===undefined?Infinity:Math.max(1,this.capacityDeadline-this.capacityClock!())),parent);
+  }
   override policy() {
     const base=super.policy(), trial=hourlyTrialActive(base.serverNow);
-    return { ...base, pollMs: collectionInterval(base.serverNow)*(this.mode==='slow'&&!trial?2:1),
-      reason: trial?`Hourly test until ${new Date(HOURLY_TRIAL_END).toISOString()}; collections skip before 95% reserved. Hard budgets and fixed deadline still apply.`:'Five-minute Bazaar collection with ten-minute slowdown above 65% reserved; auction collection is disabled. Hard budgets still apply.' };
+    if(this.cadence)return {...base,pollMs:this.cadence.pollMs,bazaarMs:this.cadence.bazaarMs,auctionMs:this.cadence.auctionMs,
+      reason:this.cadence.reasons.join('; ')||'Collection follows verified free-tier capacity'};
+    return { ...base, pollMs: collectionInterval(base.serverNow),
+      reason: (trial?`Hourly test until ${new Date(HOURLY_TRIAL_END).toISOString()}. `:'Five-minute Bazaar collection; auction collection is disabled. ')+APP_BUDGET_PAUSE_DESCRIPTION };
   }
 }
 // Only an admitted, fully accounted invocation may recover from a transport
@@ -193,6 +246,15 @@ export interface LiveConfig {
   shutdown: () => Promise<void>; network?: typeof fetch; now?: () => number;
   report?: (measurement: Record<string, unknown>) => void;
   portfolioDemand?: (session: TrialSession) => Promise<Demand>;
+  /** Only historical offline regression fixtures may select the old profile. */
+  requireCapacity?: boolean;
+  verifyPresence?: (idToken: string) => Promise<{uid:string}>;
+}
+/** The planner uses the SAME conservative bounds as admission, never averages. */
+export function liveInvocationCharge(kind:'collector'|'browser'): Counters {
+  return kind==='collector'?{...invocationEnvelope(kind),cpuSeconds:100,memoryGiBSeconds:100,egressBytes:64*1024,firestoreReads:700,firestoreWrites:296}:
+    {...invocationEnvelope(kind),cpuSeconds:20,memoryGiBSeconds:20,egressBytes:16*1024,firestoreReads:108,firestoreWrites:40,
+      sellerRequests:0,storageClassB:1,storageEgressBytes:8*1024**2};
 }
 export function createLiveRuntime(config: LiveConfig) {
   const now = config.now ?? Date.now;
@@ -202,7 +264,7 @@ export function createLiveRuntime(config: LiveConfig) {
   const deferred=new Map<'collector'|'browser',LiveBudgetDeferred>();
   async function run(kind: 'collector' | 'browser', id: string,
     work: (session: LiveSession, collector: MarketCollector, store: ReturnType<LiveConfig['store']>) => Promise<void>,sellerLookup=true) {
-    const raw = config.store(), ledger = new LiveLedger(raw, now);
+    const raw = config.store(), ledger = new LiveLedger(raw, now, config.requireCapacity??true);
     let session: LiveSession | null = null;
     let phase: 'admission' | 'work' | 'accounting' = 'admission';
     try {
@@ -214,8 +276,10 @@ export function createLiveRuntime(config: LiveConfig) {
       if (session.trialId !== config.id || session.expiresAt !== config.expiresAt)
         throw new TrialStopped('Live allowance report does not match this release');
       const store = config.store(session);
+      // Keep the coordinator's immutable policy intact across restarts. Adaptive
+      // admission only slows it; changing policy requires the existing review.
       const collector = new MarketCollector(store, livePolicy, session.network(config.network), now, Math.random,
-        (name, amount) => session!.count(name, amount), collectionInterval(now()), snapshots);
+        (name, amount) => session!.count(name, amount), session.cadence?.bazaarMs??collectionInterval(now()), snapshots);
       phase = 'work';
       await work(session, collector, store);
       phase = 'accounting';
@@ -260,7 +324,8 @@ export function createLiveRuntime(config: LiveConfig) {
     const unchanged = status===200 && req.headers['if-none-match']===etag;
     const gzip = !unchanged && text && /\bgzip\b/.test(String(req.headers['accept-encoding']??''));
     const bytes = unchanged ? Buffer.alloc(0) : gzip ? gzipSync(text) : Buffer.from(text);
-    if(bytes.length+2048>16384) await session.extend({egressBytes:bytes.length+2048-16384});
+    if(session.responseBytes!==undefined&&bytes.length+2048>session.responseBytes)throw new TrialStopped('Response exceeds the reviewed per-read bound');
+    if(bytes.length+2048>16384&&session.responseBytes===undefined) await session.extend({egressBytes:bytes.length+2048-16384});
     session.take({egressBytes:bytes.length+2048},false);
     session.count('apiBodyBytes',bytes.length); session.count(`apiHttp${unchanged?304:status}`);
     if(status===200)res.setHeader('ETag',etag);
@@ -270,7 +335,7 @@ export function createLiveRuntime(config: LiveConfig) {
   };
   return {
     collect: async (event: string) => { try { await run('collector',event,async(session,collector,store)=>{
-      const jobs=config.portfolioDemand?demandJobs(await config.portfolioDemand(session),now()):undefined;
+      const jobs=session.demand?demandJobs(session.demand,now()):config.portfolioDemand?demandJobs(await config.portfolioDemand(session),now()):undefined;
       if(!jobs||jobs.length)await collector.tick(jobs);
       if(store.cleanup) {
         const previous=await store.read('cleanup');
@@ -282,6 +347,39 @@ export function createLiveRuntime(config: LiveConfig) {
     }); } catch(error) { if(!(error instanceof LiveBudgetDeferred))throw error; } },
     async handle(req: IncomingMessage,res: ServerResponse) {
       const path=new URL(req.url??'/', 'http://localhost').pathname;
+      if(path==='/api/companion/presence') {
+        res.setHeader('Cache-Control','no-store');res.setHeader('Content-Type','application/json');
+        if(req.headers.origin==='https://bazaarsignal.web.app') {
+          res.setHeader('Access-Control-Allow-Origin',req.headers.origin);
+          res.setHeader('Access-Control-Allow-Headers','Authorization, Content-Type');
+          res.setHeader('Access-Control-Allow-Methods','POST, OPTIONS');
+          res.setHeader('Access-Control-Max-Age','86400');
+        }
+        try {
+          if(req.method==='OPTIONS') {
+            await run('browser',randomUUID(),async session=>respond(session)(req,res,204),false);return;
+          }
+          if(req.method!=='POST'){res.writeHead(405).end();return;}
+          const token=/^Bearer (.+)$/.exec(String(req.headers.authorization??''))?.[1];
+          if(!token||!config.verifyPresence){res.writeHead(401).end();return;}
+          let principal:{uid:string};
+          try {principal=await config.verifyPresence(token);} catch {res.writeHead(401).end();return;}
+          await run('browser',randomUUID(),async session=>{
+            try {
+              const chunks:Buffer[]=[];let size=0;
+              for await(const chunk of req){size+=Buffer.byteLength(chunk);if(size>16384)throw new Error('Presence too large');chunks.push(Buffer.from(chunk));}
+              const body=JSON.parse(Buffer.concat(chunks).toString('utf8'));
+              if(typeof body.active!=='boolean')throw new Error('Invalid presence');
+              await new LiveLedger(config.store(),now,true).presence(principal.uid,body.tab,body.assets,body.active,session.policy().pollMs);
+              await respond(session)(req,res,200,{accepted:true});
+            } catch(error) {
+              if(error instanceof TrialStopped)throw error;
+              await respond(session)(req,res,400,{error:'Invalid or over-capacity presence'});
+            }
+          },false);
+        } catch {if(!res.headersSent)res.writeHead(503).end(JSON.stringify({error:'Visible monitoring remains paused',usage:{mode:'paused',pollMs:0}}));}
+        return;
+      }
       const sellerLookup=req.method==='GET'&&(path==='/api/companion/player-names'||/^\/api\/companion\/auctions\/[a-f0-9]{32}\/command$/i.test(path));
       try { await run('browser',randomUUID(),async(session,collector)=>marketHandler(collector,respond(session))(req,res),sellerLookup); }
       catch (error) {
@@ -296,9 +394,9 @@ export function createLiveRuntime(config: LiveConfig) {
             res.setHeader('Access-Control-Max-Age','86400');
             // Successful preflight lets the GET receive the bounded deferral.
             if(req.method==='OPTIONS'&&origin==='https://bazaarsignal.web.app'){res.writeHead(204).end();return;}
-            res.writeHead(429).end(JSON.stringify({error:'Market reads are waiting for the app budget to reset. Saved prices remain available.',
-              usage:{mode:'slow',pollMs:LIVE_HOUR,retryAt:error.retryAt,expiresAt:error.expiresAt,trialId:error.trialId,
-                reason:'Waiting for the app budget reset; scheduled collection remains enabled.'}}));
+            res.writeHead(429).end(JSON.stringify({error:'Market updates are paused for the app budget. Saved prices remain available.',
+              usage:{mode:error.reservationPause?'paused':'slow',pollMs:error.reservationPause?0:LIVE_HOUR,retryAt:error.retryAt,expiresAt:error.expiresAt,trialId:error.trialId,
+                reason:error.reservationPause?APP_BUDGET_PAUSE_DESCRIPTION:'Waiting for the app budget reset; scheduled collection remains enabled.'}}));
             return;
           }
           const transient = error instanceof LiveRequestTimeout;

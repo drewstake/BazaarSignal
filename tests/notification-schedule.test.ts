@@ -1,4 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
+vi.mock('../shared/automation-policy',()=>({BACKGROUND_JOBS_ENABLED:true,EMAIL_DELIVERY_ENABLED:true}));
 vi.mock('../shared/companion/portfolio-policy',()=>({PORTFOLIO_EVALUATION_ENABLED:true}));
 import { scheduledMinuteTick } from '../apps-script/backend';
 

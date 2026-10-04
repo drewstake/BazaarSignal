@@ -230,6 +230,7 @@ function runtimeFixture() {
       throw new Error("No upstream");
     });
   const runtime = createLiveRuntime({
+    requireCapacity: false, // Historical optimization fixture, no capacity grant.
     id: "free-fixture",
     expiresAt,
     store: (s) => trialGoogleStore(f.config, s),
@@ -435,7 +436,7 @@ it("unchanged metadata verification reuses its payload across collector instance
 
 it("larger upstream bodies stop at 128 MiB and retain the entire durable failed-run reservation", async () => {
   const { f } = runtimeFixture();
-  const ledger = new LiveLedger(trialGoogleStore(f.config));
+  const ledger = new LiveLedger(trialGoogleStore(f.config), Date.now, false);
   const session = (await ledger.admit("collector", "large-body"))!;
   const chunk = new Uint8Array(1024 * 1024);
   const transport = vi.fn(async () => {

@@ -1,8 +1,14 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { SqliteCache } from '../collector/cache-store';
-import { LiveLedger, liveMaximums, liveDailyMaximums, pacificDay, nextPacificReset, createLiveRuntime, type LiveAllowanceState } from '../collector/allowance-live';
+import { LiveLedger as CurrentLiveLedger, liveMaximums, liveDailyMaximums, pacificDay, nextPacificReset, createLiveRuntime as currentLiveRuntime, type LiveAllowanceState } from '../collector/allowance-live';
 import { MarketCollector } from '../collector/engine';
 import { HOURLY_TRIAL_START, HOURLY_TRIAL_END } from '../shared/hourly-trial';
+// Preserve regression coverage of the historical profile. Production uses the
+// strict default; capacity-plan.test.ts exercises the new admission boundary.
+class LiveLedger extends CurrentLiveLedger {
+  constructor(store:SqliteCache,clock=Date.now){super(store,clock,false);}
+}
+const createLiveRuntime=(config:Parameters<typeof currentLiveRuntime>[0])=>currentLiveRuntime({...config,requireCapacity:false});
 const stores: SqliteCache[]=[];
 async function request(runtime:ReturnType<typeof createLiveRuntime>,method='GET',url='/api/companion/status') {
   const response:any={headers:{},status:0,body:'',setHeader(k:string,v:unknown){this.headers[k]=v;},writeHead(n:number){this.status=n;return this;},end(body=''){this.body=body;this.headersSent=true;}};
@@ -33,10 +39,10 @@ it('keeps reservations spent after a crash and stops before the configured trans
   await store.commit('live-allowance',await store.read('live-allowance'),JSON.stringify(state));
   const l=new LiveLedger(store,()=>start);
   const session=await l.admit('browser','one');expect(session!.policy().pollMs).toBe(300_000);
-  await l.admit('browser','two');
+  await expect(l.admit('browser','two')).rejects.toThrow('90%');
   await expect(l.admit('browser','three')).rejects.toThrow('egressBytes');
-  await expect(session!.extend({egressBytes:1})).rejects.toThrow('egressBytes');
-  expect(JSON.parse((await store.read('live-allowance'))!).monthlyReserved.egressBytes).toBe(32768);
+  await expect(session!.extend({egressBytes:14000})).rejects.toThrow('egressBytes');
+  expect(JSON.parse((await store.read('live-allowance'))!).monthlyReserved.egressBytes).toBe(16384);
 });
 it('preserves an older hourly admission and all accounting when adopting five-minute slots',async()=>{
   const {store,state,start}=await setup();
@@ -54,7 +60,7 @@ it('preserves an older hourly admission and all accounting when adopting five-mi
   expect(after.monthlyLimits).toEqual(state.monthlyLimits);expect(after.expiresAt).toBe(state.expiresAt);
 });
 it('five-minute collection still defers at the existing cap without resetting or stopping the ledger',async()=>{
-  const {store,state,start}=await setup();state.monthlyLimits.collectorInvocations=2;
+  const {store,state,start}=await setup();state.monthlyLimits.collectorInvocations=3;
   await store.commit('live-allowance',await store.read('live-allowance'),JSON.stringify(state));
   const shutdown=vi.fn(),tick=vi.spyOn(MarketCollector.prototype,'tick').mockResolvedValue(undefined);let now=start;
   const runtime=createLiveRuntime({id:state.id,expiresAt:state.expiresAt,store:()=>store,shutdown,now:()=>now});
@@ -101,8 +107,8 @@ it('an admitted work timeout retains charges, completes accounting and waits for
 it.each(['admission','accounting','unknown','deadline'])('%s failures still stop the service',async(phase)=>{
   const {store,state,start}=await setup();const shutdown=vi.fn();let now=start;
   const timeout=new DOMException('timeout','TimeoutError');
-  if(phase==='admission')vi.spyOn(LiveLedger.prototype,'admit').mockRejectedValueOnce(timeout);
-  if(phase==='accounting')vi.spyOn(LiveLedger.prototype,'finish').mockRejectedValueOnce(timeout);
+  if(phase==='admission')vi.spyOn(CurrentLiveLedger.prototype,'admit').mockRejectedValueOnce(timeout);
+  if(phase==='accounting')vi.spyOn(CurrentLiveLedger.prototype,'finish').mockRejectedValueOnce(timeout);
   vi.spyOn(MarketCollector.prototype,'tick').mockImplementation(async()=>{
     if(phase==='deadline')now=state.expiresAt;
     throw phase==='unknown'?new Error('invalid data'):timeout;
@@ -111,7 +117,7 @@ it.each(['admission','accounting','unknown','deadline'])('%s failures still stop
   await expect(r.collect('failure')).rejects.toThrow();expect(shutdown).toHaveBeenCalledOnce();
   expect(JSON.parse((await store.read('live-allowance'))!).stoppedAt).toBe(now);
 });
-it('admits consecutive hourly test slots above 65%, retains costs and returns to slowdown after the test',async()=>{
+it('does not halve cadence at 65% reserved and retains the 90% cutoff after the hourly test',async()=>{
   const {store,state}=await setup(HOURLY_TRIAL_START);
   state.expiresAt=HOURLY_TRIAL_END+86400000;
   state.monthlyReserved.cpuSeconds=80000;
@@ -128,10 +134,10 @@ it('admits consecutive hourly test slots above 65%, retains costs and returns to
   expect(saved.monthlyReserved.cpuSeconds).toBe(80200);
   expect(saved.expiresAt).toBe(state.expiresAt);
   now=HOURLY_TRIAL_END+300000;
-  expect(await ledger.admit('collector','odd-after-trial')).toBeNull();
-  expect((await ledger.admit('browser','after-trial'))!.policy().pollMs).toBe(600000);
+  expect(await ledger.admit('collector','odd-after-trial')).not.toBeNull();
+  expect((await ledger.admit('browser','after-trial'))!.policy().pollMs).toBe(300000);
 });
-it('skips a test collection before 95% without pausing, spending or clearing accounting; resets only at Pacific midnight',async()=>{
+it('pauses collection at 90% without spending or clearing accounting; daily capacity resets only at Pacific midnight',async()=>{
   const {store,state}=await setup(HOURLY_TRIAL_START);
   state.dailyReserved={firestoreReads:28000,firestoreWrites:10000};
   await store.commit('live-allowance',await store.read('live-allowance'),JSON.stringify(state));
@@ -148,10 +154,10 @@ it('skips a test collection before 95% without pausing, spending or clearing acc
 });
 it.each(['cpuSeconds','snapshotUploads','hypixelRequests'])('test respects monthly %s reservations and never renews the budget',async(key)=>{
   const {store,state}=await setup(HOURLY_TRIAL_START);
-  state.monthlyReserved[key]=Math.floor(state.monthlyLimits[key]*.95);
+  state.monthlyReserved[key]=Math.floor(state.monthlyLimits[key]*.9);
   await store.commit('live-allowance',await store.read('live-allowance'),JSON.stringify(state));
   const before=await store.read('live-allowance');
-  expect(await new LiveLedger(store,()=>HOURLY_TRIAL_START).admit('collector',key)).toBeNull();
+  await expect(new LiveLedger(store,()=>HOURLY_TRIAL_START).admit('collector',key)).rejects.toThrow(key);
   expect(await store.read('live-allowance')).toBe(before);
 });
 it('hourly test still enforces browser hard limits, expired periods and explicit stops',async()=>{
@@ -170,7 +176,7 @@ it('budget refusal keeps Scheduler alive, returns bounded CORS/429, avoids repea
   const before=await store.read('live-allowance'),shutdown=vi.fn(),network=vi.fn();
   const runtime=createLiveRuntime({id:state.id,expiresAt:state.expiresAt,store:()=>store,shutdown,network,now:()=>now});
   const res=await request(runtime);expect(res.status).toBe(429);
-  expect(JSON.parse(res.body).usage).toMatchObject({mode:'slow',pollMs:3600000,trialId:state.id,expiresAt:state.expiresAt,retryAt:Date.parse('2026-10-03T07:00:00Z')});
+  expect(JSON.parse(res.body).usage).toMatchObject({mode:'paused',pollMs:0,trialId:state.id,expiresAt:state.expiresAt,retryAt:Date.parse('2026-10-03T07:00:00Z')});
   const reads=vi.spyOn(store,'read');expect((await request(runtime,'OPTIONS')).status).toBe(204);
   expect(reads).not.toHaveBeenCalled();reads.mockRestore();
   await runtime.collect('before-reset');expect(await store.read('live-allowance')).toBe(before);
@@ -195,7 +201,7 @@ it('browsing protects the remaining hourly collector budget without pre-spending
   expect(after.monthlyReserved.sellerRequests).toBe(0);
 });
 it('a denied response-size extension finalizes admitted accounting without shutting down collection',async()=>{
-  const {store,state,start}=await setup();state.monthlyLimits.egressBytes=16384;
+  const {store,state,start}=await setup();state.monthlyLimits.egressBytes=19000;
   await store.commit('live-allowance',await store.read('live-allowance'),JSON.stringify(state));
   vi.spyOn(MarketCollector.prototype,'bazaar').mockResolvedValue({items:[],padding:'x'.repeat(18000)} as any);
   const shutdown=vi.fn(),runtime=createLiveRuntime({id:state.id,expiresAt:state.expiresAt,store:()=>store,shutdown,now:()=>start});
@@ -205,10 +211,10 @@ it('a denied response-size extension finalizes admitted accounting without shutt
   expect(after.observed.observedHandlerMs).toBeDefined();expect(shutdown).not.toHaveBeenCalled();
 });
 it('failure to finalize a deferred admitted request still stops infrastructure',async()=>{
-  const {store,state,start}=await setup();state.monthlyLimits.egressBytes=16384;
+  const {store,state,start}=await setup();state.monthlyLimits.egressBytes=19000;
   await store.commit('live-allowance',await store.read('live-allowance'),JSON.stringify(state));
   vi.spyOn(MarketCollector.prototype,'bazaar').mockResolvedValue({items:[],padding:'x'.repeat(18000)} as any);
-  vi.spyOn(LiveLedger.prototype,'finish').mockRejectedValueOnce(new Error('accounting unavailable'));
+  vi.spyOn(CurrentLiveLedger.prototype,'finish').mockRejectedValueOnce(new Error('accounting unavailable'));
   const shutdown=vi.fn(),runtime=createLiveRuntime({id:state.id,expiresAt:state.expiresAt,store:()=>store,shutdown,now:()=>start});
   expect((await request(runtime,'GET','/api/companion/bazaar')).status).toBe(503);
   expect(shutdown).toHaveBeenCalledOnce();

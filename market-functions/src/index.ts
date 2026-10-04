@@ -45,6 +45,8 @@ const runtime = live ? createLiveRuntime({
   shutdown: () => stopTrialInfrastructure({ project, token }),
   report: measurement => console.info(JSON.stringify(measurement)),
   portfolioDemand,
+  requireCapacity: true,
+  verifyPresence: idToken => getAuth(ownerApp).verifyIdToken(idToken,true),
 }) : createTrialRuntime({
   trialId: process.env.MARKET_TRIAL_ID ?? "",
   startsAt: Date.parse(process.env.MARKET_TRIAL_START ?? ""),

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   addPurchase,
   positionInput,
+  quantityFromCostInput,
   type CostMode,
 } from "../../shared/companion/positions";
 import {
@@ -39,6 +40,9 @@ export default function HoldingEditor({
     [costMode, setCostMode] = useState<CostMode>(
       mode === "edit" ? "total" : "average",
     );
+  const [quantityMode, setQuantityMode] = useState("manual"),
+    [averageCost, setAverageCost] = useState(""),
+    [totalSpent, setTotalSpent] = useState("");
   const [stack, setStack] = useState(String(holding?.stackSize ?? 1)),
     [rarity, setRarity] = useState("LEGENDARY"),
     [enchantments, setEnchantments] = useState("{}"),
@@ -48,7 +52,9 @@ export default function HoldingEditor({
   useEffect(() => {
     heading.current?.focus();
   }, []);
-  const input = positionInput(quantity, cost, costMode),
+  const calculated = quantityMode === "calculated",
+    inferred = quantityFromCostInput(averageCost, totalSpent),
+    input = calculated ? inferred : positionInput(quantity, cost, costMode),
     selected = holdingCatalogItem(itemId),
     kind = holding?.kind ?? selected?.kind ?? (manual ? "auction" : "bazaar");
   let configuration = holding?.configuration ?? "",
@@ -81,6 +87,25 @@ export default function HoldingEditor({
       setCost(String(next === "total" ? input.costBasis : input.averagePrice));
     else setCost("");
     setCostMode(next);
+  }
+  function switchQuantity(next: string) {
+    if (next === quantityMode) return;
+    if (!input.error) {
+      if (next === "calculated") {
+        setAverageCost(String(input.averagePrice));
+        setTotalSpent(String(input.costBasis));
+      } else {
+        setQuantity(String(input.quantity));
+        setCost(
+          String(costMode === "total" ? input.costBasis : input.averagePrice),
+        );
+      }
+    } else if (next === "calculated") {
+      if (costMode === "average") setAverageCost(cost);
+      else setTotalSpent(cost);
+    }
+    setQuantityMode(next);
+    setSubmitted(false);
   }
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -120,8 +145,8 @@ export default function HoldingEditor({
       </h2>
       <p>
         {mode === "purchase"
-          ? "Record just the new purchase. Quantity and cost are added transactionally."
-          : "Record the quantity you actually own and what you paid."}
+          ? "Record just the new purchase using quantity, or average price and total coins spent."
+          : "Enter your quantity, or calculate it from your average purchase price and total coins spent."}
       </p>
       <fieldset disabled={busy}>
         {holding ? (
@@ -246,61 +271,115 @@ export default function HoldingEditor({
             )}
           </>
         )}
+        <label>
+          Quantity entry
+          <select
+            value={quantityMode}
+            onChange={(e) => switchQuantity(e.target.value)}
+          >
+            <option value="manual">Enter quantity</option>
+            <option value="calculated">Calculate from coins spent</option>
+          </select>
+        </label>
         <div className="form-grid">
-          <label>
-            {mode === "purchase"
-              ? "Additional quantity"
-              : kind === "auction"
-                ? "Identical stacks owned"
-                : "Quantity owned"}
-            <input
-              inputMode="numeric"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              placeholder="Actual whole quantity"
-            />
-          </label>
-          <label>
-            Cost entry
-            <select
-              aria-label="Cost entry"
-              value={costMode}
-              onChange={(e) => switchCost(e.target.value as CostMode)}
-            >
-              <option value="average">Average purchase price</option>
-              <option value="total">Total cost basis</option>
-            </select>
-          </label>
-          <label>
-            {costMode === "average"
-              ? "Average purchase price"
-              : "Total cost basis"}{" "}
-            · coins
-            <input
-              value={cost}
-              onChange={(e) => setCost(e.target.value)}
-              placeholder="e.g. 12.2m"
-            />
-          </label>
+          {calculated ? (
+            <>
+              <label>
+                Average purchase price · coins
+                <input
+                  value={averageCost}
+                  onChange={(e) => setAverageCost(e.target.value)}
+                  placeholder="e.g. 12.2m"
+                />
+              </label>
+              <label>
+                Total coins spent · coins
+                <input
+                  value={totalSpent}
+                  onChange={(e) => setTotalSpent(e.target.value)}
+                  placeholder="e.g. 3.5014b"
+                />
+              </label>
+            </>
+          ) : (
+            <>
+              <label>
+                {mode === "purchase"
+                  ? "Additional quantity"
+                  : kind === "auction"
+                    ? "Identical stacks owned"
+                    : "Quantity owned"}
+                <input
+                  inputMode="numeric"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  placeholder="Actual whole quantity"
+                />
+              </label>
+              <label>
+                Cost entry
+                <select
+                  aria-label="Cost entry"
+                  value={costMode}
+                  onChange={(e) => switchCost(e.target.value as CostMode)}
+                >
+                  <option value="average">Average purchase price</option>
+                  <option value="total">Total cost basis</option>
+                </select>
+              </label>
+              <label>
+                {costMode === "average"
+                  ? "Average purchase price"
+                  : "Total cost basis"}{" "}
+                · coins
+                <input
+                  value={cost}
+                  onChange={(e) => setCost(e.target.value)}
+                  placeholder="e.g. 12.2m"
+                />
+              </label>
+            </>
+          )}
         </div>
         <p className="muted">
           Coins accept commas and k / m / b, in either case. Whole quantities
           only.
+          {calculated
+            ? " Quantity = total coins spent ÷ average purchase price, rounded to the nearest whole quantity."
+            : ""}
           {kind === "auction" ? " Average price is per identical stack." : ""}
         </p>
         <div className="derived" aria-live="polite">
-          {costMode === "average"
-            ? "Calculated total cost basis"
-            : "Calculated average purchase price"}
-          :{" "}
-          <strong>
-            {input.error
-              ? "—"
-              : exact(
-                  costMode === "average" ? input.costBasis : input.averagePrice,
-                )}{" "}
-            coins
-          </strong>
+          {calculated ? (
+            <>
+              Calculated {kind === "auction" ? "identical stacks" : "quantity"}:{" "}
+              <strong>{input.error ? "—" : exact(input.quantity)}</strong>
+              {!inferred.error && inferred.rounded && (
+                <p className="muted">
+                  Rounded to the nearest whole quantity. Total coins spent stays
+                  the same; recorded average purchase price:{" "}
+                  {exact(inferred.averagePrice)} coins.
+                </p>
+              )}
+            </>
+          ) : (
+            <>
+              {costMode === "average"
+                ? "Calculated total cost basis"
+                : "Calculated average purchase price"}
+              :{" "}
+              <strong>
+                {input.error
+                  ? "—"
+                  : exact(
+                      costMode === "average"
+                        ? input.costBasis
+                        : input.averagePrice,
+                    )}{" "}
+                coins
+              </strong>
+            </>
+          )}
           {combined && (
             <p>
               Combined quantity: {exact(combined.quantity)} · Cost basis:{" "}
@@ -309,11 +388,13 @@ export default function HoldingEditor({
             </p>
           )}
         </div>
-        {(submitted || (quantity && cost)) && error && (
-          <p role="alert" className="error">
-            {error}
-          </p>
-        )}
+        {(submitted ||
+          (calculated ? averageCost && totalSpent : quantity && cost)) &&
+          error && (
+            <p role="alert" className="error">
+              {error}
+            </p>
+          )}
         <div className="actions">
           <button className="primary" type="submit">
             {busy

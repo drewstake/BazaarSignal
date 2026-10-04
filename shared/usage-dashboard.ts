@@ -24,6 +24,7 @@ export function verifiedUsageSnapshot(snapshot: UsageDashboard): UsageDashboard 
 }
 export interface UsageDashboard {
   localReport?: string;
+  localNextAttemptAt?: number;
   generatedAt: number; nextMeasurementAt: number; stale?: boolean;
   rows: UsageRow[];
   spending: { state: 'unavailable' | 'not-reported'; month: null; total: null;

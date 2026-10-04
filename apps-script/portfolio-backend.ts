@@ -16,6 +16,7 @@ import {
   type Portfolio,
 } from "../shared/companion/portfolio";
 import { PORTFOLIO_EVALUATION_ENABLED } from "../shared/companion/portfolio-policy";
+import { EMAIL_DELIVERY_ENABLED } from '../shared/automation-policy';
 import type { BazaarItem, Listing } from "../shared/companion/types";
 import { deliver, emptyState, type Mail, type State } from "./core";
 import {
@@ -578,6 +579,7 @@ export function runPortfolioNotifications(
             throw new Error("Delivery no longer eligible.");
           const recipient = verifiedRecipient(uid);
           if (!recipient) throw new Error("Verified identity unavailable.");
+          if(!EMAIL_DELIVERY_ENABLED)throw new Error('Email delivery remains paused');
           MailApp.sendEmail({
             to: recipient,
             ...portfolioMailText(mail, alert.workflow.itemName),

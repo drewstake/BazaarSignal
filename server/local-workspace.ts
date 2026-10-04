@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { readFile } from "node:fs/promises";
+import { createLocalUsageReport } from "./local-usage";
 import { emptyState, publicState } from "../apps-script/core";
 import { DOCUMENT } from "../apps-script/store";
 import {
@@ -191,6 +191,7 @@ export function localWorkspaceHandler(
     options.verify ?? ((token) => verifyLocalIdentity(token, apiKey));
   const storage = options.storage ?? localFirestore;
   const mutate = localNotificationService(storage);
+  const usageReport = options.report ?? createLocalUsageReport();
   return async (
     req: IncomingMessage,
     res: ServerResponse,
@@ -241,16 +242,10 @@ export function localWorkspaceHandler(
       if (path === "/api/owner/usage") {
         if (!authorizedOwner(identity.claims, Date.now()))
           return send(403, { error: "Owner access required." });
-        const report = options.report
-          ? await options.report()
-          : JSON.parse(
-              await readFile(".local/usage-dashboard-measured.json", "utf8"),
-            );
+        const report = await usageReport();
         return send(200, {
           ...verifiedUsageSnapshot(report),
-          stale: true,
-          localReport:
-            "Last saved cloud report from this computer. Its original measurement times are preserved; this is not a live cloud measurement. Refresh reloads this file without contacting the collector.",
+          stale: !!report.stale || Date.now() >= report.nextMeasurementAt,
         });
       }
       if (request.action === "portfolio-notification")
@@ -274,7 +269,7 @@ export function localWorkspaceHandler(
         ok: false,
         error:
           path === "/api/owner/usage"
-            ? "No saved cloud report is available on this computer. Live reporting remains paused; usage is unknown."
+            ? "Cloud measurements are unavailable. Refresh is limited to one measurement attempt every 30 minutes; collection remains paused."
             : e instanceof Error
               ? e.message
               : "Local service unavailable.",

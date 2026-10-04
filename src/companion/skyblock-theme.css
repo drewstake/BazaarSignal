@@ -535,11 +535,10 @@
 .editor {
   border-color: #728b50;
 }
-.portfolio-layout aside a {
-  margin-bottom: 5px;
+.portfolio-picker a {
   border: 1px solid transparent;
 }
-.portfolio-layout aside a[aria-current="page"] {
+.portfolio-picker a[aria-current="page"] {
   border-color: var(--green-line);
   box-shadow: inset 0 1px 0 #fff8;
 }
@@ -582,6 +581,197 @@
 .sky-icon {
   flex-shrink: 0;
   pointer-events: none;
+}
+
+/* Keep portfolio totals and holdings close to their controls. */
+.local-workspace-notice {
+  padding: 4px 12px;
+  margin-bottom: 16px;
+}
+.local-workspace-notice summary {
+  color: inherit;
+}
+.local-workspace-notice p {
+  margin: 4px 0 8px;
+}
+.portfolio-workspace .page-title {
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.portfolio-workspace .page-title h1 {
+  font-size: 28px;
+  margin-bottom: 4px;
+}
+.portfolio-workspace .page-title p {
+  font-size: 13px;
+}
+.portfolio-workspace .market-note {
+  padding: 8px 12px;
+  margin-bottom: 16px;
+}
+.portfolio-workspace .portfolio-heading {
+  margin-bottom: 12px;
+}
+.portfolio-workspace .summary {
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.portfolio-workspace .summary > div {
+  padding: 12px 16px;
+}
+.portfolio-workspace .summary dt {
+  margin-bottom: 5px;
+}
+.portfolio-workspace .summary dd {
+  font-size: 23px;
+}
+.portfolio-workspace .summary > div > span {
+  margin-top: 4px;
+}
+.portfolio-workspace .coverage {
+  padding: 4px 12px;
+  margin-bottom: 12px;
+}
+.portfolio-workspace .coverage p {
+  margin-bottom: 8px;
+}
+.portfolio-workspace .holding-toolbar {
+  margin: 18px 0 12px;
+}
+.holdings-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--card);
+}
+.holdings-table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.holdings-table caption {
+  text-align: left;
+  padding: 8px 12px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.holdings-table th,
+.holdings-table td {
+  padding: 10px 12px;
+  text-align: right;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--line);
+}
+.holdings-table thead th {
+  background: #e9dfc6;
+  font-size: 11px;
+  font-weight: 600;
+}
+.holdings-table th:first-child {
+  text-align: left;
+}
+.holdings-table .holding-row > th {
+  padding: 0;
+}
+.holding-row:hover > th,
+.holding-row:hover > td,
+.holding-row.expanded > th,
+.holding-row.expanded > td {
+  background: #eef1df;
+}
+.portfolio-app main button.holding-toggle {
+  width: 100%;
+  min-height: 44px;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+  font-size: 13px;
+  color: var(--ink);
+  text-shadow: none;
+  text-align: left;
+}
+.holding-toggle:focus-visible {
+  outline-offset: -3px;
+}
+.holding-toggle[aria-expanded="true"] > svg {
+  transform: rotate(90deg);
+}
+.holding-toggle .item-art {
+  width: 24px;
+  height: 24px;
+}
+.holding-name {
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.holding-market {
+  font-size: 9px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.stale-tag {
+  font-size: 9px;
+  color: #85652d;
+  margin-left: 4px;
+}
+.holdings-table .holding-detail-row > td {
+  padding: 0;
+  text-align: left;
+  white-space: normal;
+  background: #f5edda;
+}
+.holding-expanded {
+  padding: 14px 18px;
+}
+.holding-identity {
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.portfolio-workspace .holding-metrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 12px 0 8px;
+  padding: 10px 0;
+}
+.portfolio-workspace .holding-metrics dt {
+  margin-bottom: 4px;
+}
+.portfolio-workspace .holding-metrics dd small {
+  display: inline;
+  margin-left: 5px;
+}
+.portfolio-workspace .sample {
+  margin-bottom: 0;
+}
+.portfolio-workspace .holding-bottom {
+  padding-top: 10px;
+  margin-top: 6px;
+  gap: 10px;
+}
+.portfolio-workspace .holdings-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: left;
+  padding: 24px 16px;
+}
+.portfolio-workspace .holdings-empty h3 {
+  margin: 0 0 4px;
+}
+.portfolio-workspace .holdings-empty p {
+  margin: 0;
+  font-size: 13px;
 }
 @media (max-width: 1200px) {
   .market-header-inner {
@@ -733,6 +923,71 @@
   }
   .intro-art {
     min-height: 190px;
+  }
+  .portfolio-workspace .page-title {
+    flex-direction: row;
+    align-items: center;
+  }
+  .portfolio-workspace .page-title > div {
+    min-width: 0;
+  }
+  .portfolio-workspace .page-title > button {
+    flex-shrink: 0;
+    align-self: center;
+  }
+  .portfolio-workspace .page-title h1 {
+    font-size: 24px;
+  }
+  .portfolio-workspace .summary {
+    grid-template-columns: 1fr;
+  }
+  .portfolio-workspace .summary > div {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+    gap: 4px 8px;
+    padding: 10px 12px;
+  }
+  .portfolio-workspace .summary dt {
+    margin-bottom: 0;
+  }
+  .portfolio-workspace .summary dd {
+    font-size: 18px;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+  .portfolio-workspace .summary > div > span {
+    text-align: right;
+    margin-top: 0;
+  }
+  .holdings-table th:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: var(--card);
+    box-shadow: 1px 0 var(--line);
+  }
+  .holdings-table thead th:first-child {
+    background: #e9dfc6;
+  }
+  .holding-name {
+    max-width: 100px;
+  }
+  .holding-toggle .item-art {
+    display: none;
+  }
+  .portfolio-app main button.holding-toggle {
+    max-width: 150px;
+  }
+  .holdings-table {
+    min-width: 900px;
+  }
+  .holding-market {
+    display: none;
+  }
+  .holding-expanded {
+    position: sticky;
+    left: 0;
+    max-width: calc(100vw - 72px);
+    padding: 12px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

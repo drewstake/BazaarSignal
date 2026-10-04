@@ -1,0 +1,689 @@
+@font-face {
+  font-family: "Night Market Pixel";
+  src: url("/assets/night-market/pixelify-sans-700.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+.portfolio-app.night-market {
+  color: #fff9e5;
+  color-scheme: dark;
+  background: #031022;
+  font:
+    400 16px/1.5 Arial,
+    sans-serif;
+  --nm-mint: #77ffbd;
+  --nm-muted: #a4b9d8;
+  --nm-cut: polygon(
+    8px 0,
+    calc(100% - 8px) 0,
+    calc(100% - 8px) 6px,
+    100% 6px,
+    100% calc(100% - 6px),
+    calc(100% - 8px) calc(100% - 6px),
+    calc(100% - 8px) 100%,
+    8px 100%,
+    8px calc(100% - 6px),
+    0 calc(100% - 6px),
+    0 6px,
+    8px 6px
+  );
+}
+.nm-stage {
+  position: relative;
+  isolation: isolate;
+  container-type: inline-size;
+  width: 100%;
+  min-height: max(100dvh, 56vw);
+  margin: 0 auto;
+  background: url("/assets/night-market/scene-only.png") center / cover
+    no-repeat;
+}
+.night-market .skip-link {
+  background: #0a2030;
+  color: #fff;
+}
+.nm-header {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 6.38cqw;
+  padding: 1.3cqw 4.69cqw 1cqw;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 2cqw;
+  border-bottom: 1px solid #294664;
+  background: #04112325;
+}
+.nm-brand {
+  display: block;
+  position: relative;
+  flex-shrink: 0;
+  width: 26.5625cqw;
+  height: 4.167cqw;
+  filter: drop-shadow(0 4px 5px #0008);
+}
+/* Only the brand sign uses the approved concept as a CSS sprite. */
+.nm-brand-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: url("/assets/night-market/reference.png") -4.6875cqw -1.3021cqw /
+    100cqw 66.6667cqw;
+}
+.nm-nav {
+  display: flex;
+  align-items: stretch;
+  height: 4.167cqw;
+  border-bottom: 2px solid #243950;
+}
+.nm-nav a {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65cqw;
+  min-width: 10.35cqw;
+  padding: 0 1.05cqw;
+  font-size: 1.172cqw;
+  font-weight: 600;
+  color: #b7c9e8;
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+.nm-nav a + a::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  height: 2.5cqw;
+  width: 1px;
+  background: #27374b;
+}
+.nm-nav .sky-icon {
+  width: 2.21cqw;
+  height: 2.21cqw;
+  object-fit: contain;
+}
+.nm-nav svg {
+  width: 1.63cqw;
+  height: 1.63cqw;
+  color: #9ab1d7;
+}
+.nm-nav a[aria-current="page"] {
+  color: #fff;
+  border: 1px solid #39b898;
+  border-bottom: 3px solid #77ffbd;
+  background: linear-gradient(180deg, #0b2330cc, #071c23e6);
+  box-shadow:
+    inset 0 0 18px #35eb9820,
+    0 5px 18px #42ffa019;
+  clip-path: var(--nm-cut);
+}
+.nm-nav a:hover {
+  color: #fff;
+  background-color: #11303caa;
+}
+.nm-nav a:focus-visible {
+  outline: none;
+  background: #153d48;
+  box-shadow: inset 0 0 0 3px #a4ffd1;
+}
+.night-market .nm-main {
+  display: block;
+  max-width: none;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  outline: none;
+}
+.nm-hero {
+  position: absolute;
+  left: 5.078%;
+  top: 17.97%;
+  width: 38%;
+}
+.nm-eyebrow {
+  margin: 0 0 0.52cqw;
+  color: #a0b5d8;
+  font-size: 0.912cqw;
+  font-weight: 700;
+  letter-spacing: 0.16cqw;
+}
+.nm-hero h1 {
+  margin: 0;
+  font:
+    700 4.75cqw/0.94 "Night Market Pixel",
+    monospace;
+  letter-spacing: -0.11cqw;
+  color: #fff9e5;
+  text-shadow: 0 3px 0 #03122388;
+}
+.nm-headline-line,
+.nm-headline-accent {
+  display: block;
+}
+.nm-headline-accent {
+  color: var(--nm-mint);
+  margin-top: 0.4cqw;
+}
+.nm-description {
+  margin: 1.45cqw 0 1.75cqw;
+  font-size: 1.43cqw;
+  line-height: 1.4;
+  color: var(--nm-muted);
+  white-space: nowrap;
+}
+.night-market .nm-sign-in {
+  position: relative;
+  gap: 1.4cqw;
+  width: 21.95cqw;
+  min-height: 4.5cqw;
+  padding: 0.65cqw 1.6cqw;
+  font:
+    700 1.43cqw/1 Arial,
+    sans-serif;
+  color: #fff;
+  border: 0;
+  border-radius: 0;
+  background: linear-gradient(#72ffb9, #40d293);
+  filter: drop-shadow(0 0 15px #32ff8b45);
+  clip-path: var(--nm-cut);
+  isolation: isolate;
+}
+.nm-sign-in::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 3px;
+  background: linear-gradient(180deg, #188859, #0b553d);
+  clip-path: var(--nm-cut);
+  box-shadow: inset 0 0 14px #38f5a542;
+}
+.nm-sign-in::after {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border: 1px solid #69eea854;
+  clip-path: var(--nm-cut);
+  pointer-events: none;
+}
+.night-market .nm-sign-in:hover {
+  background: #a4ffd1;
+}
+.night-market .nm-sign-in:hover::before {
+  background: linear-gradient(#229e69, #126647);
+}
+.night-market .nm-sign-in:focus-visible {
+  outline: none;
+  background: #fff;
+  filter: drop-shadow(0 0 6px #fff) drop-shadow(0 0 18px #67ffbb);
+}
+.nm-google {
+  width: 2.35cqw;
+  height: 2.35cqw;
+}
+.nm-privacy {
+  color: #b0c3e2;
+  font-size: 0.912cqw;
+  margin: 1.05cqw 0 0;
+  line-height: 1.45;
+}
+.nm-error {
+  margin: 0.8cqw 0 0;
+  padding: 0.6cqw 0.8cqw;
+  font-size: 14px;
+  color: #ffd7c9;
+  background: #401c20eb;
+  border-left: 3px solid #f48c77;
+}
+.nm-mobile-scene {
+  display: none;
+}
+.nm-portfolio-display {
+  position: absolute;
+  left: 63.67%;
+  top: 17.97%;
+  width: 24.22%;
+}
+.nm-preview {
+  position: relative;
+  isolation: isolate;
+  padding: 1.1cqw;
+  color: #deebff;
+  background: linear-gradient(140deg, #77ffbd, #259c93 65%, #56e2cf);
+  clip-path: var(--nm-cut);
+  filter: drop-shadow(0 0 14px #46ffc43b);
+}
+.nm-preview::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 2px;
+  background: linear-gradient(140deg, #0f2334, #06131f);
+  clip-path: var(--nm-cut);
+}
+.nm-preview-header {
+  display: flex;
+  align-items: center;
+  gap: 0.7cqw;
+  min-height: 3.1cqw;
+  margin-bottom: 0.25cqw;
+}
+.nm-preview-header .sky-icon {
+  width: 2.34cqw;
+  height: 2.34cqw;
+  object-fit: contain;
+}
+.nm-preview-header h2 {
+  margin: 0;
+  font:
+    700 1.5cqw/1 "Night Market Pixel",
+    monospace;
+  letter-spacing: 0;
+}
+.night-market .nm-preview-close {
+  width: 2.86cqw;
+  min-height: 2.86cqw;
+  padding: 0.6cqw;
+  margin-left: auto;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #7792b0;
+  box-shadow: none;
+  text-shadow: none;
+  transform: none;
+}
+.nm-preview-close svg {
+  width: 100%;
+  height: 100%;
+}
+.night-market .nm-preview-close:hover:not(:disabled) {
+  color: #fff;
+  background: #1c3b4c;
+}
+.night-market .nm-preview-close:focus-visible {
+  outline: 2px solid #77ffbd;
+  outline-offset: -3px;
+}
+.nm-preview-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid #29465a;
+}
+.nm-preview-item {
+  display: grid;
+  grid-template-columns: 4.05cqw minmax(0, 1fr) 6.5cqw;
+  align-items: center;
+  gap: 1cqw;
+  min-height: 4.81cqw;
+  padding: 0.4cqw 0.55cqw;
+}
+.nm-preview-item + .nm-preview-item {
+  border-top: 1px solid #29465a;
+}
+.nm-preview-item-art {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 4.05cqw;
+  height: 3.75cqw;
+  border: 1px solid #244e60;
+  background: #071826;
+}
+.nm-preview-item-art img {
+  width: 3.12cqw;
+  height: 3.12cqw;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.nm-preview-item-copy {
+  min-width: 0;
+  font-size: 0.78cqw;
+  line-height: 1.35;
+  font-weight: 600;
+  color: #bdd1e9;
+}
+.nm-preview-item-copy > span {
+  display: block;
+}
+.nm-preview-item-copy small {
+  display: block;
+  margin-top: 0.3cqw;
+  font-size: 0.65cqw;
+  color: #7992b1;
+}
+.nm-preview-trend {
+  display: block;
+  width: 100%;
+  height: auto;
+  color: #6fffc1;
+  filter: drop-shadow(0 0 3px #58ffb855);
+}
+.night-market .nm-preview-restore {
+  min-height: 44px;
+  border: 1px solid #59d6b3;
+  color: #deebff;
+  background: #0a2133;
+  font-size: 14px;
+}
+.nm-features {
+  position: absolute;
+  bottom: 5%;
+  left: 17.057%;
+  right: 17.057%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.43cqw;
+}
+.nm-feature {
+  position: relative;
+  display: grid;
+  grid-template-columns: 3.65cqw minmax(0, 1fr);
+  gap: 1.95cqw;
+  align-items: start;
+  min-height: 9.635cqw;
+  padding: 2.2cqw 1.8cqw 1.7cqw;
+  background: var(--nm-edge);
+  clip-path: var(--nm-cut);
+  isolation: isolate;
+}
+.nm-feature::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 2px;
+  background: linear-gradient(130deg, #061524, #07121c);
+  clip-path: var(--nm-cut);
+}
+.nm-feature::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1px solid color-mix(in srgb, var(--nm-edge) 30%, transparent);
+  clip-path: var(--nm-cut);
+  pointer-events: none;
+}
+.nm-feature-holdings {
+  --nm-edge: #45ceab;
+}
+.nm-feature-returns {
+  --nm-edge: #42a8e4;
+}
+.nm-feature-alerts {
+  --nm-edge: #dba946;
+}
+.nm-feature h2 {
+  margin: 0.45cqw 0 1.3cqw;
+  font:
+    700 1.172cqw/1.3 Arial,
+    sans-serif;
+  letter-spacing: -0.025cqw;
+  color: #f7f8ff;
+  white-space: nowrap;
+}
+.nm-feature-icon {
+  display: block;
+  width: 3.65cqw;
+  height: 3.9cqw;
+  filter: drop-shadow(
+    0 0 5px color-mix(in srgb, var(--nm-edge) 30%, transparent)
+  );
+}
+.nm-feature-lines span {
+  display: block;
+  height: 0.65cqw;
+  width: 100%;
+  max-width: 11cqw;
+  background: #2c405b;
+  border-radius: 2px;
+}
+.nm-feature-lines span + span {
+  margin-top: 0.75cqw;
+  width: 67%;
+}
+.nm-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+@media (max-width: 900px) {
+  .nm-stage {
+    aspect-ratio: auto;
+    min-height: 100svh;
+    background: linear-gradient(180deg, #07172d, #031020);
+  }
+  .nm-header {
+    position: relative;
+    height: auto;
+    padding: 20px 20px 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  .nm-brand {
+    width: 326px;
+    height: 51px;
+    max-width: 100%;
+  }
+  .nm-brand-art {
+    background-size: 1229px 819px;
+    background-position: -57.6px -16px;
+  }
+  .nm-nav {
+    width: 100%;
+    height: 58px;
+    justify-content: center;
+  }
+  .nm-nav a {
+    flex: 1;
+    gap: 8px;
+    font-size: 15px;
+    min-width: 0;
+    padding: 0 9px;
+  }
+  .nm-nav a + a::before {
+    height: 30px;
+  }
+  .nm-nav .sky-icon {
+    width: 29px;
+    height: 29px;
+  }
+  .nm-nav svg {
+    width: 23px;
+    height: 23px;
+  }
+  .nm-hero {
+    position: relative;
+    left: auto;
+    top: auto;
+    width: auto;
+    margin: 0;
+    padding: 36px 24px 0;
+  }
+  .nm-eyebrow {
+    font-size: 12px;
+    letter-spacing: 2px;
+    margin-bottom: 18px;
+  }
+  .nm-hero h1 {
+    font-size: clamp(46px, 8.6vw, 72px);
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+  .nm-headline-accent {
+    margin-top: 5px;
+  }
+  .nm-description {
+    font-size: 18px;
+    white-space: normal;
+    max-width: 420px;
+    margin: 23px 0 26px;
+  }
+  .night-market .nm-sign-in {
+    width: 336px;
+    max-width: 100%;
+    min-height: 65px;
+    padding: 12px 24px;
+    gap: 20px;
+    font-size: 20px;
+  }
+  .nm-google {
+    width: 34px;
+    height: 34px;
+  }
+  .nm-privacy {
+    font-size: 13px;
+    max-width: 370px;
+    margin-top: 16px;
+  }
+  .nm-error {
+    margin-top: 16px;
+    padding: 10px 12px;
+  }
+  .nm-scene {
+    position: relative;
+    height: clamp(330px, 55vw, 440px);
+    margin-top: 12px;
+  }
+  .nm-mobile-scene {
+    display: block;
+    position: absolute;
+    inset: 0;
+    background: url("/assets/night-market/scene-only.png") right -70px / 850px
+      auto no-repeat;
+    mask-image: linear-gradient(transparent, #000 8%, #000 86%, transparent);
+  }
+  .nm-features {
+    position: relative;
+    inset: auto;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    padding: 0 24px 32px;
+    margin-top: -8px;
+  }
+  .nm-feature {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    min-height: 150px;
+    padding: 20px;
+  }
+  .nm-feature h2 {
+    font-size: 16px;
+    margin: 0 0 16px;
+    white-space: normal;
+    letter-spacing: 0;
+  }
+  .nm-feature-icon {
+    width: 56px;
+    height: 60px;
+  }
+  .nm-feature-lines span {
+    height: 8px;
+    max-width: 170px;
+  }
+  .nm-feature-lines span + span {
+    margin-top: 10px;
+  }
+}
+@media (max-width: 540px) {
+  .nm-header {
+    padding: 16px 14px 0;
+  }
+  .nm-brand {
+    width: 285px;
+    height: 45px;
+  }
+  .nm-brand-art {
+    background-size: 1073px 715px;
+    background-position: -50.3px -14px;
+  }
+  .nm-nav a {
+    font-size: 13px;
+    gap: 5px;
+    padding: 0 7px;
+  }
+  .nm-nav .sky-icon {
+    width: 26px;
+    height: 26px;
+  }
+  .nm-nav svg {
+    width: 20px;
+    height: 20px;
+  }
+  .nm-hero {
+    padding: 32px 22px 0;
+  }
+  .nm-features {
+    grid-template-columns: 1fr;
+    padding: 0 22px 30px;
+  }
+  .nm-feature {
+    grid-template-columns: 56px minmax(0, 1fr);
+    gap: 24px;
+    align-items: center;
+    min-height: 125px;
+    padding: 22px 26px;
+  }
+  .nm-feature h2 {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 900px) {
+  .nm-portfolio-display {
+    top: 30px;
+    left: auto;
+    right: 22px;
+    width: min(80%, 370px);
+  }
+  .nm-preview {
+    padding: 14px;
+  }
+  .nm-preview-header {
+    min-height: 40px;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+  .nm-preview-header .sky-icon {
+    width: 32px;
+    height: 32px;
+  }
+  .nm-preview-header h2 {
+    font-size: 23px;
+  }
+  .night-market .nm-preview-close {
+    width: 44px;
+    min-height: 44px;
+    padding: 11px;
+  }
+  .nm-preview-item {
+    grid-template-columns: 44px minmax(0, 1fr) 64px;
+    gap: 8px;
+    min-height: 62px;
+    padding: 6px;
+  }
+  .nm-preview-item-art {
+    width: 44px;
+    height: 44px;
+  }
+  .nm-preview-item-art img {
+    width: 36px;
+    height: 36px;
+  }
+  .nm-preview-item-copy {
+    font-size: 11px;
+  }
+  .nm-preview-item-copy small {
+    font-size: 10px;
+    margin-top: 4px;
+  }
+}

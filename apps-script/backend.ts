@@ -6,6 +6,7 @@ import { ADMIN_UID, fetchJson, firestore, readDoc, loadUser, persistUser, linkWr
 import type { UserRecord } from './store';
 import { sharedMarket } from './companion';
 import { PORTFOLIO_EVALUATION_ENABLED } from '../shared/companion/portfolio-policy';
+import { BACKGROUND_JOBS_ENABLED, EMAIL_DELIVERY_ENABLED } from '../shared/automation-policy';
 import { MARKET_HOUR, MARKET_REFRESH_MS, marketAlertWindow } from '../shared/market-schedule';
 import { portfolioNotificationRequest, runPortfolioNotifications } from './portfolio-backend';
 declare const PropertiesService:any, ScriptApp:any, Session:any, UrlFetchApp:any,
@@ -14,6 +15,7 @@ const PROJECT='bazaarsignal', SENDER='bazaarsignal@gmail.com';
 const props=()=>PropertiesService.getScriptProperties();
 /** Operator-only editor action, never routed from doPost. No email or user writes. */
 export function configureFreeTierMarket() {
+  if(!BACKGROUND_JOBS_ENABLED)throw new Error('Background services remain paused');
   settings();
   const end='2026-11-01T07:00:00.000Z';
   if(Date.now()>=Date.parse(end))throw new Error('This reviewed allowance period has expired.');
@@ -80,6 +82,7 @@ function send(mail:Mail,alert:RecordAlert,state:State,p:any) {
   body+='\n\nChecks run approximately every five minutes and can miss brief price movements. MailApp acceptance does not guarantee inbox delivery.';
   if (alert.test) {subject=`[TEST] ${subject}`;body='Authorized BazaarSignal delivery test.\n\n'+body;}
   // No Gmail password, OAuth token, or recipient supplied by the browser.
+  if(!EMAIL_DELIVERY_ENABLED)throw new Error('Email delivery remains paused');
   MailApp.sendEmail({to:alert.recipient,subject,body,name:'BazaarSignal'});
 }
 function deliverRecord(record:UserRecord,p:any,started:number,test=false) {
@@ -145,6 +148,7 @@ export function doPost(e:any) {
 }
 /** Retired legacy evaluation never reads prices. Only previously queued mail drains. */
 export function scheduledPoll() {
+  if(!BACKGROUND_JOBS_ENABLED||!EMAIL_DELIVERY_ENABLED)return {ok:true,paused:true};
   const started=Date.now();
   try {
     const p=settings();
@@ -190,6 +194,7 @@ export function scheduledPoll() {
 }
 /** Minute timer is a cheap clock gate; off-slot ticks do no I/O or email work. */
 export function scheduledMinuteTick() {
+  if(!BACKGROUND_JOBS_ENABLED)return {ok:true,paused:true};
   const now=Date.now();
   if(PORTFOLIO_EVALUATION_ENABLED ? !marketAlertWindow(now) : Math.floor(now/60000)%5!==0)
     return {ok:true,skipped:true};
@@ -197,6 +202,7 @@ export function scheduledMinuteTick() {
 }
 /** Owner-only migration; preserves the existing allowance and all user data. */
 export function installAlignedTrigger() {
+  if(!BACKGROUND_JOBS_ENABLED)throw new Error('Background services remain paused');
   settings();return locked(()=>{
     const triggers=ScriptApp.getProjectTriggers();
     const aligned=triggers.filter((t:any)=>t.getHandlerFunction()==='scheduledMinuteTick');
@@ -207,6 +213,7 @@ export function installAlignedTrigger() {
   });
 }
 export function installTrigger() {
+  if(!BACKGROUND_JOBS_ENABLED)throw new Error('Background services remain paused');
   if(props().getProperty('MARKET_OPERATING_MODE')==='free-tier')return installAlignedTrigger();
   settings();return locked(()=>{
     const triggers=ScriptApp.getProjectTriggers().filter((t:any)=>t.getHandlerFunction()==='scheduledPoll');
@@ -221,6 +228,7 @@ export function diagnostics() {
 }
 // Existing sender-authorized editor tests retain their original request IDs/links.
 export function sendTestConfirmation() {
+  if(!EMAIL_DELIVERY_ENABLED)throw new Error('Email delivery remains paused');
   const p=settings();if(p.TEST_RECIPIENT!=='drewstake3@gmail.com')throw new Error('Set the explicitly authorized test recipient in Script Properties.');
   const started=Date.now();return locked(()=>{
     const record=loadUser(ADMIN_UID);if(record.legacy)persistUser(record);
@@ -235,6 +243,7 @@ export function sendTestConfirmation() {
   });
 }
 export function sendTestTarget() {
+  if(!EMAIL_DELIVERY_ENABLED)throw new Error('Email delivery remains paused');
   const p=settings();if(p.TEST_RECIPIENT!=='drewstake3@gmail.com' || !p.TEST_REQUEST_ID)throw new Error('Run the authorized confirmation test first.');
   const started=Date.now();return locked(()=>{
     const record=loadUser(ADMIN_UID);record.state.monitor.quota=MailApp.getRemainingDailyQuota();
