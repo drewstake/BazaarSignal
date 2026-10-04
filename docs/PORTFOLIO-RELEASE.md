@@ -1,5 +1,9 @@
 # October 4, 2026 portfolio cleanup release
 
+## UI restoration
+
+At the user's request, the frontend presentation is restored to the pre-redesign version from `15371d3`, including Portfolios, Notifications, Account and Usage & Costs. Redesign-only components and fonts are removed. Five-minute polling, backend cadence, disabled auction collection, usage limits and the production pause remain unchanged. This is a Hosting-only deployment; saved records and backend services are not modified. Production frontend/Apps Script builds and all 321 unit tests passed. The unit suite was run separately from the production build's explicit pause environment override.
+
 ## Five-minute cadence and UI release
 
 The source now schedules Bazaar collection every five minutes, with browser reads and enabled notification checks at :02, :07, :12 and subsequent five-minute slots to allow publication to finish. Auction collection and portfolio auction refresh reads are disabled until that feature is ready. Both explicit auction demand and the collector's default jobs respect this gate. Existing auction holdings and cached records are preserved. Election refreshes remain hourly; the catalog remains daily. At 65% reserved usage, Bazaar collection opportunities slow to ten minutes. Backoff, freshness checks, fixed deadlines, pause gates and all existing allowance limits remain enforced. The Usage & Costs measurement cache remains 30 minutes.
