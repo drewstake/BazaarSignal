@@ -25,4 +25,14 @@ The live upstream-request counter was 1,301 before deployment. The read-only usa
 
 The test emulator uses ports 9098/8081; the user's local workspace stays available on 5173/8080. Local database exports and Windows export-recovery preserve saved local records.
 
-Final deployment receipts and smoke results will be recorded after rollout. The operational gates must remain false, the existing hourly Scheduler must remain PAUSED, and the 1,301 upstream counter must remain unchanged throughout verification.
+## Deployed release
+
+Implementation commit `2036d89361a5ae69964149b94d3686dda5e17d9e` was pushed to the unprotected `main` branch through a normal fast-forward push. Firestore rules/indexes, Apps Script version 12 at the existing deployment URL, and Hosting were deployed to `bazaarsignal`. The script manifest/scopes, sender, trigger and signing properties were preserved. Version 11 was pulled into an ignored rollback copy before updating source.
+
+The existing market services now serve the verified image `sha256:fb00c272b9f3d90eb9d330c48e5a9df463aba297b0b84c736f5480d3a27af9f6`: API revision `marketapi-00017-flb` and collector revision `refreshmarket-00014-s9p`. Rollout used 43 bounded control-plane calls and uploaded 12,957,790 bytes. No Cloud Build, billing, IAM, schedule-resume or accounting-reset action ran.
+
+Production smoke checks at [bazaarsignal.web.app](https://bazaarsignal.web.app) confirmed signed-in Portfolios and Notifications without permission errors and owner Usage & Costs with 22 of 27 resources measured and collection Paused. An initial browser sign-in connection error resolved; an immediate dashboard reload correctly hit the one-minute refresh guard, then loaded normally. Retired auction/seller routes return 410 with correct CORS; unauthenticated usage returns 401; Apps Script rejects retired actions and requires verified identity for portfolio mutations. No production holding or notification was created for testing and no real test email was sent.
+
+The 08:38 UTC post-release receipt confirms the Scheduler remains PAUSED, the upstream counter remains **1,301 → 1,301**, and the entire market allowance ledger and both IAM policies are unchanged. Every original alert, mail entry and disable link is preserved. The old worker changed only its monitoring/runtime fields between the preflight snapshot and source rollout. Retained image storage was subsequently reported as 74.16 MiB; actual dollar savings cannot be inferred from this short observation. The bandwidth projection still extrapolates earlier activity, so it is not a forecast of the now-paused collector.
+
+Private receipts remain under ignored `.local/portfolio-release-before/`, `.local/portfolio-release-after/` and `.local/private-release-free-20261001-usage-portfolio-cleanup-apply.json`. Local and production screenshot evidence remains under `.local/portfolio-*.png`. Follow-up documentation/UI wording changes do not alter the deployed market image.

@@ -1205,7 +1205,7 @@ function LegacyAlerts({ user }: { user: User }) {
       <p>
         Previous price targets have not been converted or re-enabled. Their
         records and disable links are preserved. Existing queued mail may still
-        be delivered; retirement requires a separate production release.
+        be delivered. New evaluation of legacy price targets has stopped.
       </p>
       <button disabled={busy} onClick={() => void load()}>
         {busy ? "Loading…" : "Review legacy alerts"}
@@ -1220,7 +1220,7 @@ function LegacyAlerts({ user }: { user: User }) {
               ? "Disabled"
               : a.stage === "completed"
                 ? "Completed"
-                : "Legacy active; fresh evaluation paused"}
+                : "Legacy record; new evaluation stopped"}
           </span>
           <button
             disabled={busy || a.paused}
