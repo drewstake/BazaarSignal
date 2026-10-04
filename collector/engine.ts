@@ -19,6 +19,7 @@ import {
 } from "./policy";
 import { TrialStopped } from "./trial";
 import { SnapshotReadCache } from './snapshot-read-cache';
+import { AUCTION_COLLECTION_ENABLED } from '../shared/market-features';
 export { consistentSnapshot } from "../shared/companion/snapshot";
 export interface Snapshot<T> {
   version: string;
@@ -82,6 +83,8 @@ export class MarketCollector {
     return this.snapshots.read<T>(key, tag, () => this.store.read(key));
   }
   async tick(keys = ["catalog", "election", "bazaar", "auctions"]) {
+    keys = keys.filter(key => key !== 'auctions' || AUCTION_COLLECTION_ENABLED);
+    if (!keys.length) return;
     if (this.running) return;
     this.running = true;
     let acquired = false;
@@ -284,8 +287,8 @@ export class MarketCollector {
       await this.coordinator.change((c) => {
         this.coordinator.assert(c);
         c.jobs[key] = {
-          // Live admission separately permits one collection per clock hour.
-          // Anchor successful due times so startup jitter cannot skip the next hour.
+          // Live admission separately permits one collection per clock slot.
+          // Anchor successful due times so startup jitter cannot skip the next slot.
           nextAt: Math.max(this.refreshAlignmentMs && interval % this.refreshAlignmentMs === 0
             ? Math.floor(started / this.refreshAlignmentMs) * this.refreshAlignmentMs + interval
             : started + interval, now + 1000),
@@ -400,6 +403,7 @@ export class MarketCollector {
     return { ...s.data.raw, names: s.data.names };
   }
   async portfolioAuctions(assets: string[] = []) {
+    if (!AUCTION_COLLECTION_ENABLED) throw new Error('Auction price updates are disabled. Saved holdings are preserved.');
     const s = await this.read<AuctionData>('auctions');
     if (!s) throw new Error('Auction price evidence unavailable from the shared cache.');
     // Public market evidence only. No private demand or portfolio records.

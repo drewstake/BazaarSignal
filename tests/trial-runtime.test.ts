@@ -120,7 +120,7 @@ it("the actual collector runtime deduplicates events; browser reads and conditio
   const f = await fixture();
   await f.runtime.collect("minute-1");
   await f.runtime.collect("minute-1");
-  expect(f.network).toHaveBeenCalledTimes(4);
+  expect(f.network).toHaveBeenCalledTimes(3);
   const res = response();
   await f.runtime.handle(
     {
@@ -145,12 +145,13 @@ it("the actual collector runtime deduplicates events; browser reads and conditio
   );
   expect(second.status).toBe(304);
   expect(second.body.length).toBe(0);
-  expect(f.network).toHaveBeenCalledTimes(4);
+  expect(f.network).toHaveBeenCalledTimes(3);
   expect(f.shutdown).not.toHaveBeenCalled();
   const ledger = JSON.parse((await f.store.read("trial"))!);
   expect(ledger.observed.collectorInvocations).toBe(1);
   expect(ledger.observed.browserRequests).toBe(2);
-  expect(ledger.observed.auctionsRefreshesCompleted).toBe(1);
+  expect(ledger.observed.auctionsRefreshesCompleted).toBeUndefined();
+  expect(f.network.mock.calls.every(([url])=>!String(url).includes('/auctions'))).toBe(true);
 });
 it("the final scheduled minute stops infrastructure with no upstream work; a later browser stays paused", async () => {
   const f = await fixture();

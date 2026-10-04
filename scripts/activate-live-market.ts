@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { trialGoogleStore } from '../collector/trial-google';
 import { livePolicy, validateLive, type LiveAllowanceState } from '../collector/allowance-live';
 import { stopTrialInfrastructure } from '../collector/trial-shutdown';
+import { MARKET_COLLECTION_SCHEDULE } from '../shared/market-schedule';
 
 const args=process.argv.slice(2),file=args[0],action=args[1]??'--inspect';
 if(!file || args.length>2 || !['--inspect','--prepare','--activate'].includes(action))
@@ -52,18 +53,18 @@ try {
     control.policy=livePolicy;
     for(const j of Object.values(control.jobs) as any[])j.nextAt=Math.max(Date.now(),control.blockedUntil??0);
     if(!await store.commit('control',old,JSON.stringify(control)))throw new Error('Provider policy update conflicted');
-    report.changes.push('Hourly policy installed without resetting provider charges');save();
+    report.changes.push('Five-minute Bazaar policy installed without resetting provider charges');save();
     if(!await store.commit('live-allowance',null,JSON.stringify(state)))throw new Error('Live ledger installation conflicted');
     report.changes.push('Live allowance ledger installed once');save();
     await call(`https://cloudscheduler.googleapis.com/v1/${job}?updateMask=schedule,timeZone,retryConfig`,'PATCH',
-      {schedule:'0 * * * *',timeZone:'Etc/UTC',retryConfig:{retryCount:0,maxRetryDuration:'0s'}});
-    report.changes.push('Existing paused job changed to hourly, no retries');
+      {schedule:MARKET_COLLECTION_SCHEDULE,timeZone:'Etc/UTC',retryConfig:{retryCount:0,maxRetryDuration:'0s'}});
+    report.changes.push('Existing paused job changed to five-minute slots, no retries');
   }
   if(action==='--activate') {
     const ledger=JSON.parse((await store.read('live-allowance'))??'null');validateLive(ledger,Date.now());
-    if(ledger.id!==plan.id||scheduled.schedule!=='0 * * * *')throw new Error('Prepared ledger/schedule mismatch');
+    if(ledger.id!==plan.id||scheduled.schedule!==MARKET_COLLECTION_SCHEDULE)throw new Error('Prepared ledger/schedule mismatch');
     await call(`https://cloudscheduler.googleapis.com/v1/${job}:resume`,'POST',{});
-    report.changes.push('Hourly schedule resumed');save();
+    report.changes.push('Five-minute schedule resumed');save();
     await call(`https://cloudscheduler.googleapis.com/v1/${job}:run`,'POST',{});
     report.changes.push('One initial scheduled collection requested');save();
     const api=`https://run.googleapis.com/v1/${root}/services/marketapi`;

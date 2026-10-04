@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   validateNotification,
   type HoldingNotification,
@@ -26,6 +26,10 @@ export default function NotificationEditor({
       current?.down == null ? "" : String(current.down),
     ),
     [error, setError] = useState("");
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    heading.current?.focus();
+  }, []);
   async function submit(e: FormEvent) {
     e.preventDefault();
     const input = {
@@ -43,11 +47,13 @@ export default function NotificationEditor({
   }
   return (
     <form
-      className="panel editor"
+      className="ledger-card editor"
       onSubmit={submit}
       aria-label="Holding notification"
     >
-      <h2>Notify me about {holding.name}</h2>
+      <h2 ref={heading} tabIndex={-1}>
+        Notify me about {holding.name}
+      </h2>
       <fieldset disabled={busy}>
         <label>
           Baseline
@@ -60,7 +66,7 @@ export default function NotificationEditor({
             <option value="sample">Price sample when enabled</option>
           </select>
         </label>
-        <p>
+        <p className="field-help">
           {baseline === "acquisition"
             ? "Uses your saved cost basis divided by quantity. Purchases and edits recalculate the baseline and prime the next fresh sample without firing."
             : "Captures a verified fresh reference price on the server. Purchases and edits keep that price fixed. A fresh sample is required to enable or resume."}
@@ -85,28 +91,28 @@ export default function NotificationEditor({
             />
           </label>
         </div>
-        <p>
+        <p className="field-help">
           Set either or both. The first eligible sample establishes a starting
           side; it never sends an immediate message. Each threshold sends once
           per crossing, then rearms when a fresh price moves back inside it.
           Missing or stale data waits and primes the next valid sample.
         </p>
-        <p>
+        <p className="field-help">
           Editing or resuming primes again. Deleting a holding or portfolio
           stops its notifications. A different valuation source requires
           enabling again. Delivery uses your verified Google email and account
           preference.
         </p>
         {error && (
-          <p className="error" role="alert">
+          <p className="inline-error" role="alert">
             {error}
           </p>
         )}
         <div className="actions">
-          <button className="primary">
+          <button className="button primary">
             {busy ? "Saving…" : "Save and enable"}
           </button>
-          <button type="button" onClick={cancel}>
+          <button className="button" type="button" onClick={cancel}>
             Cancel
           </button>
         </div>

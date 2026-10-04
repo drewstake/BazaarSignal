@@ -16,7 +16,7 @@ async function setup(start=Date.parse('2026-10-02T03:00:00Z')) {
     day:pacificDay(start),observed:{},evidence:'offline fixture; no cloud calls'};
   await store.commit('live-allowance',null,JSON.stringify(state));return {store,state,start};
 }
-it('reserves only one hourly collection across concurrent workers and process-style restarts',async()=>{
+it('reserves only one five-minute collection across concurrent workers and process-style restarts',async()=>{
   const {store,start}=await setup();
   const runs=await Promise.all(Array.from({length:50},(_,i)=>new LiveLedger(store,()=>start).admit('collector',String(i))));
   expect(runs.filter(Boolean)).toHaveLength(1);
@@ -24,16 +24,44 @@ it('reserves only one hourly collection across concurrent workers and process-st
   const saved=JSON.parse((await store.read('live-allowance'))!);
   expect(saved.monthlyReserved.collectorInvocations).toBe(1);
   expect(saved.dailyReserved.firestoreReads).toBe(700);
+  expect(await new LiveLedger(store,()=>start+299_999).admit('collector','before-slot')).toBeNull();
+  expect(await new LiveLedger(store,()=>start+300_000).admit('collector','next-slot')).not.toBeNull();
+  expect(JSON.parse((await store.read('live-allowance'))!).monthlyReserved.collectorInvocations).toBe(2);
 });
 it('keeps reservations spent after a crash and stops before the configured transfer budget',async()=>{
   const {store,state,start}=await setup();state.monthlyLimits.egressBytes=32768;
   await store.commit('live-allowance',await store.read('live-allowance'),JSON.stringify(state));
   const l=new LiveLedger(store,()=>start);
-  const session=await l.admit('browser','one');expect(session!.policy().pollMs).toBe(3_600_000);
+  const session=await l.admit('browser','one');expect(session!.policy().pollMs).toBe(300_000);
   await l.admit('browser','two');
   await expect(l.admit('browser','three')).rejects.toThrow('egressBytes');
   await expect(session!.extend({egressBytes:1})).rejects.toThrow('egressBytes');
   expect(JSON.parse((await store.read('live-allowance'))!).monthlyReserved.egressBytes).toBe(32768);
+});
+it('preserves an older hourly admission and all accounting when adopting five-minute slots',async()=>{
+  const {store,state,start}=await setup();
+  state.lastCollectorHour=Math.floor(start/3_600_000);
+  state.monthlyReserved={collectorInvocations:4};state.dailyReserved={firestoreReads:2800};
+  await store.commit('live-allowance',await store.read('live-allowance'),JSON.stringify(state));
+  const before=await store.read('live-allowance');
+  expect(await new LiveLedger(store,()=>start+300_000).admit('collector','legacy-hour')).toBeNull();
+  expect(await store.read('live-allowance')).toBe(before);
+  expect(await new LiveLedger(store,()=>start+3_600_000).admit('collector','new-hour')).not.toBeNull();
+  expect(await new LiveLedger(store,()=>start+3_900_000).admit('collector','next-slot')).not.toBeNull();
+  const after=JSON.parse((await store.read('live-allowance'))!);
+  expect(after.monthlyReserved.collectorInvocations).toBe(6);
+  expect(after.dailyReserved.firestoreReads).toBe(4200);
+  expect(after.monthlyLimits).toEqual(state.monthlyLimits);expect(after.expiresAt).toBe(state.expiresAt);
+});
+it('five-minute collection still defers at the existing cap without resetting or stopping the ledger',async()=>{
+  const {store,state,start}=await setup();state.monthlyLimits.collectorInvocations=2;
+  await store.commit('live-allowance',await store.read('live-allowance'),JSON.stringify(state));
+  const shutdown=vi.fn(),tick=vi.spyOn(MarketCollector.prototype,'tick').mockResolvedValue(undefined);let now=start;
+  const runtime=createLiveRuntime({id:state.id,expiresAt:state.expiresAt,store:()=>store,shutdown,now:()=>now});
+  await runtime.collect('first');now+=300_000;await runtime.collect('second');
+  const before=await store.read('live-allowance');now+=300_000;await runtime.collect('full');
+  expect(await store.read('live-allowance')).toBe(before);expect(tick).toHaveBeenCalledTimes(2);
+  expect(shutdown).not.toHaveBeenCalled();
 });
 it('daily quotas roll over in Pacific time without resetting monthly usage',async()=>{
   const {store,state}=await setup(Date.parse('2026-10-02T06:59:00Z'));let now=state.startsAt+1;
@@ -58,7 +86,7 @@ it('runtime failure attempts infrastructure shutdown and never fetches upstream'
   expect(shutdown).toHaveBeenCalledOnce();expect(network).not.toHaveBeenCalled();
   expect(JSON.parse((await store.read('live-allowance'))!).stoppedAt).toBe(start);
 });
-it('an admitted work timeout retains charges, completes accounting and waits for the next hour',async()=>{
+it('an admitted work timeout retains charges, completes accounting and waits for the next five-minute slot',async()=>{
   const {store,state,start}=await setup(); const shutdown=vi.fn(),network=vi.fn(); let now=start;
   const tick=vi.spyOn(MarketCollector.prototype,'tick').mockRejectedValueOnce(new DOMException('request timed out','TimeoutError')).mockResolvedValue(undefined);
   const r=createLiveRuntime({id:state.id,expiresAt:state.expiresAt,store:()=>store,shutdown,network,now:()=>now});
@@ -66,8 +94,8 @@ it('an admitted work timeout retains charges, completes accounting and waits for
   const saved=JSON.parse((await store.read('live-allowance'))!);
   expect(saved.stoppedAt).toBeUndefined();expect(saved.monthlyReserved.collectorInvocations).toBe(1);
   expect(saved.observed.transientTimeouts).toBe(1);expect(saved.expiresAt).toBe(state.expiresAt);
-  await r.collect('same-hour');expect(tick).toHaveBeenCalledTimes(1);
-  now+=3_600_000;await r.collect('next-hour');expect(tick).toHaveBeenCalledTimes(2);
+  await r.collect('same-slot');expect(tick).toHaveBeenCalledTimes(1);
+  now+=300_000;await r.collect('next-slot');expect(tick).toHaveBeenCalledTimes(2);
   expect(shutdown).not.toHaveBeenCalled();expect(network).not.toHaveBeenCalled();
 });
 it.each(['admission','accounting','unknown','deadline'])('%s failures still stop the service',async(phase)=>{
@@ -99,9 +127,9 @@ it('admits consecutive hourly test slots above 65%, retains costs and returns to
   expect(saved.dailyReserved).toMatchObject({firestoreReads:1400,firestoreWrites:592});
   expect(saved.monthlyReserved.cpuSeconds).toBe(80200);
   expect(saved.expiresAt).toBe(state.expiresAt);
-  now=HOURLY_TRIAL_END+3600000;
+  now=HOURLY_TRIAL_END+300000;
   expect(await ledger.admit('collector','odd-after-trial')).toBeNull();
-  expect((await ledger.admit('browser','after-trial'))!.policy().pollMs).toBe(7200000);
+  expect((await ledger.admit('browser','after-trial'))!.policy().pollMs).toBe(600000);
 });
 it('skips a test collection before 95% without pausing, spending or clearing accounting; resets only at Pacific midnight',async()=>{
   const {store,state}=await setup(HOURLY_TRIAL_START);

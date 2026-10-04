@@ -113,7 +113,7 @@ export default function HoldingEditor({
         : "Add purchase";
   return (
     <form
-      className="panel editor"
+      className="ledger-card editor"
       aria-label={title}
       onSubmit={submit}
       noValidate
@@ -121,14 +121,14 @@ export default function HoldingEditor({
       <h2 ref={heading} tabIndex={-1}>
         {title}
       </h2>
-      <p>
+      <p className="field-help">
         {mode === "purchase"
           ? "Record just the new purchase. Quantity and cost are added transactionally."
           : "Record the quantity you actually own and what you paid."}
       </p>
       <fieldset disabled={busy}>
         {holding ? (
-          <div className="asset-title">
+          <div className="editor-asset">
             <ItemArt id={holding.itemId} size="small" />
             <strong>{holding.name}</strong>
           </div>
@@ -177,7 +177,7 @@ export default function HoldingEditor({
                     ))}
                   </select>
                 </label>
-                <p className="muted">
+                <p className="field-help">
                   Item names are available offline. Showing up to 80 matches.
                 </p>
               </>
@@ -233,7 +233,7 @@ export default function HoldingEditor({
                     </select>
                   </label>
                 </div>
-                <p>
+                <p className="field-help">
                   Define the exact asset configuration. Include every
                   enchantment and normalized modifier (reforge, upgrades, pet
                   details, attributes, skins). Empty objects mean none.
@@ -299,7 +299,7 @@ export default function HoldingEditor({
             />
           </label>
         </div>
-        <p className="muted">
+        <p className="field-help">
           Coins accept commas and k / m / b, in either case. Whole quantities
           only.
           {kind === "auction" ? " Average price is per identical stack." : ""}
@@ -326,19 +326,19 @@ export default function HoldingEditor({
           )}
         </div>
         {(submitted || (quantity && cost)) && error && (
-          <p role="alert" className="error">
+          <p role="alert" className="inline-error">
             {error}
           </p>
         )}
         <div className="actions">
-          <button className="primary" type="submit">
+          <button className="button primary" type="submit">
             {busy
               ? "Saving…"
               : mode === "purchase"
                 ? "Save purchase"
                 : "Save holding"}
           </button>
-          <button type="button" onClick={cancel}>
+          <button className="button" type="button" onClick={cancel}>
             Cancel
           </button>
         </div>

@@ -291,7 +291,7 @@ test("portfolio CRUD, cost calculation, purchases, unavailable prices, identity 
     path: `.local/portfolio-holdings-${info.project.name}.png`,
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Rename", exact: true }).click();
+  await page.getByRole("button", { name: "Edit name", exact: true }).click();
   const rename = page.getByRole("form", { name: "Rename portfolio" });
   await rename.getByLabel("Portfolio name").fill("Materials");
   await rename.getByRole("button", { name: "Save portfolio" }).click();
@@ -350,7 +350,7 @@ test("Auction House variants, separate portfolios and notification baseline form
   });
   await notification.getByRole("button", { name: "Cancel" }).click();
   await page.getByRole("link", { name: "Account", exact: true }).click();
-  const check = page.getByLabel("Allow email for my holding notifications");
+  const check = page.getByLabel("Email for holding notifications");
   await expect(check).not.toBeChecked();
   await check.check();
   await expect(check).toBeChecked();

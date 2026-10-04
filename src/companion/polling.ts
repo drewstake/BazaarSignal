@@ -1,15 +1,15 @@
 import { PORTFOLIO_COLLECTION_ENABLED } from '../../shared/companion/portfolio-policy';
+import { MARKET_REFRESH_MS, nextMarketRead } from '../../shared/market-schedule';
 export const PAUSED_MESSAGE = "Updates paused to protect the free allowance";
 export type PollDirective = { mode: "normal" | "warning" | "slow" | "paused"; pollMs: number; retryAt?: number; reason?: string; expiresAt?: number; serverNow?: number; trialId?: string };
 const configuredEnd = Date.parse(import.meta.env.VITE_MARKET_TRIAL_END ?? "");
 const configuredTrialId = import.meta.env.VITE_MARKET_TRIAL_ID;
 const liveMode = import.meta.env.VITE_MARKET_OPERATING_MODE === "free-tier";
-export const hourlyMarketMode = liveMode;
 const maximumWindow = liveMode ? 32 * 86400_000 : 15 * 60_000;
 const boundedTrial = /^[a-zA-Z0-9_-]{1,100}$/.test(configuredTrialId ?? '') && Number.isFinite(configuredEnd) && configuredEnd > Date.now() && configuredEnd - Date.now() <= maximumWindow;
 export const configuredPause = !PORTFOLIO_COLLECTION_ENABLED || import.meta.env.VITE_MARKET_UPDATES_PAUSED === "true" ||
   (!import.meta.env.DEV && (import.meta.env.VITE_MARKET_UPDATES_PAUSED !== "false" || !boundedTrial));
-let directive: PollDirective = { mode: configuredPause ? "paused" : "normal", pollMs: liveMode ? 3600_000 : 20_000,
+let directive: PollDirective = { mode: configuredPause ? "paused" : "normal", pollMs: liveMode ? MARKET_REFRESH_MS : 20_000,
   ...(boundedTrial ? { expiresAt: configuredEnd, trialId: configuredTrialId } : {}) };
 let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
 function expire() {
@@ -35,7 +35,7 @@ export function applyPollingDirective(next: PollDirective) {
     (next.mode === "paused" || ((!configuredTrialId || next.trialId === configuredTrialId) && (next.expiresAt === undefined ? !import.meta.env.PROD :
       Number.isFinite(next.expiresAt) && next.expiresAt > Date.now() && next.expiresAt - Date.now() <= maximumWindow)));
   const value: PollDirective = valid
-    ? { ...next, pollMs: next.mode === "paused" ? 0 : Math.max(liveMode ? 3600_000 : next.mode === "slow" ? 60_000 : 20_000, next.pollMs) }
+    ? { ...next, pollMs: next.mode === "paused" ? 0 : Math.max(liveMode ? MARKET_REFRESH_MS : next.mode === "slow" ? 60_000 : 20_000, next.pollMs) }
     : { mode: "paused", pollMs: 0, reason: "Usage policy is inconsistent" };
   // Replayed cached responses and late replies can shorten, never extend, a trial.
   if (directive.expiresAt !== undefined) value.expiresAt = Math.min(directive.expiresAt, value.expiresAt ?? directive.expiresAt);
@@ -102,4 +102,3 @@ export function visiblePoll(
     if (typeof window !== "undefined") window.removeEventListener("market-usage-policy", policy);
   };
 }
-import { nextMarketRead } from '../../shared/market-schedule';

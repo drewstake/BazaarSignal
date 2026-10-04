@@ -30,6 +30,7 @@ import {
   readDoc,
 } from "./store";
 import { sharedMarket } from "./companion";
+import { AUCTION_COLLECTION_ENABLED } from '../shared/market-features';
 declare const PropertiesService: any, ScriptApp: any, MailApp: any;
 
 export const decodeFields = (fields: Record<string, any>): any =>
@@ -140,8 +141,10 @@ const evidence = (assets: string[] = []): PriceEvidence => {
     throw new Error(
       "Market data: Portfolio evaluation is paused; a fresh sample cannot be captured.",
     );
+  const enabledAssets = assets.filter(id => !id.startsWith('v1_') || AUCTION_COLLECTION_ENABLED);
+  if (!enabledAssets.length) return { bazaar: [], listings: [] };
   return sharedMarket(
-    `portfolio-prices?assets=${encodeURIComponent([...new Set(assets)].sort().join(","))}`,
+    `portfolio-prices?assets=${encodeURIComponent([...new Set(enabledAssets)].sort().join(","))}`,
   );
 };
 function cancelPending(ledger: Ledger, id: string) {

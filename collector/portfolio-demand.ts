@@ -3,6 +3,7 @@ import {
   type Holding,
 } from "../shared/companion/portfolio";
 import { PORTFOLIO_COLLECTION_ENABLED } from "../shared/companion/portfolio-policy";
+import { AUCTION_COLLECTION_ENABLED } from '../shared/market-features';
 import type { MarketCollector } from "./engine";
 export interface Demand {
   version: 1;
@@ -73,7 +74,7 @@ export function aggregateDemand(
       );
     if (!validPortfolioHolding(holding))
       throw new Error("Invalid private holding; demand scan incomplete.");
-    if (holding.deleted || portfolioDeleted) continue;
+    if (holding.deleted || portfolioDeleted || (holding.kind === 'auction' && !AUCTION_COLLECTION_ENABLED)) continue;
     (holding.kind === "bazaar" ? bazaar : auctions).add(
       holding.kind === "bazaar" ? holding.itemId : holding.id,
     );
@@ -105,12 +106,13 @@ export function demandJobs(d: Demand, now = Date.now()) {
     throw new Error(
       "Missing, incomplete or stale portfolio demand. Collection stays paused.",
     );
-  if (!d.bazaar.length && !d.auctions.length) return [];
+  const needsAuctions = AUCTION_COLLECTION_ENABLED && d.auctions.length > 0;
+  if (!d.bazaar.length && !needsAuctions) return [];
   return [
     "catalog",
     "election",
     ...(d.bazaar.length ? ["bazaar"] : []),
-    ...(d.auctions.length ? ["auctions"] : []),
+    ...(needsAuctions ? ["auctions"] : []),
   ];
 }
 /** A single shared collector retains CAS leases, request charging and backoff. */

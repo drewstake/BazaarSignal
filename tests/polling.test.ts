@@ -12,23 +12,24 @@ it('a temporary budget wait schedules automatic recovery without hourly retries 
   await vi.advanceTimersByTimeAsync(5*3600000-1);expect(task).toHaveBeenCalledTimes(1);expect(pollingDirective().mode).toBe('slow');
   await vi.advanceTimersByTimeAsync(1);expect(task).toHaveBeenCalledTimes(2);stop();
 });
-it('an hourly tab opened at :47 checks at :02, then keeps the same clock phase after hidden time',async()=>{
+it('a five-minute tab opened at :47 checks at :52, then keeps the same clock phase after hidden time',async()=>{
   vi.stubEnv('VITE_MARKET_OPERATING_MODE','free-tier');
   const {visiblePoll,doc}=await setup();vi.setSystemTime(new Date('2026-10-02T03:47:00Z'));
   const task=vi.fn(async()=>{}),stop=visiblePoll(task);
   await vi.advanceTimersByTimeAsync(0);expect(task).toHaveBeenCalledTimes(1);
-  await vi.advanceTimersByTimeAsync(15*60_000);expect(task).toHaveBeenCalledTimes(2);
+  await vi.advanceTimersByTimeAsync(5*60_000-1);expect(task).toHaveBeenCalledTimes(1);
+  await vi.advanceTimersByTimeAsync(1);expect(task).toHaveBeenCalledTimes(2);
   doc.visibilityState='hidden';doc.dispatchEvent(new Event('visibilitychange'));
-  await vi.advanceTimersByTimeAsync(65*60_000);expect(task).toHaveBeenCalledTimes(2);
+  await vi.advanceTimersByTimeAsync(7*60_000);expect(task).toHaveBeenCalledTimes(2);
   doc.visibilityState='visible';doc.dispatchEvent(new Event('visibilitychange'));
   await vi.advanceTimersByTimeAsync(0);expect(task).toHaveBeenCalledTimes(3);
-  await vi.advanceTimersByTimeAsync(55*60_000);expect(task).toHaveBeenCalledTimes(4);stop();
+  await vi.advanceTimersByTimeAsync(3*60_000);expect(task).toHaveBeenCalledTimes(4);stop();
 });
-it('hourly timeout waits for the next clock slot rather than retrying in a loop',async()=>{
+it('five-minute timeout waits for the next clock slot rather than retrying in a loop',async()=>{
   vi.stubEnv('VITE_MARKET_OPERATING_MODE','free-tier');
   const {visiblePoll}=await setup();vi.setSystemTime(new Date('2026-10-02T03:02:00Z'));
   const task=vi.fn((signal:AbortSignal)=>new Promise<void>(resolve=>signal.addEventListener('abort',()=>resolve())));
-  const stop=visiblePoll(task);await vi.advanceTimersByTimeAsync(3599999);
+  const stop=visiblePoll(task);await vi.advanceTimersByTimeAsync(299999);
   expect(task).toHaveBeenCalledTimes(1);await vi.advanceTimersByTimeAsync(1);expect(task).toHaveBeenCalledTimes(2);stop();
 });
 async function setup() {
@@ -75,13 +76,13 @@ it("a trial deadline aborts in-flight polling without needing another server rep
   await vi.advanceTimersByTimeAsync(86400_000);expect(task).toHaveBeenCalledTimes(1);
   expect(vi.getTimerCount()).toBe(0);stop();
 });
-it('an explicit free-tier release permits an hourly cadence and a month-end deadline without timer overflow',async()=>{
+it('an explicit free-tier release permits a five-minute cadence and a month-end deadline without timer overflow',async()=>{
   vi.useFakeTimers();vi.stubEnv('PROD',true);vi.stubEnv('DEV',false);
   vi.stubEnv('VITE_MARKET_UPDATES_PAUSED','false');vi.stubEnv('VITE_MARKET_OPERATING_MODE','free-tier');
   vi.stubEnv('VITE_MARKET_TRIAL_ID','free-october');
   const end=Date.now()+30*86_400_000;vi.stubEnv('VITE_MARKET_TRIAL_END',new Date(end).toISOString());
   const p=await import('../src/companion/polling');
-  expect(p.configuredPause).toBe(false);expect(p.pollingDirective().pollMs).toBe(3_600_000);
+  expect(p.configuredPause).toBe(false);expect(p.pollingDirective().pollMs).toBe(300_000);
   await vi.advanceTimersByTimeAsync(25*86_400_000);expect(p.pollingDirective().mode).toBe('normal');
   await vi.advanceTimersByTimeAsync(5*86_400_000);expect(p.pollingDirective().mode).toBe('paused');
 });

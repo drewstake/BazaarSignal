@@ -1,4 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
+// Keep the deferred auction engine covered under an explicitly enabled fixture.
+vi.mock('../shared/market-features',()=>({AUCTION_COLLECTION_ENABLED:true}));
 vi.mock('../shared/companion/portfolio-policy',()=>({PORTFOLIO_COLLECTION_ENABLED:true}));
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -17,6 +19,7 @@ import {
 import { marketHandler } from "../collector/http";
 import { visiblePoll } from "../src/companion/polling";
 import { livePolicy, LIVE_HOUR } from '../collector/allowance-live';
+import { MARKET_REFRESH_MS } from '../shared/market-schedule';
 
 const dirs: string[] = [],
   stores: SqliteCache[] = [];
@@ -67,14 +70,17 @@ function upstream(now: () => number, pages = 4) {
     });
   });
 }
-it('hourly collection remains due on the next clock hour despite startup jitter',async()=>{
+it('Bazaar stays on five-minute clock slots despite jitter while auction and metadata scans remain slower',async()=>{
   let now=Date.parse('2026-10-02T03:00:25Z');const store=connect(),fetcher=upstream(()=>now);
-  const c=new MarketCollector(store,livePolicy,fetcher,()=>now,()=>0,()=>{},LIVE_HOUR);
+  const c=new MarketCollector(store,livePolicy,fetcher,()=>now,()=>0,()=>{},MARKET_REFRESH_MS);
   await c.tick();
-  expect((await c.coordinator.state()).jobs.bazaar.nextAt).toBe(Date.parse('2026-10-02T04:00:00Z'));
-  now=Date.parse('2026-10-02T04:00:02Z');await c.tick();
+  expect((await c.coordinator.state()).jobs.bazaar.nextAt).toBe(Date.parse('2026-10-02T03:05:00Z'));
+  const previousCalls=fetcher.mock.calls.length;
+  now=Date.parse('2026-10-02T03:05:02Z');await c.tick();
+  expect(fetcher).toHaveBeenCalledTimes(previousCalls+1);
   expect((await c.rawBazaar()).lastUpdated).toBe(now);
-  expect((await c.coordinator.state()).jobs.bazaar.nextAt).toBe(Date.parse('2026-10-02T05:00:00Z'));
+  expect((await c.coordinator.state()).jobs.bazaar.nextAt).toBe(Date.parse('2026-10-02T03:10:00Z'));
+  expect((await c.coordinator.state()).jobs.auctions.nextAt).toBe(Date.parse('2026-10-02T04:00:00Z'));
 });
 async function get(c: MarketCollector, path: string) {
   let code = 200,

@@ -83,7 +83,10 @@ export function verifySchedule(plan, schedule) {
   if (plan.keepCollectionPaused !== undefined &&
       (plan.keepCollectionPaused !== true || plan.updateExistingLive !== true || plan.recoverStopped))
     throw new Error('Invalid paused portfolio release');
-  if (schedule.state !== (paused ? 'PAUSED' : 'ENABLED') || schedule.schedule !== '0 * * * *')
+  const expected = plan.pausedSchedule ?? '0 * * * *';
+  if (plan.pausedSchedule !== undefined && (!plan.keepCollectionPaused || expected !== '*/5 * * * *'))
+    throw new Error('Five-minute release requires an explicit paused schedule');
+  if (schedule.state !== (paused ? 'PAUSED' : 'ENABLED') || schedule.schedule !== expected)
     throw new Error('Existing hourly schedule or pause changed');
 }
 

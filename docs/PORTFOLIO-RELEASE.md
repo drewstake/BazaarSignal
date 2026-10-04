@@ -1,5 +1,19 @@
 # October 4, 2026 portfolio cleanup release
 
+## Five-minute cadence and UI release
+
+The source now schedules Bazaar collection every five minutes, with browser reads and enabled notification checks at :02, :07, :12 and subsequent five-minute slots to allow publication to finish. Auction collection and portfolio auction refresh reads are disabled until that feature is ready. Both explicit auction demand and the collector's default jobs respect this gate. Existing auction holdings and cached records are preserved. Election refreshes remain hourly; the catalog remains daily. At 65% reserved usage, Bazaar collection opportunities slow to ten minutes. Backoff, freshness checks, fixed deadlines, pause gates and all existing allowance limits remain enforced. The Usage & Costs measurement cache remains 30 minutes.
+
+Production collection and notification evaluation remain disabled. Five-minute collection would create 288 daily opportunities; the current conservative admission envelope reserves 700 Firestore reads and 296 writes for each run before additional portfolio-demand reads. That is 201,600 reads and 85,248 writes per day, exceeding the existing application limits of 30,000 and 12,000. Disabling auctions removes their upstream pagination and snapshot work, but these conservative reservations have not yet been reduced. The monthly 744-invocation limit also remains unchanged. This cadence is a target subject to deferral, not a claim of sustainable five-minute service or lower billed usage.
+
+Activation requires measured, smaller reservations for the portfolio workload. The authorized rollout updates the stored collector policy and cloud schedule while paused, alongside the frontend and notification backend. `configure-paused-cadence.cjs` uses a compare-and-swap to change only `policy.bazaarMs`, preserves accounting, provider backoff, leases and job deadlines, and verifies the allowance ledger remains unchanged. Old hourly admission markers conservatively suppress the rest of their original hour. The release guard accepts a five-minute schedule only for an explicitly paused release plan. No activation is authorized by this release.
+
+Verification: 320 unit tests passed, including cadence, cache sharing, notification clock gating, retained accounting during migration, budget exhaustion and auction disablement. Offline live-runtime checks confirm no auction requests with either default jobs or explicit portfolio demand, Bazaar refreshes five minutes apart, and preservation of cached auction records. Frontend, Apps Script, collector and market-function builds passed. No live collection or email was triggered.
+
+The UI update splits portfolio screens into components, refreshes the wood/parchment layout, adds self-hosted licensed fonts and pixel glyphs, and revises Usage & Costs. All 16 desktop/mobile browser journeys and the local persistence test passed; desktop/mobile screenshots were inspected. An additional release-guard test verifies that five-minute schedules cannot be admitted as enabled. The production build explicitly sets `VITE_MARKET_UPDATES_PAUSED=true`; the existing local environment override is excluded from Git. Source, fonts and license are included; local records, credentials, release receipts and unrelated concept images are excluded.
+
+## Completed cleanup release
+
 The user authorized commit, push and deployment to the existing projects. The original sky, wood and parchment UI is retained. Local records remain separate from production records.
 
 ## Changes and bounded usage evidence

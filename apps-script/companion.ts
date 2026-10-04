@@ -1,5 +1,5 @@
 import { fetchJson } from "./store";
-import { hourlyAlertWindow } from '../shared/market-schedule';
+import { MARKET_REFRESH_MS, marketAlertWindow } from '../shared/market-schedule';
 import { PORTFOLIO_COLLECTION_ENABLED } from '../shared/companion/portfolio-policy';
 declare const PropertiesService: any, CacheService: any, LockService: any;
 
@@ -22,9 +22,9 @@ export function sharedMarket(path: string, enabled = PORTFOLIO_COLLECTION_ENABLE
   if (!/^https:\/\/[A-Za-z0-9.-]+(?::\d+)?$/.test(base))
     throw new Error("Market data service is not configured. Set MARKET_API_URL to the shared collector HTTPS origin.");
   if (!live || path !== 'raw-bazaar') return fetchJson(`${base}/api/companion/${path}`);
-  // The aligned alert check and queued-mail worker share ONE hourly download.
+  // The aligned alert check and queued-mail worker share one download per slot.
   // Only public market data enters this cache; freshness checks remain in core.
-  const cache=CacheService.getScriptCache(),slot=Math.floor(Date.now()/3600_000);
+  const cache=CacheService.getScriptCache(),slot=Math.floor(Date.now()/MARKET_REFRESH_MS);
   const prefix=`market:${properties.getProperty('MARKET_TRIAL_START')}:${slot}:`;
   const read=()=>{
     const count=Number(cache.get(prefix+'count'));if(!Number.isInteger(count)||count<1||count>450)return null;
@@ -32,21 +32,21 @@ export function sharedMarket(path: string, enabled = PORTFOLIO_COLLECTION_ENABLE
     return keys.every(k=>typeof parts[k]==='string')?JSON.parse(keys.map(k=>parts[k]).join('')):null;
   };
   const hit=read();if(hit)return hit;
-  // Never spend the hour's download on the previous snapshot before publication,
+  // Never spend the slot's download on the previous snapshot before publication,
   // or on prices that cannot pass the existing three-minute freshness check.
-  if(!hourlyAlertWindow(Date.now()))throw new Error('Market data: waiting for the next hourly price check.');
+  if(!marketAlertWindow(Date.now()))throw new Error('Market data: waiting for the next five-minute price check.');
   const lock=LockService.getScriptLock(),alreadyLocked=lock.hasLock();
-  if(!alreadyLocked&&!lock.tryLock(5000))throw new Error('Market data: cached hourly update is busy.');
+  if(!alreadyLocked&&!lock.tryLock(5000))throw new Error('Market data: cached price update is busy.');
   try {
     const second=read();if(second)return second;
     // Cache eviction must not silently multiply paid cloud calls within a slot.
     const marker=properties.getProperty('MARKET_LAST_CLOUD_SLOT');
-    if(marker===String(slot))throw new Error('Market data: hourly snapshot is unavailable until the next collection.');
+    if(marker===String(slot))throw new Error('Market data: snapshot is unavailable until the next collection.');
     properties.setProperty('MARKET_LAST_CLOUD_SLOT',String(slot));
     const result=fetchJson(`${base}/api/companion/${path}`),text=JSON.stringify(result);
     if(text.length>9_000_000)throw new Error('Market data: response exceeded cache limit.');
     const parts:Record<string,string>={};let count=0;
     for(let i=0;i<text.length;i+=20000)parts[prefix+count++]=text.slice(i,i+20000);
-    cache.putAll(parts,3600);cache.put(prefix+'count',String(count),3600);return result;
+    cache.putAll(parts,MARKET_REFRESH_MS/1000);cache.put(prefix+'count',String(count),MARKET_REFRESH_MS/1000);return result;
   } finally {if(!alreadyLocked)lock.releaseLock();}
 }

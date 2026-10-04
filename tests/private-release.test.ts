@@ -18,6 +18,13 @@ const plan = () => ({ project: 'bazaarsignal-510305', imageDigest: receipt.image
     logBytes: { used: 500000, hold: 16 * 1024 ** 2, headroom: 16 * 1024 ** 2, limit: 50 * 1024 ** 3 },
   } });
 describe('private release admission', () => {
+  it('accepts five-minute configuration only with an explicit paused release', () => {
+    const p = { updateExistingLive: true, keepCollectionPaused: true, pausedSchedule: '*/5 * * * *' };
+    expect(() => verifySchedule(p, { state: 'PAUSED', schedule: '*/5 * * * *' })).not.toThrow();
+    expect(() => verifySchedule(p, { state: 'ENABLED', schedule: '*/5 * * * *' })).toThrow();
+    expect(() => verifySchedule({ ...p, keepCollectionPaused: false }, { state: 'PAUSED', schedule: '*/5 * * * *' })).toThrow();
+    expect(() => verifySchedule({ updateExistingLive: true }, { state: 'ENABLED', schedule: '*/5 * * * *' })).toThrow();
+  });
   it('paused portfolio releases cannot enable or change the existing hourly schedule',()=>{
     const p={keepCollectionPaused:true,updateExistingLive:true};
     expect(()=>verifySchedule(p,{state:'PAUSED',schedule:'0 * * * *'})).not.toThrow();

@@ -8,15 +8,17 @@ import { defaultPolicy } from './policy';
 import { TrialSession, TrialStopped, invocationEnvelope, type Counters } from './trial';
 import { hourlyTrialActive, HOURLY_TRIAL_END } from '../shared/hourly-trial';
 import { SnapshotReadCache } from './snapshot-read-cache';
+import { MARKET_HOUR, MARKET_REFRESH_MS } from '../shared/market-schedule';
 
-export const LIVE_HOUR = 3_600_000;
-export const livePolicy = { ...defaultPolicy, bazaarMs: LIVE_HOUR, auctionMinMs: LIVE_HOUR,
+export const LIVE_HOUR = MARKET_HOUR;
+const collectionInterval = (now: number) => hourlyTrialActive(now) ? LIVE_HOUR : MARKET_REFRESH_MS;
+export const livePolicy = { ...defaultPolicy, bazaarMs: MARKET_REFRESH_MS, auctionMinMs: LIVE_HOUR,
   electionMs: LIVE_HOUR };
 export interface LiveAllowanceState {
   version: 1; id: string; startsAt: number; expiresAt: number;
   monthlyLimits: Counters; monthlyReserved: Counters;
   dailyLimits: Counters; dailyReserved: Counters; day: string;
-  observed: Counters; lastCollectorHour?: number; stoppedAt?: number; reason?: string;
+  observed: Counters; lastCollectorHour?: number; lastCollectorAt?: number; stoppedAt?: number; reason?: string;
   evidence: string;
 }
 export const pacificDay = (now: number) => new Intl.DateTimeFormat('en-CA', {
@@ -51,7 +53,8 @@ export function validateLive(s: LiveAllowanceState | null, now: number) {
   if (!s || s.version !== 1 || !/^free-[a-zA-Z0-9_-]+$/.test(s.id) || !s.evidence ||
       !Number.isFinite(s.startsAt + s.expiresAt) || s.startsAt > now || s.expiresAt <= now ||
       s.expiresAt - s.startsAt > 32 * 86_400_000 || s.stoppedAt !== undefined ||
-      !s.monthlyReserved || !s.dailyReserved || !s.observed || !s.day)
+      !s.monthlyReserved || !s.dailyReserved || !s.observed || !s.day ||
+      (s.lastCollectorAt !== undefined && (!Number.isSafeInteger(s.lastCollectorAt) || s.lastCollectorAt < 0)))
     throw new TrialStopped(s?.reason ?? 'Live allowance report is missing, stopped or expired');
   for (const [limits, ceilings, used] of [[s.monthlyLimits, liveMaximums, s.monthlyReserved],
     [s.dailyLimits, liveDailyMaximums, s.dailyReserved]] as const)
@@ -108,8 +111,12 @@ export class LiveLedger {
     return this.change((s, now) => {
       const hour = Math.floor(now / LIVE_HOUR);
       const hourlyTrial=hourlyTrialActive(now);
-      if (kind === 'collector' && (s.lastCollectorHour ?? -1) >= hour) return null;
-      if (kind === 'collector' && !hourlyTrial && livePressure(s,now)>=.65 && hour%2) return null;
+      const interval=collectionInterval(now),slot=Math.floor(now/interval);
+      // Preserve legacy admission for its entire hour when no precise marker exists.
+      // Upgrades retain every reservation and cannot replay an ambiguous old run.
+      if (kind === 'collector' && (s.lastCollectorAt === undefined
+        ? (s.lastCollectorHour ?? -1) >= hour : s.lastCollectorAt >= slot*interval)) return null;
+      if (kind === 'collector' && !hourlyTrial && livePressure(s,now)>=.65 && slot%2) return null;
       const costs: Counters = { ...invocationEnvelope(kind), cpuSeconds: kind === 'collector' ? 100 : 20,
         memoryGiBSeconds: kind === 'collector' ? 100 : 20,
         egressBytes: kind === 'collector' ? 64*1024 : 16*1024,
@@ -131,7 +138,9 @@ export class LiveLedger {
       if(kind==='collector' && hourlyTrial && collectorBudgetDeferral(s,now))return null;
       if(kind==='browser') {
         // Protect the full existing collector charge for every remaining UTC
-        // hour before Pacific midnight. These are admission headroom checks,
+        // hour before Pacific midnight, retaining the existing baseline reserve.
+        // Additional five-minute opportunities must fit the same hard caps.
+        // These are admission headroom checks,
         // not extra charges, refunds or a change to the daily hard limits.
         const slots=Math.max(0,Math.ceil((nextPacificReset(now)-Math.floor(now/LIVE_HOUR)*LIVE_HOUR)/LIVE_HOUR)
           - ((s.lastCollectorHour??-1)>=hour?1:0));
@@ -141,7 +150,7 @@ export class LiveLedger {
         }
       }
       hold(s, charge, now);
-      if (kind === 'collector') s.lastCollectorHour = hour;
+      if (kind === 'collector') { s.lastCollectorHour = hour; s.lastCollectorAt = slot*interval; }
       const peak=livePressure(s,now);
       return new LiveSession(this, s.id, id, s.expiresAt, costs, this.clock, now - this.clock(), peak>=.65&&!hourlyTrial?'slow':peak>=.5?'warning':'normal');
     });
@@ -170,8 +179,8 @@ export class LiveLedger {
 class LiveSession extends TrialSession {
   override policy() {
     const base=super.policy(), trial=hourlyTrialActive(base.serverNow);
-    return { ...base, pollMs: this.mode==='slow'&&!trial?2*LIVE_HOUR:LIVE_HOUR,
-      reason: trial?`Hourly test until ${new Date(HOURLY_TRIAL_END).toISOString()}; collections skip before 95% reserved. Hard budgets and fixed deadline still apply.`:'Hourly collection with two-hour slowdown above 65% reserved' };
+    return { ...base, pollMs: collectionInterval(base.serverNow)*(this.mode==='slow'&&!trial?2:1),
+      reason: trial?`Hourly test until ${new Date(HOURLY_TRIAL_END).toISOString()}; collections skip before 95% reserved. Hard budgets and fixed deadline still apply.`:'Five-minute Bazaar collection with ten-minute slowdown above 65% reserved; auction collection is disabled. Hard budgets still apply.' };
   }
 }
 // Only an admitted, fully accounted invocation may recover from a transport
@@ -206,7 +215,7 @@ export function createLiveRuntime(config: LiveConfig) {
         throw new TrialStopped('Live allowance report does not match this release');
       const store = config.store(session);
       const collector = new MarketCollector(store, livePolicy, session.network(config.network), now, Math.random,
-        (name, amount) => session!.count(name, amount), LIVE_HOUR, snapshots);
+        (name, amount) => session!.count(name, amount), collectionInterval(now()), snapshots);
       phase = 'work';
       await work(session, collector, store);
       phase = 'accounting';

@@ -466,7 +466,7 @@ describe("shared portfolio demand", () => {
     ).toEqual([]);
     expect(() => demandJobs({ ...d, sampledAt: now - 3600001 }, now)).toThrow();
   });
-  it("is disabled by default and only requests one shared snapshot of each demanded market", async () => {
+  it("is paused by default and excludes auction demand when Bazaar collection is enabled", async () => {
     let jobs: string[] = [];
     const collector = {
       now: () => now,
@@ -485,7 +485,12 @@ describe("shared portfolio demand", () => {
       paused: true,
     });
     expect(jobs).toEqual([]);
+    expect(d.auctions).toEqual([]);
     await collectPortfolioDemand(collector, d, true);
-    expect(jobs).toEqual(["catalog", "election", "bazaar", "auctions"]);
+    expect(jobs).toEqual(["catalog", "election", "bazaar"]);
+    // Even a previously aggregated report cannot turn auction collection back on.
+    expect(demandJobs({...d,bazaar:[],auctions:[auction.id]},now)).toEqual([]);
+    const auctionOnly=aggregateDemand([{holding:auction,portfolioDeleted:false}],now);
+    expect(demandJobs(auctionOnly,now)).toEqual([]);
   });
 });

@@ -1,4 +1,5 @@
 import { beforeAll, beforeEach, afterAll, expect, it, vi } from "vitest";
+vi.mock('../shared/market-features',()=>({AUCTION_COLLECTION_ENABLED:true}));
 import { initializeApp, deleteApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { GoogleCacheStore, type SnapshotBlobs } from "../collector/google-cache-store";

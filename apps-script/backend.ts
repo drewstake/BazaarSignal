@@ -6,6 +6,7 @@ import { ADMIN_UID, fetchJson, firestore, readDoc, loadUser, persistUser, linkWr
 import type { UserRecord } from './store';
 import { sharedMarket } from './companion';
 import { PORTFOLIO_EVALUATION_ENABLED } from '../shared/companion/portfolio-policy';
+import { MARKET_HOUR, MARKET_REFRESH_MS, marketAlertWindow } from '../shared/market-schedule';
 import { portfolioNotificationRequest, runPortfolioNotifications } from './portfolio-backend';
 declare const PropertiesService:any, ScriptApp:any, Session:any, UrlFetchApp:any,
   Utilities:any, LockService:any, ContentService:any, CacheService:any, MailApp:any;
@@ -190,7 +191,8 @@ export function scheduledPoll() {
 /** Minute timer is a cheap clock gate; off-slot ticks do no I/O or email work. */
 export function scheduledMinuteTick() {
   const now=Date.now();
-  if(Math.floor(now/60000)%5!==0)return {ok:true,skipped:true};
+  if(PORTFOLIO_EVALUATION_ENABLED ? !marketAlertWindow(now) : Math.floor(now/60000)%5!==0)
+    return {ok:true,skipped:true};
   return scheduledPoll();
 }
 /** Owner-only migration; preserves the existing allowance and all user data. */
@@ -201,7 +203,7 @@ export function installAlignedTrigger() {
     // Create before removing the old trigger so a creation failure leaves it working.
     if(!aligned.length)ScriptApp.newTrigger('scheduledMinuteTick').timeBased().everyMinutes(1).create();
     for(const t of [...aligned.slice(1),...triggers.filter((t:any)=>t.getHandlerFunction()==='scheduledPoll')])ScriptApp.deleteTrigger(t);
-    return {installed:true,clockMinutes:1,marketChecksPerHour:1,queuedMailMinutes:5};
+    return {installed:true,clockMinutes:1,marketChecksPerHour:PORTFOLIO_EVALUATION_ENABLED?MARKET_HOUR/MARKET_REFRESH_MS:0,queuedMailMinutes:5};
   });
 }
 export function installTrigger() {

@@ -1,4 +1,5 @@
 import { expect, it, vi } from "vitest";
+vi.mock('../shared/market-features',()=>({AUCTION_COLLECTION_ENABLED:true}));
 import { valueActiveListings } from "../shared/companion/active-auctions";
 import { SqliteCache } from "../collector/cache-store";
 import { MarketCollector } from "../collector/engine";
