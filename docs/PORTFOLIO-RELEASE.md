@@ -12,6 +12,16 @@ Verification: 320 unit tests passed, including cadence, cache sharing, notificat
 
 The UI update splits portfolio screens into components, refreshes the wood/parchment layout, adds self-hosted licensed fonts and pixel glyphs, and revises Usage & Costs. All 16 desktop/mobile browser journeys and the local persistence test passed; desktop/mobile screenshots were inspected. An additional release-guard test verifies that five-minute schedules cannot be admitted as enabled. The production build explicitly sets `VITE_MARKET_UPDATES_PAUSED=true`; the existing local environment override is excluded from Git. Source, fonts and license are included; local records, credentials, release receipts and unrelated concept images are excluded.
 
+### October 4 deployment result
+
+Implementation commit `ddbb83d` was pushed to `main`. Hosting at https://bazaarsignal.web.app and Apps Script version 13 at the existing deployment were released. The manifest/scopes match version 12, which was preserved in an ignored rollback copy. Both market services serve image `sha256:e00006d62d26410b2ecfca24993466a03ea08cfe64bf6adb9f5e05fae77db7a4`: API revision `marketapi-00018-zfc` and collector revision `refreshmarket-00015-9x5`. No Cloud Build was used.
+
+The paused migration verified `policy.bazaarMs=300000` and Scheduler `*/5 * * * *`, state `PAUSED`. Collection and notification evaluation remain disabled; auction collection remains disabled. The collection budget has **not** been verified as sustainable, so nothing was resumed and limits were not raised.
+
+At 09:43 UTC, all nine backed-up collection inventories matched exactly, including the saved portfolio and holding, legacy ledgers and disable links. The allowance ledger and IAM policies matched exactly; upstream requests stayed **1,301 → 1,301**. Provider accounting, cooldowns, leases and job deadlines were preserved. Billing configuration was unchanged. Receipts and rollback copies are under ignored `.local/cadence-*` and `.local/paused-cadence-*` paths.
+
+Verification comprises 320 unit tests plus the additional paused-schedule guard test, 27 emulator checks, 16 desktop/mobile browser journeys, the local persistence test, all four builds, and image startup checks with outbound connections blocked. The initial combined emulator run hit transaction-lock timeouts; isolated ownership and backend/cache suites passed all 27 checks. Production HTML matches the tested build; desktop/mobile signed-out smoke checks passed without JavaScript errors, horizontal overflow or upstream requests. Signed-in workflows were exercised against emulators, without creating production test data or sending real mail.
+
 ## Completed cleanup release
 
 The user authorized commit, push and deployment to the existing projects. The original sky, wood and parchment UI is retained. Local records remain separate from production records.
