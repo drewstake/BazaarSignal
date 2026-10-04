@@ -156,14 +156,14 @@ it('budget refusal keeps Scheduler alive, returns bounded CORS/429, avoids repea
 });
 it('browsing protects the remaining hourly collector budget without pre-spending or resetting it',async()=>{
   const start=Date.parse('2026-10-03T07:00:00Z'),{store,state}=await setup(start);
-  state.dailyReserved={firestoreReads:12900};
+  state.dailyReserved={firestoreReads:13000};
   await store.commit('live-allowance',await store.read('live-allowance'),JSON.stringify(state));
   const ledger=new LiveLedger(store,()=>start);
   await ledger.admit('browser','one',false);
   await expect(ledger.admit('browser','protected',false)).rejects.toThrow('firestoreReads');
   expect(await ledger.admit('collector','scheduled')).not.toBeNull();
   const after=JSON.parse((await store.read('live-allowance'))!);
-  expect(after.dailyReserved.firestoreReads).toBe(12900+164+700);
+  expect(after.dailyReserved.firestoreReads).toBe(13000+108+700);
   expect(after.monthlyReserved.sellerRequests).toBe(0);
 });
 it('a denied response-size extension finalizes admitted accounting without shutting down collection',async()=>{

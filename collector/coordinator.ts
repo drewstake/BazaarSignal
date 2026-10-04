@@ -6,6 +6,7 @@ export interface JobState {
   nextAt: number;
   upstreamAt: number;
   observedAt: number;
+  snapshotVersion?: string;
   /** Successful source verification; independent of immutable payload publication. */
   lastCheckedAt?: number;
   durationMs: number;
@@ -60,6 +61,7 @@ export class Coordinator {
   readonly owner = randomUUID();
   private offset = 0;
   readonly now: () => number;
+  private changes: Promise<unknown> = Promise.resolve();
   constructor(
     public store: CacheStore,
     public policy: MarketPolicy,
@@ -84,20 +86,30 @@ export class Coordinator {
     };
   }
   async state() {
+    const raw = await this.store.read("control");
     await this.syncClock();
     return JSON.parse(
-      (await this.store.read("control")) ?? JSON.stringify(this.empty()),
+      raw ?? JSON.stringify(this.empty()),
     ) as Control;
   }
-  async change<T>(
+  change<T>(
     work: (c: Control) => {
       result: T;
       payload?: { key: string; value: string };
     },
   ): Promise<T> {
+    // Parallel page requests share this owner. Avoid self-inflicted conflicts;
+    // independent owners still require durable CAS for every mutation.
+    const result = this.changes.then(() => this.changeOnce(work));
+    this.changes = result.catch(() => {});
+    return result;
+  }
+  private async changeOnce<T>(work: (c: Control) => {
+    result: T; payload?: { key: string; value: string };
+  }): Promise<T> {
     for (let attempt = 0; attempt < 200; attempt++) {
-      await this.syncClock();
       const old = await this.store.read("control");
+      await this.syncClock();
       const c: Control = old ? JSON.parse(old) : this.empty();
       if (JSON.stringify(c.policy) !== JSON.stringify(this.policy))
         throw new Error(

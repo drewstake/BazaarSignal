@@ -21,6 +21,9 @@ export class GoogleCacheStore implements CacheStore {
   private clockAt = 0;
   private reads = new Map<string, { until: number; value: string | null }>();
   private inflight = new Map<string, Promise<string | null>>();
+  // Read versions are CAS tokens, never an authority for skipping a read.
+  // Firestore still fences writes with updateTime / exists:false.
+  private versions = new Map<string, DocumentSnapshot>();
   constructor(
     readonly db: Firestore,
     readonly blobs: SnapshotBlobs,
@@ -49,6 +52,10 @@ export class GoogleCacheStore implements CacheStore {
       const s = await this.ref(key).get();
       this.observe(s);
       const data = s.data();
+      if (!snapshotKeys.has(key)) {
+        if (this.versions.size >= 16) this.versions.delete(this.versions.keys().next().value!);
+        this.versions.set(key, s);
+      }
       const value = data?.blob
         ? await this.blobs.get(data.blob)
         : (data?.value ?? null);
@@ -72,14 +79,18 @@ export class GoogleCacheStore implements CacheStore {
       throw new Error("Invalid snapshot publication");
     let blob: string | null = null;
     try {
-      const ref = this.ref(key), current = await ref.get();
-      this.observe(current);
+      const ref = this.ref(key), seen = this.versions.get(key);
+      this.versions.delete(key);
+      const current = seen && (seen.data()?.value ?? null) === expected
+        ? seen : await ref.get();
+      // Do not re-observe an old readTime as if the response just arrived.
+      if (current !== seen) this.observe(current);
       const old = current.data()?.value ?? null;
       if (old !== expected) return false;
       const batch = this.db.batch();
       if (payload) {
         const lease = old && JSON.parse(old).lease;
-        if (!lease || lease.until <= current.readTime.toMillis()) return false;
+        if (!lease || lease.until <= await this.time()) return false;
         // Reject already-stale candidates BEFORE a paid upload. The batch still
         // checks the original version after upload, fencing concurrent owners.
         blob = `${prefix}${payload.key}/${randomUUID()}.json.gz`;
@@ -102,6 +113,7 @@ export class GoogleCacheStore implements CacheStore {
       throw error;
     } finally {
       this.reads.delete(key);
+      this.versions.delete(key);
     }
   }
   /** Current blobs are never removed. Ten-minute staging/read grace exceeds leases
@@ -123,5 +135,5 @@ export class GoogleCacheStore implements CacheStore {
     }
     return true;
   }
-  async close() { this.reads.clear(); }
+  async close() { this.reads.clear(); this.versions.clear(); }
 }

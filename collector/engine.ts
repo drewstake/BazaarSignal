@@ -30,6 +30,7 @@ import {
 } from "./policy";
 import { PlayerNames } from "./player-name";
 import { TrialStopped } from "./trial";
+import { SnapshotReadCache } from './snapshot-read-cache';
 export { consistentSnapshot } from "../shared/companion/snapshot";
 export interface Snapshot<T> {
   version: string;
@@ -63,7 +64,6 @@ export class MarketCollector {
   private stopped = true;
   private running = false;
   // Derived read caches only. Coordination, budgets and source snapshots remain durable/shared.
-  private decoded = new Map<string, Snapshot<any>>();
   private decoding = new Map<string, Promise<Snapshot<any> | null>>();
   private pages = new Map<string, ReturnType<typeof activePage>>();
   constructor(
@@ -74,6 +74,7 @@ export class MarketCollector {
     private random = Math.random,
     private measure: CollectorMeasurement = () => {},
     private refreshAlignmentMs = 0,
+    private snapshots = new SnapshotReadCache(),
   ) {
     this.coordinator = new Coordinator(store, policy, now, random);
     this.now = this.coordinator.now;
@@ -88,15 +89,12 @@ export class MarketCollector {
     finally { this.decoding.delete(key); }
   }
   private async readSnapshot<T>(key: string): Promise<Snapshot<T> | null> {
-    const state = await this.coordinator.state(),
-      cached = this.decoded.get(key);
-    if (cached && state.jobs[key]?.observedAt === cached.observedAt)
-      return cached;
-    const raw = await this.store.read(key),
-      snapshot = raw ? JSON.parse(raw) : null;
-    if (snapshot) this.decoded.set(key, snapshot);
-    else this.decoded.delete(key);
-    return snapshot;
+    const state = await this.coordinator.state(), job = state.jobs[key];
+    // This identity and publication share an atomic transaction. Successful
+    // unchanged checks intentionally leave the immutable identity unchanged.
+    const tag = JSON.stringify([job?.observedAt, job?.snapshotVersion]);
+    if (!job?.observedAt) return this.store.read(key).then(raw => raw ? JSON.parse(raw) : null);
+    return this.snapshots.read<T>(key, tag, () => this.store.read(key));
   }
   async tick() {
     if (this.running) return;
@@ -179,49 +177,54 @@ export class MarketCollector {
           )
             throw new Error("Bazaar data stale or malformed");
           const priorSnapshot = await this.read<BazaarData>(key);
-          const previous = new Map(
-            priorSnapshot?.data.items.map((i) => [i.id, i]),
-          );
-          const items: BazaarItem[] = [];
-          for (const [id, product] of Object.entries(raw.products)) {
-            try {
-              items.push({
-                ...normalizeBazaar(
-                  id,
-                  product,
-                  raw.lastUpdated,
-                  this.now(),
-                  catalog[id],
-                  previous.get(id),
-                ),
-                feeContext: fees,
-              });
-            } catch {
-              /* Invalid order books cannot inform pricing. */
+          if (priorSnapshot?.version === `${raw.lastUpdated}${metadataVersion}`) {
+            data = priorSnapshot.data;
+          } else {
+            const previous = new Map(
+              priorSnapshot?.data.items.map((i) => [i.id, i]),
+            );
+            const items: BazaarItem[] = [];
+            for (const [id, product] of Object.entries(raw.products)) {
+              try {
+                items.push({
+                  ...normalizeBazaar(
+                    id,
+                    product,
+                    raw.lastUpdated,
+                    this.now(),
+                    catalog[id],
+                    previous.get(id),
+                  ),
+                  feeContext: fees,
+                });
+              } catch {
+                /* Invalid order books cannot inform pricing. */
+              }
             }
+            if (!items.length) throw new Error("No valid Bazaar products");
+            data = {
+              items,
+              raw,
+              names: Object.fromEntries(
+                Object.entries(catalog).map(([id, i]) => [id, i.name]),
+              ),
+            };
           }
-          if (!items.length) throw new Error("No valid Bazaar products");
-          data = {
-            items:
-              priorSnapshot?.version === `${raw.lastUpdated}${metadataVersion}`
-                ? priorSnapshot.data.items
-                : items,
-            raw,
-            names: Object.fromEntries(
-              Object.entries(catalog).map(([id, i]) => [id, i.name]),
-            ),
-          };
           upstreamAt = raw.lastUpdated;
         } else {
           await this.coordinator.capacity(pages || 1);
-          const previous = await this.read<AuctionData>(key);
+          // New controls carry the immutable identity in the same atomic
+          // publication. Collection needs no previous listing payload at all.
+          // Older deployed controls fall back to the complete stored snapshot.
+          const previous = old.snapshotVersion ? { version: old.snapshotVersion } : await this.read<AuctionData>(key);
           const raw = await consistentSnapshot(fetchJson, {
             now: this.now,
             firstPage: async (first) => {
               pages = first.totalPages;
               // A successful first-page probe is not a complete refresh. Do not
               // fetch the remaining pages for an already-published generation.
-              if (previous?.version === `${first.lastUpdated}${metadataVersion}`)
+              if (previous?.version === `${first.lastUpdated}${metadataVersion}` &&
+                  (!old.snapshotVersion || await this.read<AuctionData>(key)))
                 throw new UnchangedGeneration();
               await this.coordinator.capacity(pages - 1);
               // Avoid starting the expensive remainder near an observed cache boundary.
@@ -287,7 +290,11 @@ export class MarketCollector {
       };
       // Same source + same metadata means the existing immutable blob is still
       // authoritative. Keep its observedAt so readers do not download it again.
-      const previous = await this.read<unknown>(key);
+      // A different identity is sufficient proof of change. For an identical
+      // identity, still verify the payload so eviction can be repaired.
+      const previous = old.snapshotVersion && old.snapshotVersion !== snapshot.version
+        ? { version: old.snapshotVersion, observedAt: old.observedAt }
+        : await this.read<unknown>(key);
       const unchanged = previous?.version === snapshot.version;
       await this.coordinator.change((c) => {
         this.coordinator.assert(c);
@@ -299,6 +306,7 @@ export class MarketCollector {
             : started + interval, now + 1000),
           upstreamAt,
           observedAt: unchanged ? previous.observedAt : now,
+          snapshotVersion: snapshot.version,
           lastCheckedAt: now,
           durationMs: duration,
           lastAttemptDurationMs: duration,
@@ -367,8 +375,9 @@ export class MarketCollector {
   async status(key = "auctions") {
     const c = await this.coordinator.state(),
       j = c.jobs[key] ?? emptyJob();
+    const { snapshotVersion: _snapshotVersion, ...publicJob } = j;
     return {
-      ...j,
+      ...publicJob,
       stale: !j.upstreamAt || this.now() - j.upstreamAt > this.policy.staleMs,
       refreshing: !!c.lease && c.lease.until > this.now(),
       automatic: true,

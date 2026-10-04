@@ -25,9 +25,9 @@ export class PlayerNames {
   }
   private async change<T>(fn: (s: Names) => T): Promise<T> {
     for (let i = 0; i < 200; i++) {
+      const old = await this.store.read("player-names");
       if (this.store.time)
         this.offset = (await this.store.time()) - this.clock();
-      const old = await this.store.read("player-names");
       const s: Names = old
         ? JSON.parse(old)
         : { calls: [], blockedUntil: 0, entries: {} };

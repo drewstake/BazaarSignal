@@ -7,6 +7,7 @@ import { marketHandler, type MarketResponder } from './routes';
 import { defaultPolicy } from './policy';
 import { TrialSession, TrialStopped, invocationEnvelope, type Counters } from './trial';
 import { hourlyTrialActive, HOURLY_TRIAL_END } from '../shared/hourly-trial';
+import { SnapshotReadCache } from './snapshot-read-cache';
 
 export const LIVE_HOUR = 3_600_000;
 export const livePolicy = { ...defaultPolicy, bazaarMs: LIVE_HOUR, auctionMinMs: LIVE_HOUR,
@@ -94,8 +95,8 @@ export class LiveLedger {
   constructor(private store: CacheStore, private clock = Date.now) {}
   private async change<T>(fn: (state: LiveAllowanceState, now: number) => T) {
     for (let i = 0; i < 8; i++) {
-      const now = this.store.time ? await this.store.time() : this.clock();
       const raw = await this.store.read('live-allowance');
+      const now = this.store.time ? await this.store.time() : this.clock();
       const s = raw ? JSON.parse(raw) as LiveAllowanceState : null;
       validateLive(s, now);
       const value = fn(s!, now);
@@ -115,7 +116,14 @@ export class LiveLedger {
         firestoreReads: kind === 'collector' ? 600 : 64 };
       // Cache reads and CORS preflights cannot look up sellers. Do not reserve
       // unrelated external calls for them; lookup routes retain their envelope.
-      if(kind==='browser'&&!sellerLookup)costs.sellerRequests=0;
+      if(kind==='browser'&&!sellerLookup) {
+        // Ordinary routes read at most one snapshot and three control/pointer
+        // documents, with no shared writes. Eight reads cover clock refreshes;
+        // admission/finish retain their separate margin. A miss downloads at
+        // most one bounded 8 MiB compressed object. Seller routes keep all holds.
+        Object.assign(costs, { sellerRequests: 0, firestoreReads: 8, firestoreWrites: 0,
+          storageClassB: 1, storageEgressBytes: 8 * 1024 ** 2 });
+      }
       // Cover admission and finish RPCs even though they precede/follow the session.
       const charge:Counters={ ...costs, firestoreReads: costs.firestoreReads + 100, firestoreWrites: costs.firestoreWrites + 40 };
       // The temporary faster cadence may not consume the final 5% of any budget.
@@ -177,6 +185,9 @@ export interface LiveConfig {
 }
 export function createLiveRuntime(config: LiveConfig) {
   const now = config.now ?? Date.now;
+  // Scoped to this runtime/release and private store factory. No sessions,
+  // coordination, owner usage data or authorization decisions are shared.
+  const snapshots = new SnapshotReadCache();
   const deferred=new Map<'collector'|'browser',LiveBudgetDeferred>();
   async function run(kind: 'collector' | 'browser', id: string,
     work: (session: LiveSession, collector: MarketCollector, store: ReturnType<LiveConfig['store']>) => Promise<void>,sellerLookup=true) {
@@ -193,7 +204,7 @@ export function createLiveRuntime(config: LiveConfig) {
         throw new TrialStopped('Live allowance report does not match this release');
       const store = config.store(session);
       const collector = new MarketCollector(store, livePolicy, session.network(config.network), now, Math.random,
-        (name, amount) => session!.count(name, amount), LIVE_HOUR);
+        (name, amount) => session!.count(name, amount), LIVE_HOUR, snapshots);
       phase = 'work';
       await work(session, collector, store);
       phase = 'accounting';
