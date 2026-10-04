@@ -27,47 +27,51 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 describe('Hourly Apps Script market downloads', () => {
+  it('the production pause gate overrides previous live properties before any I/O',()=>{
+    expect(()=>sharedMarket('raw-bazaar')).toThrow(/paused/);
+    expect(fetchJson).not.toHaveBeenCalled();
+  });
   it('does not consume the hourly download before publication or outside the fresh-check window', () => {
     for(const stamp of ['2026-10-02T03:00:20Z','2026-10-02T03:01:29Z','2026-10-02T03:02:30Z','2026-10-02T03:55:00Z']) {
       vi.setSystemTime(new Date(stamp));
-      expect(() => sharedMarket('raw-bazaar')).toThrow(/hourly price check/);
+      expect(() => sharedMarket('raw-bazaar',true)).toThrow(/hourly price check/);
     }
     expect(fetchJson).not.toHaveBeenCalled();
     expect(properties.MARKET_LAST_CLOUD_SLOT).toBeUndefined();
     vi.setSystemTime(new Date('2026-10-02T04:01:45Z'));
-    sharedMarket('raw-bazaar');expect(fetchJson).toHaveBeenCalledOnce();
+    sharedMarket('raw-bazaar',true);expect(fetchJson).toHaveBeenCalledOnce();
   });
   it('shares a large snapshot across repeated checks without refreshing its source timestamp', () => {
-    expect(sharedMarket('raw-bazaar')).toEqual(snapshot);
+    expect(sharedMarket('raw-bazaar',true)).toEqual(snapshot);
     vi.advanceTimersByTime(5 * 60_000);
-    expect(sharedMarket('raw-bazaar')).toEqual(snapshot);
+    expect(sharedMarket('raw-bazaar',true)).toEqual(snapshot);
     expect(fetchJson).toHaveBeenCalledTimes(1);
     expect(owned).toBe(false);
   });
   it('does not redownload an evicted snapshot or retry a failed download in the same hour', () => {
-    sharedMarket('raw-bazaar'); cache.clear();
-    expect(() => sharedMarket('raw-bazaar')).toThrow(/next collection/);
+    sharedMarket('raw-bazaar',true); cache.clear();
+    expect(() => sharedMarket('raw-bazaar',true)).toThrow(/next collection/);
     expect(fetchJson).toHaveBeenCalledTimes(1);
     vi.setSystemTime(new Date('2026-10-02T04:02:00Z'));
     vi.mocked(fetchJson).mockImplementationOnce(() => { throw new Error('Network failed'); });
-    expect(() => sharedMarket('raw-bazaar')).toThrow('Network failed');
-    expect(() => sharedMarket('raw-bazaar')).toThrow(/next collection/);
+    expect(() => sharedMarket('raw-bazaar',true)).toThrow('Network failed');
+    expect(() => sharedMarket('raw-bazaar',true)).toThrow(/next collection/);
     expect(fetchJson).toHaveBeenCalledTimes(2);
     expect(owned).toBe(false);
   });
   it('permits the next hour but stops at the fixed reviewed deadline even with cached data', () => {
-    sharedMarket('raw-bazaar'); vi.advanceTimersByTime(3600_000); sharedMarket('raw-bazaar');
+    sharedMarket('raw-bazaar',true); vi.advanceTimersByTime(3600_000); sharedMarket('raw-bazaar',true);
     expect(fetchJson).toHaveBeenCalledTimes(2);
     vi.setSystemTime(new Date(properties.MARKET_TRIAL_END));
-    expect(() => sharedMarket('raw-bazaar')).toThrow(/paused/);
+    expect(() => sharedMarket('raw-bazaar',true)).toThrow(/paused/);
     expect(fetchJson).toHaveBeenCalledTimes(2);
   });
   it('preserves an outer alert mutation lock and refuses a lock held by a different execution', () => {
     busy = true;
-    expect(() => sharedMarket('raw-bazaar')).toThrow(/busy/);
+    expect(() => sharedMarket('raw-bazaar',true)).toThrow(/busy/);
     expect(fetchJson).not.toHaveBeenCalled();
     busy = false; owned = true;
-    expect(sharedMarket('raw-bazaar')).toEqual(snapshot);
+    expect(sharedMarket('raw-bazaar',true)).toEqual(snapshot);
     expect(owned).toBe(true);
   });
 });

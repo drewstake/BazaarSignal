@@ -76,6 +76,17 @@ export function verifyLiveUpdate(plan, ledger, service) {
     env.MARKET_OPERATING_MODE!=='free-tier')throw new Error('Live update must preserve the existing active allowance');
 }
 
+/** A portfolio code release may keep the existing allowance and both services,
+ * while requiring the scheduler to remain paused throughout the rollout. */
+export function verifySchedule(plan, schedule) {
+  const paused = plan.recoverStopped === true || plan.keepCollectionPaused === true;
+  if (plan.keepCollectionPaused !== undefined &&
+      (plan.keepCollectionPaused !== true || plan.updateExistingLive !== true || plan.recoverStopped))
+    throw new Error('Invalid paused portfolio release');
+  if (schedule.state !== (paused ? 'PAUSED' : 'ENABLED') || schedule.schedule !== '0 * * * *')
+    throw new Error('Existing hourly schedule or pause changed');
+}
+
 /** Explicit repair deployment keeps the inspected stopped ledger unchanged and
  * both services private. Activation is a separate compare-and-swap operation. */
 export function verifyStoppedUpdate(plan, ledger, service) {
@@ -176,7 +187,7 @@ async function main() {
   async function contained() {
     const schedule=await json(`https://cloudscheduler.googleapis.com/v1/${job}`);
     if(liveUpdate) {
-      if(schedule.state!==(plan.recoverStopped?'PAUSED':'ENABLED')||schedule.schedule!=='0 * * * *')throw new Error('Live hourly schedule changed');
+      verifySchedule(plan,schedule);
       const doc=await json(`https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/documents/marketCache/live-allowance`);
       const ledger=JSON.parse(doc.fields.value.stringValue);
       for(const name of ['marketapi','refreshmarket']) {

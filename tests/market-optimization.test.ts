@@ -288,7 +288,7 @@ it("every ordinary API route stays inside the smaller miss reservation, includin
   for (const path of paths) {
     const before = { ...f.counts };
     const response = await get(path);
-    expect([200, 400, 404, 503]).toContain(response.status);
+    expect([200, 400, 404, 410, 503]).toContain(response.status);
     // Actual operations include admission/finish, outside the 8-read work hold.
     expect(
       f.counts.firestoreReads - (before.firestoreReads ?? 0),
@@ -305,7 +305,7 @@ it("every ordinary API route stays inside the smaller miss reservation, includin
   expect(network).not.toHaveBeenCalled();
 });
 
-it("fresh durable identity invalidates warm snapshots and no cache bypasses deadline or stale-command checks", async () => {
+it("fresh durable identity invalidates warm snapshots and no cache bypasses deadline or retired-route checks", async () => {
   const { f, control, get, network, shutdown, expiresAt, setNow } =
     runtimeFixture();
   expect((await get("/api/companion/bazaar")).body.version).toBe("one");
@@ -327,8 +327,8 @@ it("fresh durable identity invalidates warm snapshots and no cache bypasses dead
   expect(f.counts.storageClassB).toBe(2);
   setNow(expiresAt - 1);
   expect(
-    (await get(`/api/companion/auctions/${"a".repeat(32)}/check`)).body.status,
-  ).toBe("stale");
+    (await get(`/api/companion/auctions/${"a".repeat(32)}/check`)).status,
+  ).toBe(410);
   setNow(expiresAt);
   expect((await get("/api/companion/bazaar")).status).toBe(503);
   expect(shutdown).toHaveBeenCalledOnce();

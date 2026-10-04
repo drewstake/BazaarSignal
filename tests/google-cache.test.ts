@@ -124,7 +124,7 @@ it("a real collector on the Google adapter charges each page once and all browse
     await Promise.all(collectors.map(c=>c.tick()));
     expect(fetcher).toHaveBeenCalledTimes(7);
     for(let round=0;round<3;round++)await Promise.all(collectors.map(async c=>{
-      await c.bazaar();await c.list({});await c.rawBazaar();await c.recheck("0".repeat(32));
+      await c.bazaar();await c.portfolioAuctions([]);await c.rawBazaar();await c.status();
     }));
     expect(fetcher).toHaveBeenCalledTimes(7);
     expect((await collectors[0].status()).requestBudget.used).toBe(7);

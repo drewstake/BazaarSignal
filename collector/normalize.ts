@@ -4,7 +4,6 @@ import type {
   ItemVariant,
   Json,
   Listing,
-  Sale,
 } from "../shared/companion/types";
 import { decodeNbt } from "./nbt";
 import { categoryFor } from "../shared/companion/bazaar";
@@ -211,35 +210,6 @@ export function decodeVariant(bytes: unknown, catalog: Catalog = {}) {
 }
 const uuid = (v: unknown): v is string =>
   typeof v === "string" && /^[a-f0-9]{32}$/i.test(v);
-export function normalizeSale(
-  raw: any,
-  observedAt: number,
-  catalog: Catalog,
-): Sale | null {
-  if (
-    raw.bin !== true ||
-    !uuid(raw.auction_id) ||
-    !uuid(raw.buyer) ||
-    !uuid(raw.seller) ||
-    raw.buyer === raw.seller ||
-    !Number.isFinite(raw.price) ||
-    raw.price <= 0 ||
-    !Number.isFinite(raw.timestamp) ||
-    raw.timestamp <= 0 ||
-    raw.timestamp > observedAt + 30000
-  )
-    return null;
-  return {
-    id: raw.auction_id,
-    variant: decodeVariant(raw.item_bytes, catalog),
-    price: raw.price,
-    soldAt: raw.timestamp,
-    observedAt,
-    seller: raw.seller,
-    buyer: raw.buyer,
-    source: "hypixel-ended",
-  };
-}
 export function normalizeListing(
   raw: any,
   upstreamAt: number,

@@ -1,6 +1,6 @@
 import { emptyState, publicState } from './core';
 import type { State } from './core';
-declare const UrlFetchApp:any, ScriptApp:any;
+declare const UrlFetchApp:any, ScriptApp:any, CacheService:any;
 export const DOCUMENT='projects/bazaarsignal/databases/(default)/documents';
 const ROOT=`https://firestore.googleapis.com/v1/${DOCUMENT}`;
 export const ADMIN_UID='SPP408J6vxUDjtSMHn1E2LhrOum2';
@@ -28,9 +28,9 @@ export function jsonWrite(path:string,value:unknown,version:string|null,fields:a
 export const commit=(writes:any[])=>firestore(':commit','post',{writes});
 export function needsWork(state:State) {
   return state.alerts.some(a=>!a.test && !a.workflow.paused &&
-    (a.workflow.stage!=='completed' || state.mail.some(m=>m.alertId===a.workflow.id && ['queued','sending'].includes(m.status))));
+    state.mail.some(m=>m.alertId===a.workflow.id && ['queued','sending'].includes(m.status)));
 }
-export interface UserRecord {state:State;version:string|null;legacy:boolean}
+export interface UserRecord {state:State;version:string|null;legacy:boolean;savedJson?:string;active?:boolean}
 export function loadUser(uid:string):UserRecord {
   if(!/^[A-Za-z0-9_-]{1,128}$/.test(uid))throw new Error('Invalid user identity.');
   let doc=readDoc(`backendUsers/${uid}`),legacy=false;
@@ -38,16 +38,19 @@ export function loadUser(uid:string):UserRecord {
   if(!doc)return {state:emptyState(uid),version:null,legacy:false};
   const state=JSON.parse(doc.fields.json.stringValue) as State;
   if(state.schema!==1 || state.ownerUid!==uid)throw new Error('Stored alerts belong to a different user.');
-  return {state,version:legacy?null:doc.updateTime,legacy};
+  return {state,version:legacy?null:doc.updateTime,legacy,savedJson:doc.fields.json.stringValue,active:doc.fields.active?.booleanValue};
 }
 export function persistUser(record:UserRecord,additional:any[]=[]) {
   const state=record.state,uid=state.ownerUid;
+  const json=JSON.stringify(state),active=needsWork(state);
+  if(!record.legacy && !additional.length && record.savedJson===json && record.active===active)return;
   const indexWrites=record.legacy?state.alerts.map(a=>linkWrite(a.tokenHash,uid,a.workflow.id)):[];
   const result=commit([
-    jsonWrite(`backendUsers/${uid}`,state,record.version,{active:{booleanValue:needsWork(state)}}),
+    jsonWrite(`backendUsers/${uid}`,state,record.version,{active:{booleanValue:active}}),
     {update:{name:`${DOCUMENT}/users/${uid}/status/main`,fields:{json:{stringValue:JSON.stringify(publicState(state))}}}},
     ...indexWrites,...additional]);
-  record.version=result.writeResults[0].updateTime;record.legacy=false;
+  record.version=result.writeResults[0].updateTime;record.legacy=false;record.savedJson=json;record.active=active;
+  if(active)CacheService.getScriptCache().remove('legacy-mail-idle');
 }
 export function linkWrite(tokenHash:string,uid:string,alertId:string) {
   return {update:{name:`${DOCUMENT}/alertLinks/${tokenHash}`,fields:{uid:{stringValue:uid},alertId:{stringValue:alertId}}},currentDocument:{exists:false}};
@@ -65,12 +68,12 @@ export function loadControl():ControlRecord {
 export function saveControl(record:ControlRecord) {
   const result=commit([jsonWrite('backend/worker',record.state,record.version)]);record.version=result.writeResults[0].updateTime;
 }
-export function activeUsers(cursor:string) {
+export function activeUsers(cursor:string):UserRecord[] {
   const rows=firestore(':runQuery','post',{structuredQuery:{from:[{collectionId:'backendUsers'}],
     where:{fieldFilter:{field:{fieldPath:'active'},op:'EQUAL',value:{booleanValue:true}}},
     orderBy:[{field:{fieldPath:'__name__'},direction:'ASCENDING'}],limit:100,
     ...(cursor?{startAt:{values:[{referenceValue:`${DOCUMENT}/backendUsers/${cursor}`}],before:false}}:{})}});
-  return rows.filter((r:any)=>r.document).map((r:any)=>({state:JSON.parse(r.document.fields.json.stringValue),version:r.document.updateTime,legacy:false} as UserRecord));
+  return rows.filter((r:any)=>r.document).map((r:any)=>({state:JSON.parse(r.document.fields.json.stringValue),version:r.document.updateTime,legacy:false,savedJson:r.document.fields.json.stringValue,active:r.document.fields.active?.booleanValue} as UserRecord));
 }
 // Admitted creates share a conservative budget so a public signup cannot enqueue unlimited mail.
 export function checkAdmission(control:Control,state:State,now:number) {

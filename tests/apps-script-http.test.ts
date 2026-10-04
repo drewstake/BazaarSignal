@@ -27,7 +27,7 @@ beforeEach(()=>{
   vi.stubGlobal('ScriptApp',{getOAuthToken:()=> 'server-only-access-token',getProjectTriggers:()=>[{getHandlerFunction:()=> 'scheduledPoll'}]});
   vi.stubGlobal('ContentService',{MimeType:{JSON:'json'},createTextOutput:(s:string)=>({setMimeType:()=>JSON.parse(s)})});
   vi.stubGlobal('LockService',{getScriptLock:()=>({tryLock:()=>{if(locked)return false;locked=true;return true},releaseLock:()=>locked=false})});
-  const cache=new Map();vi.stubGlobal('CacheService',{getScriptCache:()=>({get:(k:string)=>cache.get(k),put:(k:string,v:string)=>cache.set(k,v),putAll:(v:any)=>Object.entries(v).forEach(([k,x])=>cache.set(k,x))})});
+  const cache=new Map();vi.stubGlobal('CacheService',{getScriptCache:()=>({get:(k:string)=>cache.get(k),put:(k:string,v:string)=>cache.set(k,v),remove:(k:string)=>cache.delete(k),putAll:(v:any)=>Object.entries(v).forEach(([k,x])=>cache.set(k,x))})});
   vi.stubGlobal('Utilities',{newBlob:blob,gzip:(b:any)=>b,ungzip:(b:any)=>b,base64Encode:(b:any)=>Buffer.from(b).toString('base64'),base64Decode:(s:string)=>Buffer.from(s,'base64'),base64DecodeWebSafe:(s:string)=>Buffer.from(s,'base64url'),
     Charset:{UTF_8:'utf8'},DigestAlgorithm:{SHA_256:'sha256'},computeDigest:(_:any,s:string)=>Array.from(createHash('sha256').update(s).digest()),
     computeHmacSha256Signature:(s:string,key:string)=>Array.from(createHmac('sha256',key).update(s).digest())});
@@ -41,7 +41,7 @@ beforeEach(()=>{
       else {const results=batch.map((w:any)=>{const stamp='v'+(++writes);docs.set(w.update.name.split('/documents/')[1],{...w.update,updateTime:stamp});return {updateTime:stamp};});body={writeResults:results};}
     } else if(url.endsWith(':runQuery')){
       const query=JSON.parse(options.payload).structuredQuery,cursor=query.startAt?.values[0].referenceValue || '';
-      body=[...docs.values()].filter(d=>d.name.startsWith(`${DOCUMENT}/backendUsers/`) && d.fields.active?.booleanValue && d.name>cursor).sort((a,b)=>a.name.localeCompare(b.name)).slice(0,query.limit).map(document=>({document}));
+      body=[...docs.values()].filter(d=>d.name?.startsWith(`${DOCUMENT}/backendUsers/`) && d.fields.active?.booleanValue && d.name>cursor).sort((a,b)=>a.name.localeCompare(b.name)).slice(0,query.limit).map(document=>({document}));
     } else if(url.includes('/documents/')) {body=docs.get(url.split('/documents/')[1]);if(!body){code=404;body={};}}
     else if(url.endsWith('/raw-bazaar'))body={...raw(),names:{}};
     else if(url.endsWith('/bazaar'))body={items:[{...normalizeBazaar('SUMMONING_EYE',raw().products.SUMMONING_EYE,Date.now(),Date.now()),feeContext:{mayor:'Unknown',multiplier:null,checkedAt:Date.now(),explanation:'Unknown'}}],error:null};
@@ -49,162 +49,71 @@ beforeEach(()=>{
     return {getResponseCode:()=>code,getContentText:()=>JSON.stringify(body)};
   }});
 });
-describe('Public Apps Script access and isolation',()=>{
-  it('an expired or missing trial deadline blocks market calls even when the pause flag is false',()=>{
+function seedLegacy(uid=ADMIN_UID,recipient=email) {
+  const state=emptyState(uid),hash=createHash('sha256').update(capability(uid)).digest('hex');
+  createAlert(state,input,parseMarket(raw(),Date.now()),recipient,hash,Date.now());
+  put(`backendUsers/${uid}`,state,{active:{booleanValue:true}});
+  docs.set(`alertLinks/${hash}`,{fields:{uid:{stringValue:uid},alertId:{stringValue:input.requestId}}});
+}
+describe('portfolio-release HTTP boundaries and legacy preservation',()=>{
+  it('idle paused workers perform no repeated network reads, writes or sends',()=>{
+    seedLegacy();const state=stored(`backendUsers/${ADMIN_UID}`);state.mail[0].status='sent';put(`backendUsers/${ADMIN_UID}`,state,{active:{booleanValue:true}});
     const fetcher=vi.spyOn((globalThis as any).UrlFetchApp,'fetch');
-    properties.MARKET_TRIAL_END=new Date(Date.now()-1).toISOString();
-    expect(doPost(req({action:'companion'})).error).toContain('paused');
-    delete properties.MARKET_TRIAL_END;
-    expect(doPost(req({action:'companion'})).error).toContain('paused');
-    expect(fetcher).not.toHaveBeenCalled();
+    expect(scheduledPoll().ok).toBe(true);
+    expect(stored(`backendUsers/${ADMIN_UID}`).alerts).toEqual(state.alerts);
+    expect(docs.get(`backendUsers/${ADMIN_UID}`).fields.active.booleanValue).toBe(false);
+    expect(scheduledPoll()).toMatchObject({ok:true,idle:true});
+    const before=writes;fetcher.mockClear();
+    for(let i=0;i<11;i++)expect(scheduledPoll()).toMatchObject({ok:true,idle:true});
+    expect(fetcher).not.toHaveBeenCalled();expect(writes).toBe(before);expect(sends).toBe(0);
   });
-  it('paused or missing market permission stops cache calls while preserving account, target editing and queued mail',()=>{
-    expect(doPost(req({action:'create',input,idToken:token()})).ok).toBe(true);
-    delete properties.MARKET_UPDATES_PAUSED;
-    const spy=vi.spyOn((globalThis as any).UrlFetchApp,'fetch');spy.mockClear();
-    expect(doPost(req({action:'companion'})).error).toContain('paused');
-    expect(doPost(req({action:'account',idToken:token()})).data.workflows).toHaveLength(1);
-    expect(doPost(req({action:'update',id:input.requestId,target:90,revision:0,idToken:token()})).ok).toBe(true);
-    scheduledPoll();
-    expect(sends).toBe(1);
-    expect(spy.mock.calls.some(([url])=>String(url).includes('market.example.com'))).toBe(false);
-    expect(stored(`backendUsers/${ADMIN_UID}`).alerts[0].workflow.buyTarget).toBe(90);
-    expect(stored(`backendUsers/${ADMIN_UID}`).alerts[0].workflow.stage).not.toBe('completed');
+  it('ignores former live properties and rejects obsolete public operations without market requests',()=>{
+    const fetcher=vi.spyOn((globalThis as any).UrlFetchApp,'fetch');
+    for(const action of ['snapshot','book','companion','playerNames'])expect(doPost(req({action})).error).toMatch(/Unsupported/);
+    scheduledPoll();expect(fetcher.mock.calls.some(([url])=>String(url).includes('market.example.com'))).toBe(false);
   });
-  it('delegates bounded seller lookup to the shared provider cache without accessing Hypixel',()=>{
-    const fetcher=vi.fn((url:string)=>{
-      expect(url).toContain('https://market.example.com/api/companion/player-names?ids=');
-      return {getResponseCode:()=>200,getContentText:()=>JSON.stringify({names:{['a'.repeat(32)]:'Sky_Player'}})};
-    });
-    vi.stubGlobal('UrlFetchApp',{fetch:fetcher});
-    expect(doPost(req({action:'playerNames',ids:['a'.repeat(32)]})).data.names).toEqual({['a'.repeat(32)]:'Sky_Player'});
-    expect(doPost(req({action:'playerNames',ids:['https://example.com']})).ok).toBe(false);
-    expect(doPost(req({action:'playerNames',ids:Array(7).fill('a'.repeat(32))})).ok).toBe(false);
-    expect(fetcher).toHaveBeenCalledTimes(1);expect(sends).toBe(0);expect(writes).toBe(0);
-  });
-  it('serves public market data while the alert worker owns its mutation lock',()=>{
-    locked=true;
-    const result=doPost(req({action:'companion'}));
-    expect(result.ok).toBe(true);expect(result.data.items).toHaveLength(1);
-    expect(locked).toBe(true);expect(writes).toBe(0);expect(sends).toBe(0);
-  });
-  it('serves the new public companion without leaking accounts and withholds unverified tax assumptions',()=>{
-    const result=doPost(req({action:'companion',uid:ADMIN_UID,email}));
-    expect(result.ok).toBe(true);expect(result.data.items[0].asks[0].pricePerUnit).toBe(100);
-    expect(result.data.items[0].feeContext.multiplier).toBeNull();
-    expect(JSON.stringify(result)).not.toContain(email);expect(authCalls).toBe(0);expect(sends).toBe(0);
-  });
-  it('allows anonymous prices and books without returning private data or validating a supplied UID',()=>{
-    doPost(req({action:'create',input,idToken:token()}));
-    for(const action of ['snapshot','book']){
-      const result=doPost(req({action,itemId:'SUMMONING_EYE',uid:ADMIN_UID,email}));expect(result.ok).toBe(true);
-      const text=JSON.stringify(result.data);expect(text).not.toContain(email);expect(text).not.toContain(input.requestId);expect(result.data.workflows).toBeUndefined();expect(result.data.events).toBeUndefined();
-    }
-    expect(authCalls).toBe(1);
-  });
-  it('requires verified Firebase Google identity for account reads and creation',()=>{
-    for(const action of ['account','create','update'])expect(doPost(req({action,input,id:input.requestId,target:90,revision:0,uid:ADMIN_UID,email})).ok).toBe(false);
-    claims.email_verified=false;expect(doPost(req({action:'create',input,idToken:token()})).ok).toBe(false);expect(writes).toBe(0);
-  });
-  it('allows another Google user while ignoring forged UID and recipient',()=>{
-    asUser('personal','drewstake3@gmail.com');expect(doPost(req({action:'create',input,idToken:token(),uid:ADMIN_UID,email:'victim@example.com'})).ok).toBe(true);
-    expect(stored('backendUsers/personal').ownerUid).toBe('personal');expect(stored('backendUsers/personal').alerts[0].recipient).toBe('drewstake3@gmail.com');expect(docs.has(`backendUsers/${ADMIN_UID}`)).toBe(false);
-  });
-  it('isolates two users including identical request IDs and disable capabilities',()=>{
-    doPost(req({action:'create',input,idToken:token()}));asUser('personal','drewstake3@gmail.com');
-    let account=doPost(req({action:'account',idToken:token(),uid:ADMIN_UID}));expect(account.data.workflows).toHaveLength(0);
-    doPost(req({action:'create',input:{...input,target:90},idToken:token()}));
-    account=doPost(req({action:'account',idToken:token(),uid:ADMIN_UID}));expect(account.data.workflows).toHaveLength(1);expect(account.data.workflows[0].buyTarget).toBe(90);
-    expect(capability(ADMIN_UID)).not.toBe(capability('personal'));
-    expect(doPost(req({action:'disable',token:capability('personal'),confirm:true})).ok).toBe(true);
-    expect(stored('backendUsers/personal').alerts[0].workflow.paused).toBe(true);expect(stored(`backendUsers/${ADMIN_UID}`).alerts[0].workflow.paused).toBe(false);
-  });
-  it('atomically deduplicates creation, rejects changed settings, and preserves quota admission on retries',()=>{
-    for(let i=0;i<2;i++)expect(doPost(req({action:'create',input,idToken:token()})).ok).toBe(true);
-    expect(stored(`backendUsers/${ADMIN_UID}`).alerts).toHaveLength(1);expect(stored('backend/worker').admissions).toBe(1);
+  it('rejects new standalone targets without writes or mail, while allowing idempotent old retries',()=>{
+    expect(doPost(req({action:'create',input,idToken:token()})).error).toContain('portfolio holding');expect(writes).toBe(0);expect(sends).toBe(0);
+    seedLegacy();const before=writes;expect(doPost(req({action:'create',input,idToken:token()})).ok).toBe(true);expect(writes).toBe(before);
     expect(doPost(req({action:'create',input:{...input,target:90},idToken:token()})).ok).toBe(false);
-    failCommit=true;expect(doPost(req({action:'create',input:{...input,requestId:'22345678-1234-4234-8234-123456789012'},idToken:token()})).ok).toBe(false);
-    expect(stored('backend/worker').admissions).toBe(1);expect(stored(`backendUsers/${ADMIN_UID}`).alerts).toHaveLength(1);
   });
-  it('requires explicit confirmation, makes GET harmless and disables idempotently',()=>{
-    doPost(req({action:'create',input,idToken:token()}));const before=writes;
-    expect(doGet().ok).toBe(false);expect(writes).toBe(before);
-    expect(doPost(req({action:'disable',token:capability(ADMIN_UID)})).ok).toBe(false);
+  it('requires verified Google identity for all private operations and rejects forged ownership',()=>{
+    seedLegacy();
+    for(const action of ['account','create','update','portfolio-notification','legacy-pause'])expect(doPost(req({action,input,id:input.requestId,uid:ADMIN_UID,email})).ok).toBe(false);
+    asUser('other','other@example.test');expect(doPost(req({action:'account',idToken:token(),uid:ADMIN_UID})).data.workflows).toEqual([]);
+    expect(doPost(req({action:'legacy-pause',id:input.requestId,idToken:token(),uid:ADMIN_UID})).ok).toBe(false);
     expect(stored(`backendUsers/${ADMIN_UID}`).alerts[0].workflow.paused).toBe(false);
-    for(let i=0;i<2;i++)expect(doPost(req({action:'disable',token:capability(ADMIN_UID),confirm:true})).ok).toBe(true);
-    expect(stored(`backendUsers/${ADMIN_UID}`).mail[0].status).toBe('cancelled');expect(sends).toBe(0);
   });
-  it('migrates existing owner state and hash links without changing request IDs or token hashes',()=>{
+  it('pauses only the verified owner legacy record and cancels unsent work',()=>{
+    seedLegacy();const result=doPost(req({action:'legacy-pause',id:input.requestId,idToken:token()}));expect(result.ok).toBe(true);
+    expect(stored(`backendUsers/${ADMIN_UID}`).alerts[0].workflow.paused).toBe(true);expect(stored(`backendUsers/${ADMIN_UID}`).mail[0].status).toBe('cancelled');expect(sends).toBe(0);
+  });
+  it('retains disable capabilities, explicit confirmation and harmless GET behavior',()=>{
+    seedLegacy();const before=writes;expect(doGet().ok).toBe(false);expect(writes).toBe(before);
+    expect(doPost(req({action:'disable',token:capability(ADMIN_UID)})).ok).toBe(false);
+    for(let i=0;i<2;i++)expect(doPost(req({action:'disable',token:capability(ADMIN_UID),confirm:true})).ok).toBe(true);
+    expect(sends).toBe(0);
+  });
+  it('preserves the original legacy owner document during backend migration',()=>{
     const state=emptyState(ADMIN_UID),hash=createHash('sha256').update(capability(ADMIN_UID)).digest('hex');
     createAlert(state,input,parseMarket(raw(),Date.now()),email,hash,Date.now());put('backend/state',state);
     expect(doPost(req({action:'disable',token:capability(ADMIN_UID),confirm:true})).ok).toBe(true);
-    expect(stored(`backendUsers/${ADMIN_UID}`).alerts[0].tokenHash).toBe(hash);expect(docs.has(`alertLinks/${hash}`)).toBe(true);
-    expect(stored('backend/state').alerts[0].workflow.paused).toBe(false); // Original rollback record is preserved, never polled again.
+    expect(stored('backend/state').alerts[0].workflow.paused).toBe(false);expect(stored(`backendUsers/${ADMIN_UID}`).alerts[0].tokenHash).toBe(hash);
   });
-  it('enforces admission without charging idempotent retries',()=>{
-    for(let i=0;i<5;i++)expect(doPost(req({action:'create',input:{...input,requestId:`12345678-1234-4234-8234-${String(i).padStart(12,'0')}`},idToken:token()})).ok).toBe(true);
-    expect(doPost(req({action:'create',input,idToken:token()})).error).toMatch(/5 alerts per hour/);
-    const c=loadControl().state;c.admissions=40;
-    expect(()=>checkAdmission(c,emptyState('other'),Date.now())).toThrow(/capacity/);
-    expect(()=>checkAdmission(c,emptyState('other'),Date.now()+86400001)).not.toThrow();
+  it('keeps queued legacy delivery and target edits available during the market pause without market requests',()=>{
+    seedLegacy();delete properties.MARKET_UPDATES_PAUSED;const fetcher=vi.spyOn((globalThis as any).UrlFetchApp,'fetch');
+    expect(doPost(req({action:'update',id:input.requestId,target:90,revision:0,idToken:token()})).ok).toBe(true);
+    expect(scheduledPoll().ok).toBe(true);expect(sends).toBe(1);expect(fetcher.mock.calls.some(([url])=>String(url).includes('market.example.com'))).toBe(false);
+    expect(stored(`backendUsers/${ADMIN_UID}`).alerts[0].workflow.stage).not.toBe('completed');
   });
-  it('rejects unsupported origins, JSON preflight requests, and editor-only operations',()=>{
-    expect(doPost(req({action:'snapshot',origin:'https://evil.test'})).ok).toBe(false);
-    const r=req({action:'snapshot'});r.postData.type='application/json';expect(doPost(r).ok).toBe(false);
-    expect(doPost(req({action:'sendTestConfirmation',idToken:token()})).ok).toBe(false);expect(writes).toBe(0);
+  it('shares delivery quotas across accounts and never resends accepted messages',()=>{
+    seedLegacy();seedLegacy('other','other@example.test');remaining=1;delete properties.MARKET_UPDATES_PAUSED;
+    expect(scheduledPoll().ok).toBe(true);expect(sends).toBe(1);expect(scheduledPoll().ok).toBe(true);expect(sends).toBe(1);
+    const mail=[...stored(`backendUsers/${ADMIN_UID}`).mail,...stored('backendUsers/other').mail];expect(mail.filter(m=>m.status==='sent')).toHaveLength(1);expect(mail.filter(m=>m.status==='queued').every(m=>m.attempts===0)).toBe(true);
   });
-});
-describe('Multi-user scheduled worker',()=>{
-  it('minute ticks outside the alert and queued-mail slots do no I/O',()=>{
-    vi.spyOn(Date,'now').mockReturnValue(Date.parse('2026-10-02T03:04:20Z'));
-    const fetcher=vi.spyOn((globalThis as any).UrlFetchApp,'fetch');
-    expect(scheduledMinuteTick()).toEqual({ok:true,skipped:true});
-    expect(fetcher).not.toHaveBeenCalled();expect(sends).toBe(0);expect(writes).toBe(0);
-    vi.restoreAllMocks();
+  it('rejects hostile origins, JSON preflight, overlapping jobs and editor-only operations',()=>{
+    expect(doPost(req({action:'account',origin:'https://evil.test',idToken:token()})).ok).toBe(false);
+    const r=req({action:'account'});r.postData.type='application/json';expect(doPost(r).ok).toBe(false);
+    expect(doPost(req({action:'sendTestConfirmation',idToken:token()})).ok).toBe(false);locked=true;expect(scheduledPoll().ok).toBe(false);expect(sends).toBe(0);expect(writes).toBe(0);
   });
-  it('edits the existing target, keeps links and mail intact, and checks the new target',()=>{
-    doPost(req({action:'create',input,idToken:token()}));
-    const before=stored(`backendUsers/${ADMIN_UID}`);
-    const edit={action:'update',id:input.requestId,target:90,revision:0,idToken:token()};
-    for(let i=0;i<2;i++)expect(doPost(req(edit)).data.workflow.buyTarget).toBe(90);
-    const state=stored(`backendUsers/${ADMIN_UID}`);
-    expect(state.alerts).toHaveLength(1);expect(state.alerts[0].workflow.revision).toBe(1);
-    expect(state.alerts[0].tokenHash).toBe(before.alerts[0].tokenHash);
-    expect(state.mail).toEqual(before.mail);expect(stored('backend/worker').admissions).toBe(1);
-    expect(scheduledPoll().ok).toBe(true);expect(sends).toBe(1);
-    expect(stored(`backendUsers/${ADMIN_UID}`).alerts[0].workflow.stage).toBe('watching_buy');
-    expect(doPost(req({...edit,target:100,revision:1})).ok).toBe(true);
-    expect(scheduledPoll().ok).toBe(true);expect(sends).toBe(2);
-    expect(stored(`backendUsers/${ADMIN_UID}`).alerts[0].workflow.stage).toBe('completed');
-    expect(doPost(req({...edit,target:120,revision:2})).error).toMatch(/no longer active/);
-    expect(doPost(req({action:'create',input,idToken:token()})).ok).toBe(true);
-    expect(doPost(req({action:'disable',token:capability(ADMIN_UID),confirm:true})).ok).toBe(true);
-  });
-  it('rejects another user, invalid values, stale edits and disabled alerts without mutation',()=>{
-    doPost(req({action:'create',input,idToken:token()}));
-    const edit={action:'update',id:input.requestId,target:90,revision:0};
-    asUser('other','other@example.com');
-    expect(doPost(req({...edit,idToken:token(),uid:ADMIN_UID})).error).toMatch(/Invalid alert/);
-    asUser(ADMIN_UID,email);
-    for(const target of [0,-1,'90',null,1e16])expect(doPost(req({...edit,target,idToken:token()})).ok).toBe(false);
-    expect(doPost(req({...edit,idToken:token()})).ok).toBe(true);
-    expect(doPost(req({...edit,target:80,idToken:token()})).error).toMatch(/changed elsewhere/);
-    expect(stored(`backendUsers/${ADMIN_UID}`).alerts[0].workflow.buyTarget).toBe(90);
-    doPost(req({action:'disable',token:capability(ADMIN_UID),confirm:true}));
-    expect(doPost(req({...edit,target:80,revision:1,idToken:token()})).error).toMatch(/no longer active/);
-    expect(stored(`backendUsers/${ADMIN_UID}`).alerts[0].workflow.buyTarget).toBe(90);
-  });
-  it('checks users, sends to each validated recipient, and does not resend success',()=>{
-    doPost(req({action:'create',input,idToken:token()}));asUser('personal','drewstake3@gmail.com');doPost(req({action:'create',input,idToken:token()}));
-    expect(scheduledPoll().ok).toBe(true);expect(sends).toBe(4);expect(deliveries.map(m=>m.to).sort()).toEqual([email,email,'drewstake3@gmail.com','drewstake3@gmail.com'].sort());
-    expect(stored(`backendUsers/${ADMIN_UID}`).alerts[0].workflow.stage).toBe('completed');expect(stored('backendUsers/personal').alerts[0].workflow.stage).toBe('completed');
-    expect(scheduledPoll().ok).toBe(true);expect(sends).toBe(4);expect(Object.keys(properties).filter(k=>k.startsWith('sent:'))).toHaveLength(0);
-  });
-  it('shares the MailApp budget across users and defers when exhausted',()=>{
-    doPost(req({action:'create',input,idToken:token()}));asUser('personal','drewstake3@gmail.com');doPost(req({action:'create',input,idToken:token()}));remaining=1;
-    expect(scheduledPoll().ok).toBe(true);expect(sends).toBe(1);
-    const mail=[...stored(`backendUsers/${ADMIN_UID}`).mail,...stored('backendUsers/personal').mail];
-    expect(mail.filter(m=>m.status==='sent')).toHaveLength(1);expect(mail.filter(m=>m.status==='queued').every(m=>m.attempts===0)).toBe(true);
-  });
-  it('refuses an overlapping worker without writes or sends',()=>{locked=true;expect(scheduledPoll().ok).toBe(false);expect(writes).toBe(0);expect(sends).toBe(0);});
 });

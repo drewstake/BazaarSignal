@@ -1,33 +1,16 @@
+import { consistentSnapshot } from "../shared/companion/snapshot";
 import { describe, expect, it } from "vitest";
 import { gzipSync } from "node:zlib";
 import { auctionFees, bazaarTax } from "../shared/companion/fees";
 import {
-  defaultBazaarFilters,
   executeDepth,
-  filterBazaar,
   normalizeBazaar,
-  quoteBazaar,
 } from "../shared/companion/bazaar";
-import {
-  auctionOpportunity,
-  configurationFlags,
-  defaultAuctionFilters,
-  matchesAuction,
-  valueVariant,
-} from "../shared/companion/auctions";
 import { decodeNbt } from "../collector/nbt";
 import {
   normalizeListing,
-  normalizeSale,
   normalizeVariant,
 } from "../collector/normalize";
-import {
-  consistentSnapshot,
-  MarketCollector,
-  recordCoverage,
-} from "../collector/legacy-history-engine";
-import type { HistoryStore } from "../collector/store";
-import type { ItemVariant, Listing, Sale } from "../shared/companion/types";
 import { feeContextFromElection } from "../collector/fee-context";
 const now = Date.now();
 const product = {
@@ -53,12 +36,6 @@ const item = () =>
     name: "Diamond",
     tier: "COMMON",
   }), feeContext: { mayor: "Fixture", multiplier: 1, checkedAt: now, explanation: "Test fee context" } });
-const f = {
-  ...defaultBazaarFilters,
-  quantity: 3,
-  minDepth: 0,
-  minBothActivity: 0,
-};
 const catalog = {
   TEST_SWORD: { name: "Test Sword", tier: "EPIC", category: "SWORD" },
 };
@@ -79,26 +56,6 @@ const nbt = (extra: Record<string, unknown> = {}) => ({
 });
 const variant = (extra: Record<string, unknown> = {}) =>
   normalizeVariant(nbt(extra), catalog);
-const sale = (i: number, price = 1000000, v = variant()): Sale => ({
-  id: `sale-${i}`,
-  variant: v,
-  price,
-  soldAt: now - i * 10000,
-  observedAt: now,
-  buyer: `b${i}`,
-  seller: `s${i}`,
-  source: "hypixel-ended",
-});
-const listing = (v = variant(), price = 600000): Listing => ({
-  id: "a".repeat(32),
-  variant: v,
-  price,
-  start: now - 10000,
-  end: now + 100000,
-  observedAt: now,
-  upstreamAt: now,
-  status: "active",
-});
 // A separate fixture encoder builds wire-format NBT, including nested compounds,
 // arrays, and long values. Parser tests do not just feed already-decoded JSON.
 function stringBytes(s: string) {
@@ -176,61 +133,6 @@ describe("Bazaar supported metrics and execution", () => {
     expect(executeDepth(item().asks, 13)).toBeNull();
     expect(executeDepth(item().asks, 1.1)).toBeNull();
   });
-  it("calculates passive trade costs, tax, capital and ROI", () => {
-    const q = quoteBazaar(item(), { ...f, executionCost: 2 })!;
-    expect(q.acquisition).toBe(270);
-    expect(q.grossSale).toBe(330);
-    expect(q.tax).toBe(4.125);
-    expect(q.profit).toBe(53.875);
-    expect(q.capital).toBe(272);
-    expect(q.roi).toBeCloseTo((53.875 / 272) * 100);
-  });
-  it("never turns instant-buy/offer or order/instant losses into profitable flips", () => {
-    for (const strategy of ["instant-offer", "order-instant"] as const) {
-      expect(quoteBazaar(item(), { ...f, strategy })!.profit).toBeLessThan(0);
-      expect(filterBazaar([item()], { ...f, strategy })).toEqual([]);
-    }
-  });
-  it("rejects stale, future, missing activity and invalid filter numbers", () => {
-    expect(
-      filterBazaar([{ ...item(), upstreamAt: now - 181000 }], f, now),
-    ).toEqual([]);
-    expect(
-      filterBazaar([{ ...item(), upstreamAt: now + 31000 }], f, now),
-    ).toEqual([]);
-    expect(quoteBazaar(item(), { ...f, quantity: NaN })).toBeNull();
-    expect(
-      filterBazaar([{ ...item(), instantSellActivity7d: null }], f, now),
-    ).toEqual([]);
-  });
-  it("filters budget, weaker-side share and both activity sides", () => {
-    expect(filterBazaar([item()], { ...f, budget: 269 }, now)).toEqual([]);
-    expect(
-      filterBazaar([item()], { ...f, maxActivityShare: 0.0001 }, now),
-    ).toEqual([]);
-    expect(
-      filterBazaar([item()], { ...f, minSellActivity: 200001 }, now),
-    ).toEqual([]);
-    expect(filterBazaar([item()], f, now)).toHaveLength(1);
-  });
-  it("retains the true upstream timestamp and marks observed price movements", () => {
-    const previous = item();
-    const next = normalizeBazaar(
-      "DIAMOND",
-      {
-        ...product,
-        buy_summary: [{ amount: 20, pricePerUnit: 150, orders: 2 }],
-      },
-      now + 60000,
-      now + 61000,
-      undefined,
-      previous,
-    );
-    expect(next.priceChangePct).toBeCloseTo(36.363636);
-    expect(quoteBazaar({...next, feeContext: item().feeContext}, f, now + 61000)!.concerns.join(" ")).toContain(
-      "15%",
-    );
-  });
 });
 describe("central fees", () => {
   it("applies explicit Bazaar account tiers and rejects invalid inputs", () => {
@@ -250,25 +152,6 @@ describe("central fees", () => {
     expect(auctionFees(1000, 24).duration).toBe(350);
     expect(auctionFees(1000, 48).duration).toBe(1200);
     expect(() => auctionFees(1000, 2)).toThrow();
-  });
-  it("fails closed for unmodeled mayor taxes instead of guessing modifiers", () => {
-    const context = feeContextFromElection(
-      {
-        mayor: {
-          name: "Derpy",
-          perks: [{ name: "QUAD TAXES", description: "Quadruples taxes" }],
-        },
-      },
-      now,
-    );
-    expect(context.multiplier).toBeNull();
-    expect(filterBazaar([{ ...item(), feeContext: context }], f, now)).toEqual(
-      [],
-    );
-    expect(
-      feeContextFromElection({ mayor: { name: "Diana", perks: [] } }, now)
-        .multiplier,
-    ).toBe(1);
   });
 });
 describe("NBT and deterministic configuration fingerprints", () => {
@@ -326,32 +209,7 @@ describe("NBT and deterministic configuration fingerprints", () => {
       variant({ petInfo: JSON.stringify({ ...pet, exp: 2000 }) }).fingerprint,
     );
   });
-  it("quarantines unknown variants rather than silently merging them", () => {
-    const v = variant({ mystery_upgrade: 7 });
-    expect(v.complete).toBe(false);
-    expect(v.modifiers.mystery_upgrade).toBe(7);
-    expect(
-      valueVariant(
-        v,
-        Array.from({ length: 20 }, (_, i) => sale(i, 100, v)),
-        [],
-        now,
-      ).estimate,
-    ).toBeNull();
-  });
-  it("requires actual completed BIN sales and keeps bids out of listing prices", () => {
-    const raw = {
-      auction_id: "a".repeat(32),
-      buyer: "b".repeat(32),
-      seller: "c".repeat(32),
-      bin: true,
-      price: 100,
-      timestamp: now,
-      item_bytes: bytesFixture(),
-    };
-    expect(normalizeSale(raw, now, catalog)?.price).toBe(100);
-    expect(normalizeSale({ ...raw, buyer: "" }, now, catalog)).toBeNull();
-    expect(normalizeSale({ ...raw, bin: false }, now, catalog)).toBeNull();
+  it("keeps bids out of active listing prices", () => {
     const active = { uuid: "a".repeat(32), auctioneer: "B".repeat(32), bin: true, starting_bid: 100, start: now - 1000, end: now + 60000, item_bytes: bytesFixture() };
     expect(normalizeListing(active, now, now, catalog)?.seller).toBe("b".repeat(32));
     expect(normalizeListing({ ...active, auctioneer: "invalid" }, now, now, catalog)?.seller).toBeUndefined();
@@ -360,156 +218,8 @@ describe("NBT and deterministic configuration fingerprints", () => {
     ).toBeNull();
   });
 });
-describe("completed sale valuation", () => {
-  it("deduplicates sale events and never groups items by name", () => {
-    const sales = Array.from({ length: 12 }, (_, i) => sale(i));
-    const other = variant({ enchantments: { sharpness: 7 } });
-    expect(
-      valueVariant(
-        variant(),
-        [...sales, ...sales, sale(100, 9000000, other)],
-        [],
-        now,
-      ).count,
-    ).toBe(12);
-    expect(valueVariant(other, sales, [], now).estimate).toBeNull();
-  });
-  it("withholds estimates on cold start and fewer than five exact sales", () => {
-    expect(valueVariant(variant(), [], [], now).confidence).toBe(
-      "insufficient",
-    );
-    expect(valueVariant(variant(), [sale(0)], [], now).estimate).toBeNull();
-  });
-  it("removes extreme outliers and limits participant concentration", () => {
-    const sales = Array.from({ length: 12 }, (_, i) => sale(i));
-    let v = valueVariant(variant(), [...sales, sale(13, 100000000)], [], now);
-    expect(v.estimate).toBe(1000000);
-    expect(v.excludedCount).toBe(1);
-    v = valueVariant(
-      variant(),
-      sales.map((s) => ({ ...s, seller: "same" })),
-      [],
-      now,
-    );
-    expect(v.count).toBe(2);
-    expect(v.estimate).toBeNull();
-  });
-  it("caps resale to competing asks without treating asks as completed evidence", () => {
-    const sales = Array.from({ length: 12 }, (_, i) => sale(i));
-    const ask = { ...listing(), id: "d".repeat(32), price: 800000 };
-    expect(valueVariant(variant(), sales, [ask], now).estimate).toBe(800000);
-    expect(valueVariant(variant(), [], [ask], now).estimate).toBeNull();
-  });
-  it("reduces confidence for coverage gaps, old sales and dispersion", () => {
-    const sales = Array.from({ length: 12 }, (_, i) => sale(i));
-    expect(valueVariant(variant(), sales, [], now).confidence).toBe("high");
-    expect(valueVariant(variant(), sales, [], now, true).confidence).toBe(
-      "medium",
-    );
-    expect(
-      valueVariant(
-        variant(),
-        sales.map((s) => ({ ...s, soldAt: now - 4 * 86400000 })),
-        [],
-        now,
-      ).confidence,
-    ).toBe("low");
-  });
-  it("subtracts listing, duration and claim fees; filters excluded enchant levels", () => {
-    const o = auctionOpportunity(
-      listing(),
-      Array.from({ length: 12 }, (_, i) => sale(i, 1500000)),
-      [],
-      now,
-    );
-    expect(o.profit).toBe(1500000 - 600000 - 15000 - 350 - 15000);
-    expect(o.capital).toBe(615350);
-    expect(
-      matchesAuction(
-        o,
-        {
-          ...defaultAuctionFilters,
-          excludedEnchant: "sharpness",
-          enchantLevel: 6,
-        },
-        now,
-      ),
-    ).toBe(false);
-    expect(
-      matchesAuction(
-        o,
-        {
-          ...defaultAuctionFilters,
-          excludedEnchant: "sharpness",
-          enchantLevel: 7,
-        },
-        now,
-      ),
-    ).toBe(true);
-  });
-  it("uses item-specific evidence rules, without a universal enchant blacklist", () => {
-    const v = variant({
-      enchantments: { sharpness: 6, ultimate_one_for_all: 1 },
-    });
-    expect(configurationFlags(v)).toEqual([]);
-    expect(
-      configurationFlags(v, [
-        {
-          id: "specific",
-          itemIds: ["OTHER_SWORD"],
-          enchantment: "ultimate_one_for_all",
-          minLevel: 1,
-          kind: "preference",
-          explanation: "Observed preference",
-          source: "test",
-        },
-      ]),
-    ).toEqual([]);
-  });
-});
+
 describe("collector consistency and gaps", () => {
-  it("retries failed persistence without advancing the feed cursor or double-counting gaps", async () => {
-    let commits = 0,
-      aggregateCount = 0;
-    const memory: HistoryStore = {
-      mode: "local",
-      load: async () => ({ sales: [], health: null }),
-      commit: async (_sales, _health, values) => {
-        aggregateCount = values.size;
-        if (++commits === 1) throw new Error("storage unavailable");
-      },
-    };
-    const raw = {
-      auction_id: "a".repeat(32),
-      buyer: "b".repeat(32),
-      seller: "c".repeat(32),
-      bin: true,
-      price: 100,
-      timestamp: now,
-      item_bytes: bytesFixture(),
-    };
-    const c = new MarketCollector(memory, async (path) =>
-      path.includes("resources")
-        ? { items: [{ id: "TEST_SWORD", ...catalog.TEST_SWORD }] }
-        : { lastUpdated: now, auctions: [raw] },
-    );
-    c.health.endedUpstreamAt = now - 120000;
-    await expect(c.refreshEnded()).rejects.toThrow("storage unavailable");
-    expect(c.health.endedUpstreamAt).toBe(now - 120000);
-    expect(c.health.missedMs).toBe(0);
-    await c.refreshEnded();
-    expect(c.sales.size).toBe(1);
-    expect(aggregateCount).toBe(1);
-    expect(c.health.endedUpstreamAt).toBe(now);
-    expect(c.health.missedMs).toBe(60000);
-  });
-  it("records uncovered windows and ignores repeated rolling snapshots", () => {
-    expect(recordCoverage(now, now + 60000)).toBeNull();
-    expect(recordCoverage(now, now + 180000)).toEqual({
-      from: now,
-      to: now + 120000,
-    });
-  });
   it("rejects mismatched pages, partial counts and duplicated listing IDs", async () => {
     const page0 = {
       success: true,
@@ -534,66 +244,5 @@ describe("collector consistency and gaps", () => {
     await expect(
       consistentSnapshot(async () => ({ ...page0, totalPages: 1 })),
     ).rejects.toThrow("Partial");
-  });
-  it("preserves prior active cache on partial failure; disappearance is not a sale", async () => {
-    let fail = false;
-    const memory: HistoryStore = {
-      mode: "local",
-      load: async () => ({ sales: [], health: null }),
-      commit: async () => {},
-    };
-    const c = new MarketCollector(memory, async (path) => {
-      if (path.includes("resources"))
-        return { items: [{ id: "TEST_SWORD", ...catalog.TEST_SWORD }] };
-      if (fail) throw new Error("page failed");
-      return {
-        page: 0,
-        totalPages: 1,
-        totalAuctions: 0,
-        lastUpdated: Date.now(),
-        auctions: [],
-      };
-    });
-    c.listings.set(listing().id, listing());
-    await c.refreshActive(true);
-    expect(c.listings.get(listing().id)?.status).toBe("unavailable");
-    expect(c.sales.size).toBe(0);
-    fail = true;
-    const previous = c.listings;
-    (c as any).lastActiveAttempt = 0;
-    await expect(c.refreshActive(true)).rejects.toThrow();
-    expect(c.listings).toBe(previous);
-  });
-  it("ingests repeated completed events exactly once and reports missed feeds", async () => {
-    let stamp = now;
-    let commits = 0;
-    const memory: HistoryStore = {
-      mode: "local",
-      load: async () => ({ sales: [], health: null }),
-      commit: async () => {
-        commits++;
-      },
-    };
-    const raw = {
-      auction_id: "a".repeat(32),
-      buyer: "b".repeat(32),
-      seller: "c".repeat(32),
-      bin: true,
-      price: 100,
-      timestamp: now,
-      item_bytes: bytesFixture(),
-    };
-    const c = new MarketCollector(memory, async (path) =>
-      path.includes("resources")
-        ? { items: [{ id: "TEST_SWORD", ...catalog.TEST_SWORD }] }
-        : { lastUpdated: stamp, auctions: [raw] },
-    );
-    await c.refreshEnded();
-    await c.refreshEnded();
-    expect(c.sales.size).toBe(1);
-    expect(commits).toBe(1);
-    stamp = now + 1000;
-    await c.refreshEnded();
-    expect(c.sales.size).toBe(1);
   });
 });

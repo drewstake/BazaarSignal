@@ -1,9 +1,11 @@
 import { fetchJson } from "./store";
 import { hourlyAlertWindow } from '../shared/market-schedule';
+import { PORTFOLIO_COLLECTION_ENABLED } from '../shared/companion/portfolio-policy';
 declare const PropertiesService: any, CacheService: any, LockService: any;
 
 /** Cache-only bridge. No public request, alert mutation or email job fetches Hypixel. */
-export function sharedMarket(path: string) {
+export function sharedMarket(path: string, enabled = PORTFOLIO_COLLECTION_ENABLED) {
+  if (!enabled) throw new Error("Market data: Updates paused to protect the free allowance.");
   // Fail closed by default. The preserved email worker can still deliver queued
   // mail and edit existing targets without issuing a billable market request.
   const properties = PropertiesService.getScriptProperties();
@@ -47,10 +49,4 @@ export function sharedMarket(path: string) {
     for(let i=0;i<text.length;i+=20000)parts[prefix+count++]=text.slice(i,i+20000);
     cache.putAll(parts,3600);cache.put(prefix+'count',String(count),3600);return result;
   } finally {if(!alreadyLocked)lock.releaseLock();}
-}
-export function publicCompanion() { return sharedMarket("bazaar"); }
-export function publicPlayerNames(ids: unknown) {
-  if (!Array.isArray(ids) || ids.length > 6 || !ids.every(id => typeof id === "string" && /^[a-f0-9]{32}$/i.test(id))) throw new Error("Invalid player IDs.");
-  if (!ids.length) return { names: {} };
-  return sharedMarket(`player-names?ids=${encodeURIComponent([...new Set(ids)].join(","))}`);
 }

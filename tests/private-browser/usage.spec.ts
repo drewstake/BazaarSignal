@@ -14,15 +14,15 @@ test('owner tab, private response lifecycle, cached refresh UI, mobile layout an
   let calls=0;const marketCalls:string[]=[];
   await page.route('**/api/owner/usage',async route=>{calls++;expect(route.request().headers().authorization).toMatch(/^Bearer /);await route.fulfill({json:snapshot});});
   page.on('request',r=>{if(/\/api\/companion\//.test(r.url())||r.url().includes('hypixel.net'))marketCalls.push(r.url());});
-  await page.goto('/?fixtures=1#market=usage');
-  await expect(page.getByRole('heading',{name:'Owner access required'})).toBeVisible();
-  await expect(page.getByRole('button',{name:'Usage & Costs'})).toHaveCount(0);expect(calls).toBe(0);
+  await page.goto('/#view=usage');
+  await expect(page.getByRole('heading',{name:/Know what you own|Owner access only/})).toBeVisible();
+  await expect(page.getByRole('link',{name:'Usage & Costs'})).toHaveCount(0);expect(calls).toBe(0);
   await signIn(page,'someone-else@example.test');
   await expect(page.getByRole('button',{name:'Sign out'})).toBeVisible();
-  await expect(page.getByRole('heading',{name:'Owner access required'})).toBeVisible();expect(calls).toBe(0);
+  await expect(page.getByRole('heading',{name:/Know what you own|Owner access only/})).toBeVisible();expect(calls).toBe(0);
   await page.getByRole('button',{name:'Sign out'}).click();
   await signIn(page,'drewstake3@gmail.com');
-  await expect(page.getByRole('button',{name:'Usage & Costs'})).toBeVisible();
+  await expect(page.getByRole('link',{name:'Usage & Costs'})).toBeVisible();
   await expect(page.getByRole('heading',{name:'Usage & Costs',exact:true})).toBeVisible();
   await expect(page.getByText('Actual spending this month')).toBeVisible();
   await expect(page.getByRole('button',{name:/Refresh in/})).toBeDisabled();
@@ -35,7 +35,7 @@ test('owner tab, private response lifecycle, cached refresh UI, mobile layout an
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.screenshot({path:`.local/usage-dashboard-${info.project.name}.png`,fullPage:true});
   await page.getByRole('button',{name:'Sign out'}).click();
-  await expect(page.getByRole('heading',{name:'Owner access required'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:/Know what you own|Owner access only/})).toBeVisible();
   await expect(page.getByText('Actual spending this month')).toHaveCount(0);
   await expect(page.getByText('bazaarsignal-510305',{exact:true})).toHaveCount(0);
 });
@@ -44,7 +44,7 @@ test('corrected container storage is within allowance and an old cached source b
   const snapshot=await measureDashboard({store:{read:async()=>null,commit:async()=>false,close:async()=>{}},token:async()=>'fixture',network:async(url:any)=>new Response(JSON.stringify(String(url).startsWith('https://artifactregistry.googleapis.com/')?{sizeBytes:'284076588'}:{}))});
   let calls=0;
   await page.route('**/api/owner/usage',route=>{calls++;return route.fulfill({json:snapshot});});
-  await page.goto('/?fixtures=1#market=usage');await signIn(page,'drewstake3@gmail.com');
+  await page.goto('/#view=usage');await signIn(page,'drewstake3@gmail.com');
   const card=page.getByRole('article',{name:'Container images',exact:true});
   await expect(card).toContainText('Within allowance');await expect(card).toContainText('270.92 MiB');await expect(card).toContainText('512 MiB');
   await expect(card.getByRole('progressbar')).toHaveAttribute('aria-valuetext','52.9% of allowance');
@@ -70,7 +70,7 @@ test('attention first, current and projected usage, capacity estimate, expanded 
   Object.assign(requests,{state:'measured',measured:1000,projected:5000,percent:.05,measuredAt:Date.now()});
   let calls=0;
   await page.route('**/api/owner/usage',route=>{calls++;return route.fulfill({json:snapshot});});
-  await page.goto('/?fixtures=1#market=usage');await signIn(page,'drewstake3@gmail.com');
+  await page.goto('/#view=usage');await signIn(page,'drewstake3@gmail.com');
   await expect(page.getByText('2 resources need attention')).toBeVisible();
   const cards=page.locator('[aria-labelledby="usage-attention"] article');
   await expect(cards.first()).toHaveAttribute('aria-label','Container images');

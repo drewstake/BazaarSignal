@@ -24,27 +24,122 @@ service cloud.firestore {
         && request.auth.token.email_verified == true
         && request.auth.token.firebase.sign_in_provider == 'google.com';
     }
-    match /users/{uid}/watchlist/{key} {
-      allow read, delete: if ownUser(uid);
+    function stamp(d) {
+      return d.createdAt is int && d.createdAt > 0 && d.updatedAt is int
+        && d.updatedAt >= d.createdAt && d.updatedAt <= request.time.toMillis() + 60000
+        && d.revision is int && d.revision >= 1 && d.revision <= 1000000000;
+    }
+    match /users/{uid}/portfolios/{portfolioId} {
+      allow read: if ownUser(uid);
       allow create, update: if ownUser(uid)
-        && request.resource.data.keys().hasOnly(['key','kind','itemId','name','savedAt'])
-        && request.resource.data.key == key
-        && request.resource.data.kind in ['bazaar','auction']
-        && request.resource.data.itemId is string
-        && request.resource.data.itemId.matches('^[A-Za-z0-9_:-]{1,100}$')
-        && key == request.resource.data.kind + '_' + request.resource.data.itemId
-        && request.resource.data.name is string && request.resource.data.name.size() > 0
-        && request.resource.data.name.size() <= 140
-        && request.resource.data.savedAt is int && request.resource.data.savedAt > 0
-        && request.resource.data.savedAt <= request.time.toMillis() + 60000;
+        && portfolioId.matches('^[A-Za-z0-9_:-]{1,100}$')
+        && request.resource.data.keys().hasOnly(['id','name','createdAt','updatedAt','revision','deleted'])
+        && request.resource.data.id == portfolioId && stamp(request.resource.data)
+        && request.resource.data.name is string && request.resource.data.name.matches('.*[^ ].*')
+        && request.resource.data.name.size() <= 80 && request.resource.data.deleted is bool
+        && ((!exists(/databases/$(database)/documents/users/$(uid)/portfolios/$(portfolioId))
+          && request.resource.data.revision == 1 && request.resource.data.deleted == false)
+          || (resource.data.deleted == false && request.resource.data.createdAt == resource.data.createdAt
+            && request.resource.data.updatedAt >= resource.data.updatedAt
+            && request.resource.data.revision == resource.data.revision + 1));
+      // Tombstones preserve retry safety and immediately suspend all child notifications.
+      allow delete: if false;
+      match /holdings/{holdingId} {
+        allow read: if ownUser(uid);
+        allow create, update: if ownUser(uid)
+          && getAfter(/databases/$(database)/documents/users/$(uid)/portfolios/$(portfolioId)).data.deleted == false
+          && request.resource.data.keys().hasOnly(['id','itemId','name','kind','configuration','stackSize','quantity','costBasis','createdAt','updatedAt','revision','deleted'])
+          && request.resource.data.id == holdingId
+          && request.resource.data.itemId is string && request.resource.data.itemId.matches('^[A-Za-z0-9_:-]{1,100}$')
+          && request.resource.data.name is string && request.resource.data.name.matches('.*[^ ].*') && request.resource.data.name.size() <= 140
+          && request.resource.data.quantity is int && request.resource.data.quantity >= 1 && request.resource.data.quantity <= 1000000000
+          && request.resource.data.costBasis is number && request.resource.data.costBasis >= 0.01 && request.resource.data.costBasis <= 1000000000000000
+          && request.resource.data.deleted is bool && stamp(request.resource.data)
+          && (!request.resource.data.deleted
+            || !exists(/databases/$(database)/documents/users/$(uid)/portfolioNotifications/$(portfolioId + '__' + holdingId))
+            || (getAfter(/databases/$(database)/documents/users/$(uid)/portfolioNotifications/$(portfolioId + '__' + holdingId)).data.deleted == true
+              && getAfter(/databases/$(database)/documents/users/$(uid)/portfolioNotifications/$(portfolioId + '__' + holdingId)).data.enabled == false))
+          && request.resource.data.configuration is string && request.resource.data.configuration.size() <= 8192
+          && ((request.resource.data.kind == 'bazaar' && holdingId == 'bz_' + request.resource.data.itemId
+            && request.resource.data.configuration == '' && request.resource.data.stackSize == 1)
+            || (request.resource.data.kind == 'auction' && holdingId.matches('^v1_[a-f0-9]{64}$')
+              && request.resource.data.stackSize is int && request.resource.data.stackSize >= 1 && request.resource.data.stackSize <= 127
+              && request.resource.data.configuration.size() > 0))
+          && ((!exists(/databases/$(database)/documents/users/$(uid)/portfolios/$(portfolioId)/holdings/$(holdingId))
+            && request.resource.data.revision == 1 && request.resource.data.deleted == false)
+            || (request.resource.data.createdAt == resource.data.createdAt
+              && request.resource.data.itemId == resource.data.itemId && request.resource.data.name == resource.data.name
+              && request.resource.data.kind == resource.data.kind && request.resource.data.configuration == resource.data.configuration
+              && request.resource.data.stackSize == resource.data.stackSize && request.resource.data.updatedAt >= resource.data.updatedAt
+              && request.resource.data.revision == resource.data.revision + 1));
+        allow delete: if false;
+      }
+    }
+    match /users/{uid}/positionMigrations/{itemId} {
+      allow read: if ownUser(uid);
+      allow create: if ownUser(uid)
+        && request.resource.data.keys().hasOnly(['itemId','sourceRevision','migratedAt'])
+        && request.resource.data.itemId == itemId && request.resource.data.migratedAt is int
+        && request.resource.data.migratedAt > 0 && request.resource.data.migratedAt <= request.time.toMillis() + 60000
+        && request.resource.data.sourceRevision == get(/databases/$(database)/documents/users/$(uid)/positions/$(itemId)).data.revision
+        && getAfter(/databases/$(database)/documents/users/$(uid)/portfolios/default/holdings/$(('bz_' + itemId))).data.itemId == itemId
+        && getAfter(/databases/$(database)/documents/users/$(uid)/portfolios/default/holdings/$(('bz_' + itemId))).data.quantity == get(/databases/$(database)/documents/users/$(uid)/positions/$(itemId)).data.quantity
+        && getAfter(/databases/$(database)/documents/users/$(uid)/portfolios/default/holdings/$(('bz_' + itemId))).data.costBasis == get(/databases/$(database)/documents/users/$(uid)/positions/$(itemId)).data.costBasis;
+      allow update, delete: if false;
+    }
+    match /users/{uid}/portfolioNotifications/{id} {
+      allow read: if ownUser(uid);
+      // Captured baselines, revisions and delivery state are server validated.
+      allow update: if ownUser(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['enabled','deleted','revision','updatedAt'])
+        && request.resource.data.enabled == false && request.resource.data.deleted == true
+        && request.resource.data.revision == resource.data.revision + 1
+        && request.resource.data.updatedAt is int && request.resource.data.updatedAt >= resource.data.updatedAt
+        && request.resource.data.updatedAt <= request.time.toMillis() + 60000
+        && getAfter(/databases/$(database)/documents/users/$(uid)/portfolios/$(resource.data.portfolioId)/holdings/$(resource.data.holdingId)).data.deleted == true;
+      allow create, delete: if false;
+    }
+    match /users/{uid}/portfolioPreferences/main {
+      allow read: if ownUser(uid);
+      allow create, update: if ownUser(uid) && request.resource.data.keys().hasOnly(['emailEnabled']) && request.resource.data.emailEnabled is bool;
+      allow delete: if false;
+    }
+    // Retired preferences remain private and readable for export/compatibility.
+    // Cached discovery clients cannot continue creating writes after the pivot.
+    match /users/{uid}/watchlist/{key} {
+      allow read: if ownUser(uid);
+      allow write: if false;
     }
     match /users/{uid}/filters/{marketName} {
-      allow read, delete: if ownUser(uid) && marketName in ['bazaar','auctions'];
-      allow create, update: if ownUser(uid) && marketName in ['bazaar','auctions']
-        && request.resource.data.keys().hasOnly(['json','updatedAt'])
-        && request.resource.data.json is string && request.resource.data.json.size() <= 8192
-        && request.resource.data.updatedAt is int && request.resource.data.updatedAt > 0
-        && request.resource.data.updatedAt <= request.time.toMillis() + 60000;
+      allow read: if ownUser(uid) && marketName in ['bazaar','auctions'];
+      allow write: if false;
+    }
+    match /users/{uid}/positions/{itemId} {
+      allow read: if ownUser(uid);
+      allow delete: if ownUser(uid) && !exists(/databases/$(database)/documents/users/$(uid)/positionMigrations/$(itemId));
+      allow create, update: if ownUser(uid)
+        && !exists(/databases/$(database)/documents/users/$(uid)/positionMigrations/$(itemId))
+        && request.resource.data.keys().hasOnly(['itemId','name','quantity','costBasis','createdAt','updatedAt','revision'])
+        && request.resource.data.keys().hasAll(['itemId','name','quantity','costBasis','createdAt','updatedAt','revision'])
+        && request.resource.data.itemId == itemId
+        && itemId.matches('^[A-Za-z0-9_:-]{1,100}$')
+        && request.resource.data.name is string && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 140
+        && request.resource.data.quantity is int
+        && request.resource.data.quantity >= 1 && request.resource.data.quantity <= 1000000000
+        && request.resource.data.costBasis is number
+        && request.resource.data.costBasis >= 0.01 && request.resource.data.costBasis <= 1000000000000000
+        && request.resource.data.createdAt is int && request.resource.data.createdAt > 0
+        && request.resource.data.updatedAt is int
+        && request.resource.data.updatedAt >= request.resource.data.createdAt
+        && request.resource.data.updatedAt <= request.time.toMillis() + 60000
+        && request.resource.data.revision is int
+        && request.resource.data.revision >= 1 && request.resource.data.revision <= 1000000000
+        && ((!exists(/databases/$(database)/documents/users/$(uid)/positions/$(itemId))
+            && request.resource.data.revision == 1)
+          || (request.resource.data.createdAt == resource.data.createdAt
+            && request.resource.data.name == resource.data.name
+            && request.resource.data.revision == resource.data.revision + 1));
     }
     // Shared collector state is written only with server credentials. The public
     // HTTP cache exposes sanitized pages; raw sale participant records stay private.

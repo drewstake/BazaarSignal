@@ -5,8 +5,8 @@ const read=p=>JSON.parse(readFileSync(p,'utf8'));
 const imageDirectory=process.argv[2];
 const label=process.argv[3]??'usage-dashboard';
 const reasons={'--recover-stopped-timeout':'The operation was aborted due to timeout','--recover-stopped-read-budget':'Free-tier operating budget reached: firestoreReads'};
-const recoveryReason=reasons[process.argv[4]],recovery=!!recoveryReason;
-if(process.argv[4]&&!recovery || process.argv.length>5)throw new Error('Unknown release option');
+const recoveryReason=reasons[process.argv[4]],recovery=!!recoveryReason,paused=process.argv[4]==='--paused-portfolio';
+if(process.argv[4]&&!recovery&&!paused || process.argv.length>5)throw new Error('Unknown release option');
 if(!/^usage-[a-z-]+$/.test(label))throw new Error('Invalid release label');
 if(!imageDirectory||!resolve(imageDirectory).startsWith(resolve('.local/market-image-')))throw new Error('Pass the verified local image directory');
 const receipt=read(`${imageDirectory}/receipt.json`),measure=read('.local/usage-dashboard-measured.json'),state=read('.local/live-state-latest.json');
@@ -16,7 +16,9 @@ if(Date.now()-measure.generatedAt>1800000||Date.now()-Date.parse(state.at)>18000
 const meter=id=>{const r=measure.rows.find(r=>r.id===id);if(r?.state!=='measured'||!Number.isFinite(r.measured))throw new Error(`Missing ${id} measurement`);return r.measured;};
 if(measure.rows.find(r=>r.id==='images')?.measurementBasis!=='artifact-registry-sizeBytes')throw new Error('Image capacity must use repository storage-cost metadata');
 const used=(id,key)=>Math.max(meter(id),prior.meters[key].used)+(ledger.monthlyReserved[key]??0);
-const plan={project:'bazaarsignal-510305',operatingMode:'free-tier',updateExistingLive:true,services:recovery?['marketapi','refreshmarket']:['marketapi'],releaseId:`free-20261001-${label}`,
+if(paused && state.job.state!=='PAUSED')throw new Error('Portfolio release requires the existing collector to stay paused');
+const plan={project:'bazaarsignal-510305',operatingMode:'free-tier',updateExistingLive:true,services:recovery||paused?['marketapi','refreshmarket']:['marketapi'],releaseId:`free-20261001-${label}`,
+  ...(paused?{keepCollectionPaused:true}:{}),
   ...(recovery?{recoverStopped:true,recoveryStopReason:recoveryReason,stoppedLedgerSha256:createHash('sha256').update(JSON.stringify(ledger)).digest('hex')}:{}),
   id:ledger.id,startsAt:new Date(ledger.startsAt).toISOString(),expiresAt:new Date(ledger.expiresAt).toISOString(),shutdownGrantExpiresAt:prior.shutdownGrantExpiresAt,
   imageDirectory,imageDigest:receipt.imageDigest,observedAt:measure.generatedAt,

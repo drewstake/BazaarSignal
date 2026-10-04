@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
 import { auth } from '../data';
+import { localWorkspace } from '../local-workspace';
 import type { UsageDashboard as Dashboard, UsageRow } from '../../shared/usage-dashboard';
 import { verifiedUsageSnapshot } from '../../shared/usage-dashboard';
 import { currentStatus, imageStorageEstimate, kindOf, needsAttention, projectionStatus, sortResources } from '../../shared/usage-presentation';
@@ -79,13 +80,13 @@ export default function UsageDashboard({user}:{user:User|null}) {
     setBusy(true);setError('');
     try {
       const token=await user.getIdToken();
-      const base=(import.meta.env.VITE_MARKET_API_URL??'').replace(/\/$/,'');
+      const base=localWorkspace?'':(import.meta.env.VITE_MARKET_API_URL??'').replace(/\/$/,'');
       const r=await fetch(`${base}/api/owner/usage`,{headers:{Authorization:`Bearer ${token}`},credentials:'omit',cache:'no-store',referrerPolicy:'no-referrer',signal:signal?AbortSignal.any([signal,AbortSignal.timeout(20000)]):AbortSignal.timeout(20000)});
-      if(!r.ok)throw new Error(r.status===401?'Your session expired. Sign in again.':r.status===403?'Access denied.':r.status===429?'Please wait before refreshing.':'Usage measurements are unavailable. The reporting service may be paused or temporarily unreachable.');
+      if(!r.ok)throw new Error(r.status===401?'Your session expired. Sign in again.':r.status===403?'Access denied.':r.status===429?'Please wait before refreshing.':localWorkspace?'No saved cloud report is available on this computer. Live reporting remains paused; usage is unknown.':'Usage measurements are unavailable. The reporting service may be paused or temporarily unreachable.');
       const result=await r.json() as Dashboard;
-      if(!signal?.aborted && auth?.currentUser?.uid===user.uid)setData(verifiedUsageSnapshot(result));
-    }catch(e){if(!signal?.aborted && auth?.currentUser?.uid===user.uid){setData(null);setError(e instanceof Error?e.message:'Usage unavailable.');}}
-    finally{if(!signal?.aborted){setBusy(false);setRefreshAt(Date.now()+60_000);}}
+      if(!signal?.aborted && auth?.currentUser===user)setData(verifiedUsageSnapshot(result));
+    }catch(e){if(!signal?.aborted && auth?.currentUser===user){setData(null);setError(e instanceof TypeError?'Cannot reach the usage reporting service. Collection remains paused; no usage measurements were inferred.':e instanceof Error?e.message:'Usage unavailable.');}}
+    finally{if(!signal?.aborted && auth?.currentUser===user){setBusy(false);setRefreshAt(Date.now()+60_000);}}
   }
   async function copyMetrics() {
     if(!data||busy)return;
@@ -104,11 +105,12 @@ export default function UsageDashboard({user}:{user:User|null}) {
   return <section className="usage-page" aria-labelledby="usage-title">
     <div className="usage-heading"><div><span className="usage-eyebrow">OWNER ONLY</span><h2 id="usage-title">Usage &amp; Costs</h2><p>What needs attention, and when.</p></div><div className="usage-heading-actions"><button className="button blue" disabled={busy||now<refreshAt} onClick={()=>void load()}>{busy?'Loading…':now<refreshAt?`Refresh in ${Math.ceil((refreshAt-now)/1000)}s`:'Refresh status'}</button><button className="button blue" disabled={!data||busy} onClick={()=>void copyMetrics()}>Copy metrics</button><span className="usage-copy-status" role="status">{copyStatus}</span></div></div>
     {error&&<p className="notice warning" role="alert">{error}</p>}
+    {data?.localReport&&<p className="notice">{data.localReport}</p>}
     {!data&&busy&&<p role="status">Verifying owner access and loading cached measurements…</p>}
     {data&&<>
       <div className="usage-summary">
         <article className={attention.length||stale?'usage-warning':''}><span>Allowance overview</span><strong>{stale?'Report out of date':attention.length?`${attention.length} ${attention.length===1?'resource needs':'resources need'} attention`:'No reported allowance warnings'}</strong><p>{stale?'Refresh the cached report before relying on its statuses.':`${data.rows.filter(r=>r.state==='measured').length} of ${data.rows.length} resources measured. Statuses apply to the reported scope.`}</p></article>
-        <article className={data.collection.state==='Active'?'':'usage-warning'}><span>Market collection</span><strong>{data.collection.state}</strong>{data.collection.state==='Waiting for budget'&&<p>Next eligible collection: <b>{date(data.collection.nextCollectionAt)}</b>. {data.collection.reason}</p>}<p>App safety budget use: <b>{data.collection.pressure===null?'Unknown':`${(100*data.collection.pressure).toFixed(1)}%`}</b>{stale?' · report out of date':''}.</p>{data.collection.hourlyTrialEndsAt?<p>Hourly test ends <b>{date(data.collection.hourlyTrialEndsAt)}</b>. Collections skip before exceeding 95% reserved; hard limits still apply.</p>:<p>Updates slow at 65% reserved.</p>}<p>Fixed stop: <b>{date(data.collection.reviewAt)}</b></p></article>
+        <article className={!stale&&data.collection.state==='Active'?'':'usage-warning'}><span>Market collection</span><strong>{stale?'Current state unknown':data.collection.state}</strong>{stale&&<p>Last reported: <b>{data.collection.state}</b> at {date(data.collection.measuredAt)}.</p>}{!stale&&data.collection.state==='Waiting for budget'&&<p>Next eligible collection: <b>{date(data.collection.nextCollectionAt)}</b>. {data.collection.reason}</p>}<p>App safety budget use: <b>{data.collection.pressure===null?'Unknown':`${(100*data.collection.pressure).toFixed(1)}%`}</b>{stale?' · report out of date':''}.</p>{data.collection.hourlyTrialEndsAt?<p>{stale?'Reported hourly test end':'Hourly test ends'} <b>{date(data.collection.hourlyTrialEndsAt)}</b>. Collections skip before exceeding 95% reserved; hard limits still apply.</p>:<p>Updates slow at 65% reserved.</p>}<p>{stale?'Reported fixed stop':'Fixed stop'}: <b>{date(data.collection.reviewAt)}</b></p></article>
         <article className="usage-neutral"><span>Actual spending this month</span><strong>Unknown</strong><p>No billing records connected. Measured usage and estimates do not establish actual spending.</p><details><summary>Billing setup</summary><p>Connect an existing Cloud Billing cost export with read access and bounded query permission. No export was found during inspection.</p><p>No billing or paid service is enabled by this dashboard.</p><a href={data.spending.sourceUrl} target="_blank" rel="noreferrer">Billing export documentation</a><small>Checked {date(Date.parse(data.spending.checkedAt))}. Available-history spending is also unknown.</small></details></article>
       </div>
       <p className="usage-explanation"><b>Two different limits:</b> Google allowance compares reported usage with Google's published allowance. App safety budget tracks amounts set aside as a precaution and can slow updates before the Google allowance is used. Reserved amounts are not extra usage and should not be added to measured usage.</p>

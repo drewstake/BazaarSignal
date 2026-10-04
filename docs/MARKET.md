@@ -1,3 +1,7 @@
+# Historical market implementation notes
+
+The current product is the portfolio tracker described in [PORTFOLIOS.md](PORTFOLIOS.md). Discovery and watchlists below describe retired interfaces; this document does not authorize collection or deployment.
+
 # Market companion: setup and operating notes
 
 Updated October 1, 2026. The shared cache is deployed to the owner-authorized Google project `bazaarsignal-510305`, after the owner linked billing. Production website and Apps Script reads use that cache. Price Alerts, Google sign-in, item/order-book routes, private watchlists, saved filters, user records and the existing email trigger are preserved. See [Google deployment details](GOOGLE-MARKET-DEPLOYMENT.md).
@@ -84,6 +88,18 @@ These are observations, not guarantees. With 43 pages, the default budget may de
 Instant execution walks every visible level for the entire requested quantity. Insufficient depth produces no executable quote. Slippage is already in the weighted price, never charged twice. Passive acquisition joins the best bid and passive exit joins the best ask; neither jumps the queue nor promises a fill. Each strategy labels which leg waits. At an unchanged book, instant-buy → offer and order → instant-sell commonly lose after tax; default minimum profit excludes them honestly.
 
 Default sorting is highest total net profit after minimum activity on both sides, visible depth, a maximum share of weekly activity, a budget, and freshness checks. Profit = gross exit − acquisition − sale tax − explicit execution costs. Required capital includes acquisition and the explicit execution-cost reserve. Manual extra cost defaults to zero. Freshness is capped at 180 seconds (with 30 seconds future tolerance). Activity share and liquidity labels are sizing heuristics, not a fill-rate model. Wide spreads, movement over 15% between observed quotes, thin activity and oversized trades are flagged. There is no guaranteed hourly income or fabricated fill-time estimate.
+
+### Manually tracked Positions
+
+`#market=positions` records open Bazaar holdings under `users/{uid}/positions/{itemId}` for verified Google users. Store only the item ID/name, actual whole quantity, total acquisition cost, creation/update times, and revision. Average purchase price and market valuations are derived. One document per item prevents duplicates; Add purchase uses a Firestore transaction to combine quantity and basis. Edits and deletes reject outdated revisions. Account changes clear the view and discard delayed private responses.
+
+The authoritative cost input is either average purchase price or total cost basis. Coin inputs accept correctly grouped commas and case-insensitive k/m/b suffixes. Quantity is limited to 1–1,000,000,000, and total basis to 0.01–1,000,000,000,000,000 coins, enforced by both client validation and Firestore rules. The selector merges current Bazaar metadata with a price-free offline catalog derived from the existing artwork inventory (`node scripts/build-bazaar-catalog.mjs`). Saved holdings remain editable without market prices; catalog coverage is limited to that saved inventory plus available market metadata.
+
+Indicative value uses quantity × highest available normalized bid (`sell_summary`), before fees and slippage. Unrealized return is (value − basis) / basis. Full after-tax liquidation walks visible bids with `executeDepth`, requires compatible snapshot fee evidence, and uses the existing 1.25% base tax multiplied by the sample's verified fee modifier. The displayed assumption does not infer personal perks. Missing depth or fee evidence withholds liquidation; missing/invalid prices never become zero or use instant-buy asks. Valid stale samples are explicitly last-known estimates, including when updates are paused. Development fixtures stay labeled illustrative.
+
+Portfolio basis includes all positions. When prices are missing, portfolio value and P&L explicitly cover only priced positions and their matching basis; return uses aggregate value and basis, not averaged percentages. The 287-cookie example at 12.2M has a 3.5014B basis; at a 13M bid it has 3.731B indicative value and +229.6M before-fee P&L. No real account is seeded.
+
+Verification: `npm test`, `npm run test:rules`, `npm run test:positions-browser`, and `npm run build`. Positions browser tests use Auth/Firestore emulators, local cached price samples, and a disabled collector scheduler with paused market updates. No collector, billing, service configuration, or deployment change is required by this implementation; production availability requires a separately authorized frontend and Firestore-rules release.
 
 ### Fees, verified September 30, 2026
 

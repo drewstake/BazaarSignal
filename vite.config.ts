@@ -10,7 +10,6 @@ export default defineConfig({
     rollupOptions: {
       input: {
         app: fileURLToPath(new URL('./index.html', import.meta.url)),
-        kits: fileURLToPath(new URL('./ui-kits.html', import.meta.url)),
       },
     },
   },

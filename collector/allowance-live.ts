@@ -177,11 +177,13 @@ class LiveSession extends TrialSession {
 // Only an admitted, fully accounted invocation may recover from a transport
 // timeout. Reservation, completion, deadline and unknown failures stay fatal.
 class LiveRequestTimeout extends Error {}
+import { demandJobs, type Demand } from './portfolio-demand';
 export interface LiveConfig {
   id: string; expiresAt: number;
   store: (session?: TrialSession) => CacheStore & { cleanup?: (interval: number) => Promise<boolean> };
   shutdown: () => Promise<void>; network?: typeof fetch; now?: () => number;
   report?: (measurement: Record<string, unknown>) => void;
+  portfolioDemand?: (session: TrialSession) => Promise<Demand>;
 }
 export function createLiveRuntime(config: LiveConfig) {
   const now = config.now ?? Date.now;
@@ -259,7 +261,8 @@ export function createLiveRuntime(config: LiveConfig) {
   };
   return {
     collect: async (event: string) => { try { await run('collector',event,async(session,collector,store)=>{
-      await collector.tick();
+      const jobs=config.portfolioDemand?demandJobs(await config.portfolioDemand(session),now()):undefined;
+      if(!jobs||jobs.length)await collector.tick(jobs);
       if(store.cleanup) {
         const previous=await store.read('cleanup');
         if(!previous || JSON.parse(previous).nextAt<=now()) {

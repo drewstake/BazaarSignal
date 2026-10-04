@@ -4,10 +4,11 @@ import type { Book, PriceAlertInput, ProductPrice, Workflow } from '../shared/mo
 
 export type DeliveryState = 'queued' | 'sending' | 'sent' | 'failed' | 'cancelled';
 export interface Mail {
-  id: string; alertId: string; kind: 'confirmation' | 'target';
+  id: string; alertId: string; kind: 'confirmation' | 'target' | 'portfolio';
   status: DeliveryState; attempts: number; nextAttempt: number;
   sentAt?: number; leaseUntil: number; error: string | null;
   quote?: { side: 'buy'|'sell'; unit: number; total: number; timestamp: number };
+  portfolio?: { notificationId:string; revision:number; holdingRevision:number; direction:'up'|'down'; percent:number; baseline:number; price:number; sampledAt:number; source:string; portfolioId:string; holdingId:string };
 }
 export interface RecordAlert {
   workflow: Workflow; fingerprint: string; tokenHash: string;

@@ -1,3 +1,4 @@
+import { PORTFOLIO_COLLECTION_ENABLED } from '../../shared/companion/portfolio-policy';
 export const PAUSED_MESSAGE = "Updates paused to protect the free allowance";
 export type PollDirective = { mode: "normal" | "warning" | "slow" | "paused"; pollMs: number; retryAt?: number; reason?: string; expiresAt?: number; serverNow?: number; trialId?: string };
 const configuredEnd = Date.parse(import.meta.env.VITE_MARKET_TRIAL_END ?? "");
@@ -6,7 +7,7 @@ const liveMode = import.meta.env.VITE_MARKET_OPERATING_MODE === "free-tier";
 export const hourlyMarketMode = liveMode;
 const maximumWindow = liveMode ? 32 * 86400_000 : 15 * 60_000;
 const boundedTrial = /^[a-zA-Z0-9_-]{1,100}$/.test(configuredTrialId ?? '') && Number.isFinite(configuredEnd) && configuredEnd > Date.now() && configuredEnd - Date.now() <= maximumWindow;
-export const configuredPause = import.meta.env.VITE_MARKET_UPDATES_PAUSED === "true" ||
+export const configuredPause = !PORTFOLIO_COLLECTION_ENABLED || import.meta.env.VITE_MARKET_UPDATES_PAUSED === "true" ||
   (!import.meta.env.DEV && (import.meta.env.VITE_MARKET_UPDATES_PAUSED !== "false" || !boundedTrial));
 let directive: PollDirective = { mode: configuredPause ? "paused" : "normal", pollMs: liveMode ? 3600_000 : 20_000,
   ...(boundedTrial ? { expiresAt: configuredEnd, trialId: configuredTrialId } : {}) };

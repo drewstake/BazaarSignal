@@ -1,5 +1,7 @@
 # Public deployment and verification
 
+**October 4 portfolio release:** current product behavior and deployment evidence are in [PORTFOLIOS.md](docs/PORTFOLIOS.md) and [PORTFOLIO-RELEASE.md](docs/PORTFOLIO-RELEASE.md). Discovery and watchlist UI/API routes are retired. Market collection and new notification evaluation remain paused. Legacy queued mail can drain; fresh legacy price evaluation is retired. Historical instructions below must not be used to restart services or replace the current private rules.
+
 **October 1 shared-cache deployment:** production now reads the shared current-market collector in the user-authorized Google project `bazaarsignal-510305`. The owner linked billing; the scheduled Functions, private storage and Firestore coordination are deployed. The verified Hosting preview was promoted and Apps Script version 8 reads the cache. Existing authentication, alert data, signing properties and email trigger are preserved. Follow [GOOGLE-MARKET-DEPLOYMENT.md](docs/GOOGLE-MARKET-DEPLOYMENT.md) for current configuration, measured usage and costs. Earlier release notes below are historical.
 
 Updated September 29, 2026 (America/New_York). The user explicitly changed the product from a private single-owner app to **public browsing and verified-Google-user alerts**. Firebase billing remains disabled. No additional Google scopes are required for the public change: only the sender authorizes MailApp; visitors use ordinary Firebase Google sign-in.

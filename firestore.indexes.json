@@ -18,6 +18,8 @@
     }
   ],
   "fieldOverrides": [
+    { "collectionGroup": "holdings", "fieldPath": "configuration", "indexes": [] },
+    { "collectionGroup": "portfolioDelivery", "fieldPath": "json", "indexes": [] },
     { "collectionGroup": "market", "fieldPath": "items", "indexes": [] },
     { "collectionGroup": "market", "fieldPath": "products", "indexes": [] },
     { "collectionGroup": "market", "fieldPath": "books", "indexes": [] },

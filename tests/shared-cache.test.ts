@@ -1,4 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest";
+vi.mock('../shared/companion/portfolio-policy',()=>({PORTFOLIO_COLLECTION_ENABLED:true}));
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -145,7 +146,7 @@ it('cached browsing serves aging and failed snapshots without upstream requests 
   expect((await get(collector, '/api/companion/bazaar?force=1')).code).toBe(400);
 });
 
-it("100 backend instances, concurrent users, reloads, filters and tabs issue exactly one shared refresh", async () => {
+it("100 backend instances, concurrent users, portfolio reads and tabs issue exactly one shared refresh", async () => {
   const path = database(),
     now = Date.now(),
     fetcher = upstream(() => now, 43);
@@ -162,9 +163,9 @@ it("100 backend instances, concurrent users, reloads, filters and tabs issue exa
           get(c, "/api/companion/bazaar"),
           get(
             c,
-            `/api/companion/auctions?filters=${encodeURIComponent(JSON.stringify({ query: `search-${i}` }))}&page=${i % 3}`,
+            "/api/companion/portfolio-auctions",
           ),
-          get(c, `/api/companion/auctions/${"a".repeat(32)}/check`),
+          get(c, "/api/companion/portfolio-prices"),
           get(c, "/api/companion/raw-bazaar"),
         ]);
         expect(results.every((r) => r.code === 200)).toBe(true);
@@ -180,17 +181,17 @@ it("read misses and expired caches never trigger upstream requests, and force pa
   let now = Date.now();
   const fetcher = upstream(() => now),
     c = new MarketCollector(connect(), defaultPolicy, fetcher, () => now);
-  expect((await get(c, "/api/companion/auctions")).code).toBe(503);
+  expect((await get(c, "/api/companion/portfolio-auctions")).code).toBe(503);
   expect((await get(c, "/api/companion/bazaar?force=1")).code).toBe(400);
   expect(fetcher).not.toHaveBeenCalled();
   await c.tick();
   const count = fetcher.mock.calls.length,
     before = await c.store.read("auctions");
   now += 181000;
-  expect((await get(c, "/api/companion/auctions")).body.status.stale).toBe(
+  expect((await get(c, "/api/companion/portfolio-auctions")).body.status.stale).toBe(
     true,
   );
-  expect((await c.recheck("a".repeat(32))).status).toBe("stale");
+  expect((await c.status()).stale).toBe(true);
   expect(await c.store.read("auctions")).toBe(before);
   expect(fetcher).toHaveBeenCalledTimes(count);
 });
@@ -305,12 +306,12 @@ it("payload eviction is cache-only on reads and the independent scheduler recove
   const before = fetcher.mock.calls.length;
   await s.commit("auctions", await s.read("auctions"), "null");
   const other = new MarketCollector(s, defaultPolicy, fetcher, () => now);
-  expect((await get(other, "/api/companion/auctions")).code).toBe(503);
+  expect((await get(other, "/api/companion/portfolio-auctions")).code).toBe(503);
   await other.tick();
   expect(fetcher).toHaveBeenCalledTimes(before);
   now += 120001;
   await other.tick();
-  expect((await get(other, "/api/companion/auctions")).code).toBe(200);
+  expect((await get(other, "/api/companion/portfolio-auctions")).code).toBe(200);
 });
 it("Price Alerts price/book reads bypass authentication and never fetch upstream, including when stale", async () => {
   let now=Date.now();const fetcher=upstream(()=>now),c=new MarketCollector(connect(),defaultPolicy,fetcher,()=>now);

@@ -4,8 +4,9 @@ import type { PriceAlertInput } from '../shared/model';
 import { confirmation, updatePriceAlertTarget } from '../shared/price-alert';
 import { ADMIN_UID, fetchJson, firestore, readDoc, loadUser, persistUser, linkWrite, loadControl, saveControl, activeUsers, needsWork, checkAdmission, jsonWrite } from './store';
 import type { UserRecord } from './store';
-import { publicCompanion, publicPlayerNames, sharedMarket } from './companion';
-import { hourlyAlertWindow } from '../shared/market-schedule';
+import { sharedMarket } from './companion';
+import { PORTFOLIO_EVALUATION_ENABLED } from '../shared/companion/portfolio-policy';
+import { portfolioNotificationRequest, runPortfolioNotifications } from './portfolio-backend';
 declare const PropertiesService:any, ScriptApp:any, Session:any, UrlFetchApp:any,
   Utilities:any, LockService:any, ContentService:any, CacheService:any, MailApp:any;
 const PROJECT='bazaarsignal', SENDER='bazaarsignal@gmail.com';
@@ -104,19 +105,7 @@ export function doPost(e:any) {
     const request=JSON.parse(e.postData.contents),p=settings();
     const origins=[p.APP_URL,...(p.ALLOWED_ORIGINS || '').split(',').map((x:string)=>x.trim()).filter(Boolean)];
     if(request.version!==1 || !origins.includes(request.origin))throw new Error('Website origin is not configured.');
-    if(!['snapshot','book','companion','playerNames','account','create','update','disable'].includes(request.action))throw new Error('Unsupported operation.');
-    if(request.action==='playerNames')return output({ok:true,data:publicPlayerNames(request.ids)});
-    // Public cache reads must not contend with account writes or the email worker.
-    if(request.action==='companion')return output({ok:true,data:publicCompanion()});
-    // Only public Hypixel data and aggregate monitoring are returned without login.
-    if(request.action==='snapshot' || request.action==='book') {
-      const snapshot=market();
-      if(request.action==='book') {
-        if(typeof request.itemId!=='string' || !Object.prototype.hasOwnProperty.call(snapshot.books,request.itemId))throw new Error('Item unavailable.');
-        return output({ok:true,data:{book:snapshot.books[request.itemId],timestamp:snapshot.timestamp}});
-      }
-      return output({ok:true,data:{prices:snapshot.prices,books:{},monitoring:publicMonitor(),status:{lastUpdated:snapshot.timestamp,lastSuccess:Date.now(),lastAttempt:Date.now(),error:null}}});
-    }
+    if(!['account','create','update','disable','portfolio-notification','legacy-pause'].includes(request.action))throw new Error('Unsupported operation.');
     if(request.action==='disable') {
       if(request.confirm!==true || !/^[a-f0-9]{64}$/.test(request.token || ''))throw new Error('Confirm using the button in your alert link.');
       return output({ok:true,data:locked(()=>{
@@ -128,6 +117,8 @@ export function doPost(e:any) {
       })});
     }
     const identity=verifyIdentity(request.idToken,p.FIREBASE_API_KEY);
+    if(request.action==='portfolio-notification')return output({ok:true,data:locked(()=>portfolioNotificationRequest(identity,request))});
+    if(request.action==='legacy-pause')return output({ok:true,data:locked(()=>{const record=loadUser(identity.uid),alert=record.state.alerts.find(a=>a.workflow.id===request.id&&!a.test);if(!alert)throw new Error('Invalid alert.');disableAlert(record.state,alert.tokenHash,Date.now());persistUser(record);return {disabled:true};})});
     if(request.action==='account')return output({ok:true,data:accountData(loadUser(identity.uid))});
     if(request.action==='update')return output({ok:true,data:locked(()=>{
       const record=loadUser(identity.uid);
@@ -137,68 +128,61 @@ export function doPost(e:any) {
       persistUser(record);
       return {workflow:alert.workflow};
     })});
-    const cachedMarket=loadUser(identity.uid).state.alerts.some(a=>a.workflow.id===request.input?.requestId)?null:market();
+    // Old links/records remain usable, but a cached old client cannot start new
+    // standalone targets. Retry of an existing request ID stays idempotent.
+    if(!loadUser(identity.uid).state.alerts.some(a=>a.workflow.id===request.input?.requestId))throw new Error('Unsupported operation. New notifications must belong to a portfolio holding.');
     return output({ok:true,data:locked(()=>{
-      const record=loadUser(identity.uid),state=record.state,input=request.input as PriceAlertInput,fp=fingerprint(input);
+      const state=loadUser(identity.uid).state,input=request.input as PriceAlertInput,fp=fingerprint(input);
       const existing=state.alerts.find(a=>a.workflow.id===input.requestId);
-      if(existing) {
-        if(existing.fingerprint!==fp || existing.test)throw new Error('Request ID already used for different alert settings.');
-      } else {
-        if(record.legacy)persistUser(record);
-        const control=loadControl(),now=Date.now();checkAdmission(control.state,state,now);
-        const tokenHash=hash(disableToken(input.requestId,identity.uid,p));
-        if(!cachedMarket)throw new Error('Market data unavailable. Retry shortly.');
-        createAlert(state,input,cachedMarket,identity.email,tokenHash,now);
-        state.monitor={...control.state.monitor};control.state.admissions++;
-        // Admission, per-user ledger, capability lookup and projection commit together.
-        persistUser(record,[linkWrite(tokenHash,identity.uid,input.requestId),jsonWrite('backend/worker',control.state,control.version)]);
-      }
-      return {id:input.requestId,emailStatus:state.mail.find(m=>m.alertId===input.requestId && m.kind==='confirmation')!.status};
-    })});
-  } catch(e) {
+      if(!existing || existing.fingerprint!==fp || existing.test)throw new Error('Request ID already used for different alert settings.');
+      return {id:input.requestId,emailStatus:state.mail.find(m=>m.alertId===input.requestId && m.kind==='confirmation')?.status??'cancelled'};
+    })});  } catch(e) {
     const message=e instanceof Error?e.message:'';
-    const safe=/^(Sign in|Use a verified|Backend setup|Deploy and authorize|Website origin|Unsupported operation|Invalid |This alert |Target price |Confirm using|Another operation|Request ID|You can have|You can create|Free alert capacity|The 100|Wait for|Item unavailable|Market data|No valid market|Alert storage|Stored alerts)/.test(message);
+    const safe=/^(Sign in|Use a verified|Use an upward|Notification |Backend setup|Deploy and authorize|Website origin|Unsupported operation|Invalid |This alert |Target price |Confirm using|Another operation|Request ID|You can have|You can create|Free alert capacity|The 100|Wait for|Item unavailable|Market data|No valid market|Alert storage|Stored alerts)/.test(message);
     return output({ok:false,error:safe?message:'Service temporarily unavailable. Retry shortly.'});
   }
 }
+/** Retired legacy evaluation never reads prices. Only previously queued mail drains. */
 export function scheduledPoll() {
   const started=Date.now();
   try {
     const p=settings();
-    let cachedMarket:Market|null=null;
-    try { cachedMarket=market(); } catch { /* Continue queued email delivery while prices are unavailable. */ }
     return locked(()=>{
-      const legacy=loadUser(ADMIN_UID);if(legacy.legacy)persistUser(legacy);
+      const cache=CacheService.getScriptCache();
+      // No standalone creation remains. Explicit record mutations invalidate this
+      // idle hint; cache loss causes a bounded read, never lost delivery work.
+      if(cache.get('legacy-mail-idle') && !PORTFOLIO_EVALUATION_ENABLED)return {ok:true,idle:true};
+      if(!cache.get('legacy-ledger-checked')) {
+        const legacy=loadUser(ADMIN_UID);if(legacy.legacy)persistUser(legacy);
+        cache.put('legacy-ledger-checked','1',21600);
+      }
       const control=loadControl(),c=control.state,m=c.monitor;
-      m.enabled=ScriptApp.getProjectTriggers().some((t:any)=>['scheduledPoll','scheduledMinuteTick'].includes(t.getHandlerFunction()));
-      m.lastAttempt=Date.now();m.quota=MailApp.getRemainingDailyQuota();
+      let records=activeUsers(c.cursor);if(!records.length&&c.cursor){c.cursor='';records=activeUsers('');}
+      if(!records.length&&!PORTFOLIO_EVALUATION_ENABLED){cache.put('legacy-mail-idle','1',3600);return {ok:true,idle:true};}
       if(Date.now()-c.runtimeWindow>=86400000){c.runtimeWindow=Date.now();c.runtimeMs=0;}
-      // Reserve a margin under Google's 90-minute consumer trigger budget.
-      if(c.runtimeMs>=70*60000){m.error='Free monitoring runtime is exhausted; checks resume when the budget resets.';saveControl(control);return {ok:false};}
-      saveControl(control);
-      let snapshot:Market|null=null;
-      if(cachedMarket || m.nextAttempt<=Date.now()) {
-        try {if(!cachedMarket)throw new Error('Market cache unavailable');snapshot=cachedMarket;m.lastSuccess=Date.now();m.lastUpdated=snapshot.timestamp;m.error=null;m.failures=0;m.nextAttempt=0;}
-        catch {m.failures++;m.nextAttempt=Date.now()+retryDelay(m.failures);m.error='Market check failed or prices were stale. Alerts are waiting for fresh data.';}
+      if(c.runtimeMs>=70*60000)return {ok:false};
+      // Retire only the work index for records with no queued mail. Their ledger,
+      // targets, disable links and migration rollback records are preserved.
+      const due=records.filter(record=>needsWork(record.state)&&record.state.mail.some(mail=>
+        mail.status==='queued'?mail.nextAttempt<=Date.now():mail.status==='sending'&&mail.leaseUntil<=Date.now()));
+      for(const record of records)if(!needsWork(record.state))persistUser(record);
+      if(!due.length&&!PORTFOLIO_EVALUATION_ENABLED){
+        const cursor=records[records.length-1]?.state.ownerUid??'';
+        if(c.cursor!==cursor){c.cursor=cursor;saveControl(control);}
+        return {ok:true,deferred:true};
       }
-      let records=activeUsers(c.cursor);if(!records.length && c.cursor){c.cursor='';records=activeUsers('');}
-      for(const record of records) {
-        if(Date.now()-started>45000)break;
-        const s=record.state;
-        try {
-          s.monitor.enabled=m.enabled;s.monitor.lastAttempt=Date.now();s.monitor.quota=MailApp.getRemainingDailyQuota();
-          persistUser(record);deliverRecord(record,p,started);
-          if(snapshot && Date.now()-started<45000) {
-            try {poll(s,snapshot,Date.now());s.monitor.lastSuccess=Date.now();s.monitor.lastUpdated=snapshot.timestamp;s.monitor.error=null;}
-            catch {s.monitor.error='Market check delayed; waiting for fresh prices.';}
-          } else s.monitor.error=m.error || 'Checks are queued behind other users; your last successful check is shown.';
-          persistUser(record);deliverRecord(record,p,started);persistUser(record);
-        } catch { /* One account failure must not starve the other accounts. Its old heartbeat becomes stale. */ }
-        c.cursor=s.ownerUid;
+      m.enabled=true;m.lastAttempt=Date.now();m.quota=MailApp.getRemainingDailyQuota();
+      m.error='Legacy price evaluation is retired. Previously queued messages retain delivery and retry handling.';
+      // Reserve runtime before sending; crash/retry cannot erase its reservation.
+      c.runtimeMs+=47000;saveControl(control);
+      for(const record of due) {
+        if(Date.now()-started>40000)break;
+        try {deliverRecord(record,p,started);persistUser(record);}catch { /* Isolate accounts; durable receipts permit retry. */ }
+        c.cursor=record.state.ownerUid;
       }
-      if(records.length===0)c.cursor='';
-      m.quota=MailApp.getRemainingDailyQuota();c.runtimeMs+=Date.now()-started+2000;
-      saveControl(control);CacheService.getScriptCache().put('monitor-public',JSON.stringify(m),60);
+      runPortfolioNotifications(started);
+      m.quota=MailApp.getRemainingDailyQuota();c.runtimeMs+=Date.now()-started+2000-47000;saveControl(control);
+      cache.put('monitor-public',JSON.stringify(m),60);
       return {ok:true};
     },100);
   } catch {return {ok:false,error:'Worker did not complete. Check authorization, storage and trigger status.'};}
@@ -206,7 +190,7 @@ export function scheduledPoll() {
 /** Minute timer is a cheap clock gate; off-slot ticks do no I/O or email work. */
 export function scheduledMinuteTick() {
   const now=Date.now();
-  if(!hourlyAlertWindow(now) && Math.floor(now/60000)%5!==0)return {ok:true,skipped:true};
+  if(Math.floor(now/60000)%5!==0)return {ok:true,skipped:true};
   return scheduledPoll();
 }
 /** Owner-only migration; preserves the existing allowance and all user data. */

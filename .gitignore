@@ -8,6 +8,7 @@ market-functions/lib/
 .secret.local
 .local/
 .firebase/
+firebase-export-*/
 *-debug.log
 test-results/
 playwright-report/

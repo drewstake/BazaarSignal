@@ -4,6 +4,7 @@ import { MarketCollector, message } from "./engine";
 import { parseSampledMarket } from "../apps-script/core";
 
 export type MarketResponder = (req: IncomingMessage, res: ServerResponse, status: number, body?: unknown) => Promise<void>;
+export const retiredMarketRoute = (path: string) => path === '/api/companion/player-names' || /^\/api\/companion\/auctions(?:\/|$)/.test(path);
 export const respondMarket: MarketResponder = async (req,res,status,body) => {
   if(body === undefined){res.writeHead(status).end();return;}
   const json=JSON.stringify(body),etag=`"${createHash("sha256").update(json).digest("hex")}"`;
@@ -53,6 +54,9 @@ export function marketHandler(collector: MarketCollector, respond: MarketRespond
     try {
       if ((req.url?.length ?? 0) > 10000) throw new Error("Query too long");
       let body: unknown;
+      if (retiredMarketRoute(url.pathname)) {
+        await respond(req,res,410,{error:"Auction discovery has retired. Use portfolio valuation references."});return;
+      }
       if (url.searchParams.has("force") || url.searchParams.has("refresh")) {
         await respond(req,res,400,{
             error:
@@ -62,6 +66,11 @@ export function marketHandler(collector: MarketCollector, respond: MarketRespond
       }
       if (url.pathname === "/api/companion/bazaar")
         body = await collector.bazaar();
+      else if (url.pathname === '/api/companion/portfolio-auctions' || url.pathname === '/api/companion/portfolio-prices') {
+        const assets=[...new Set((url.searchParams.get('assets')??'').split(',').filter(Boolean))].sort();
+        if(assets.length>100||assets.some(id=>!/^v1_[a-f0-9]{64}$|^bz_[A-Za-z0-9_:-]{1,100}$/.test(id)))throw new Error('Invalid asset keys.');
+        body=url.pathname.endsWith('portfolio-auctions')?await collector.portfolioAuctions(assets):await collector.portfolioPrices(assets);
+      }
       else if (url.pathname === "/api/companion/raw-bazaar")
         body = await collector.rawBazaar();
       else if (url.pathname === "/api/companion/book") {
@@ -92,56 +101,13 @@ export function marketHandler(collector: MarketCollector, respond: MarketRespond
           },
         };
       } else if (url.pathname === "/api/companion/auctions") {
-        const page = Number(url.searchParams.get("page") ?? 0);
-        if (!Number.isSafeInteger(page) || page < 0 || page > 10000)
-          throw new Error("Invalid page");
-        body = await collector.list(
-          JSON.parse(url.searchParams.get("filters") ?? "{}"),
-          page,
-        );
+        await respond(req,res,410,{error:'Auction discovery has retired. Use portfolio valuation references.'});return;
       } else if (url.pathname === "/api/companion/status")
         body = {
           auctions: await collector.status(),
           bazaar: await collector.status("bazaar"),
         };
-      else if (url.pathname === "/api/companion/player-names") {
-        const ids = (url.searchParams.get("ids") ?? "").split(",");
-        if (ids.length > 6 || !ids.every((id) => /^[a-f0-9]{32}$/i.test(id)))
-          throw new Error("Invalid player IDs");
-        const names: Record<string, string> = {};
-        const lookups = await Promise.allSettled(
-          ids.map(async (id) => {
-            try {
-              names[id] = await collector.names.resolve(id);
-            } catch(error) {
-              if(error instanceof Error && error.name === 'TrialStopped')throw error;
-              /* Negative cache/budget applies across callers. */
-            }
-          }),
-        );
-        for(const result of lookups)if(result.status==='rejected')throw result.reason;
-        body = { names };
-      } else if (
-        /^\/api\/companion\/auctions\/[a-f0-9]{32}(\/(check|command))?$/i.test(
-          url.pathname,
-        )
-      ) {
-        const id = url.pathname.split("/")[4];
-        body = url.pathname.endsWith("/command")
-          ? await collector.auctionCommand(id)
-          : url.pathname.endsWith("/check")
-            ? await collector.recheck(id)
-            : await collector.detail(
-                id,
-                Number(url.searchParams.get("duration") ?? 24),
-              );
-        if (!body) {
-          await respond(req,res,404,{
-              error: "Listing unavailable from the current snapshot.",
-            });
-          return;
-        }
-      } else {
+      else {
         await respond(req,res,404,{ error: "Unknown market route" });
         return;
       }

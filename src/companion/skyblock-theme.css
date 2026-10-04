@@ -1,0 +1,744 @@
+@import url("https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Tektur:wdth,wght@75..100,400..900&display=swap");
+
+/* Original BazaarSignal artwork, tokens, hanging signs and wooden tabs. */
+.portfolio-app {
+  --ink: #2b1d10;
+  --ink-soft: #5a4632;
+  --muted: #7a6750;
+  --line: #e2d1ab;
+  --paper: #f6ebcf;
+  --paper-light: #fbf4e2;
+  --card: #fcf7ea;
+  --outline: #24140a;
+  --wood-edge: #c08a52;
+  --green: #2d7a1c;
+  --green-bg: #e2f0cd;
+  --green-line: #b8d69a;
+  --blue: #2a6fd0;
+  --gold: #ffd24a;
+  /* Tektur: blocky, chamfered display face matching the reference signage. */
+  --display: "Tektur", "Barlow", sans-serif;
+  --condensed: "Tektur", "Barlow", sans-serif;
+  --wood-dark: url("/art/ui/wood-dark.png") 0 0 / 128px 64px;
+  --wood-mid: url("/art/ui/wood-mid.png") 0 0 / 128px 64px;
+  --wood-light: url("/art/ui/wood-light.png") 0 0 / 128px 64px;
+  --outline-text:
+    -2px -2px 0 #3a2208, 2px -2px 0 #3a2208, -2px 2px 0 #3a2208,
+    2px 2px 0 #3a2208, 0 -2px 0 #3a2208, 0 2px 0 #3a2208, -2px 0 0 #3a2208,
+    2px 0 0 #3a2208;
+  color: var(--ink);
+  font:
+    500 14px/1.45 "Barlow",
+    sans-serif;
+  min-height: 100vh;
+  color-scheme: light;
+  background:
+    url("/art/sky-islands.png") center top / max(100%, 1500px) auto no-repeat,
+    linear-gradient(180deg, #5fa9e8 0, #9fd0f3 520px, #cfe8f7 900px, #a9d3ee);
+  overflow-x: clip;
+}
+.market-header {
+  position: relative;
+  z-index: 4;
+  padding: 0 clamp(12px, 2.4vw, 40px);
+}
+/* Vines hanging at the page edges, kept to the header like the reference. */
+.market-header::before,
+.market-header::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 40px;
+  height: 230px;
+  background: url("/art/ui/vine.png") 0 0 / 64px 256px repeat-y;
+  image-rendering: pixelated;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(#000 70%, transparent);
+  mask-image: linear-gradient(#000 70%, transparent);
+}
+.market-header::before {
+  left: 0;
+}
+.market-header::after {
+  right: 0;
+  transform: scaleX(-1);
+  background-position: 0 120px;
+}
+.market-header-inner {
+  max-width: 1680px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) minmax(240px, 330px);
+  grid-template-areas:
+    "brand brand signs"
+    "tag tabs search";
+  column-gap: 20px;
+  align-items: end;
+  padding-top: 22px;
+}
+.portfolio-app .market-brand {
+  grid-area: brand;
+  justify-self: start;
+  position: relative;
+  --iron: #3f3f4a;
+  --nail: radial-gradient(
+    circle,
+    #b9b9c4 0 1.5px,
+    #3f3f4a 2px 3px,
+    transparent 3.5px
+  );
+  gap: 14px;
+  padding: 10px 32px 12px 18px;
+  background:
+    var(--nail) 7px 7px / 8px 8px no-repeat,
+    var(--nail) right 7px top 7px / 8px 8px no-repeat,
+    var(--nail) 7px calc(100% - 7px) / 8px 8px no-repeat,
+    var(--nail) right 7px bottom 7px / 8px 8px no-repeat,
+    linear-gradient(var(--iron) 0 0) 3px 3px / 24px 5px no-repeat,
+    linear-gradient(var(--iron) 0 0) 3px 3px / 5px 24px no-repeat,
+    linear-gradient(var(--iron) 0 0) right 3px top 3px / 24px 5px no-repeat,
+    linear-gradient(var(--iron) 0 0) right 3px top 3px / 5px 24px no-repeat,
+    linear-gradient(var(--iron) 0 0) 3px calc(100% - 3px) / 24px 5px no-repeat,
+    linear-gradient(var(--iron) 0 0) 3px calc(100% - 3px) / 5px 24px no-repeat,
+    linear-gradient(var(--iron) 0 0) right 3px bottom 3px / 24px 5px no-repeat,
+    linear-gradient(var(--iron) 0 0) right 3px bottom 3px / 5px 24px no-repeat,
+    var(--wood-mid);
+  image-rendering: pixelated;
+  border: 4px solid var(--outline);
+  border-radius: 7px;
+  box-shadow:
+    inset 0 3px 0 #c9925a,
+    inset 3px 0 0 #a8733f,
+    inset -3px 0 0 #5a3818,
+    inset 0 -4px 0 #4a2b12,
+    0 6px 0 #1a0d05aa,
+    0 12px 22px #0005;
+}
+.market-brand::before,
+.market-brand::after {
+  content: "";
+  position: absolute;
+  top: -26px;
+  width: 6px;
+  height: 26px;
+  background: repeating-linear-gradient(
+    180deg,
+    #3b3b44 0 5px,
+    #7c7c88 5px 7px,
+    #3b3b44 7px 10px
+  );
+  border: 1px solid #1c1c22;
+}
+.market-brand::before {
+  left: 16%;
+}
+.market-brand::after {
+  right: 16%;
+}
+/* The emerald fills ~60% x 87% of its canvas: a 76px box shows a ~46x66px gem. */
+.market-brand .brand-gem {
+  width: 76px;
+  height: 76px;
+  margin: -8px -6px -8px -4px;
+  filter: drop-shadow(0 3px 0 #0007) drop-shadow(0 0 10px #3cff8a55);
+}
+.brand-word {
+  font: 800 clamp(40px, 4.2vw, 66px) / 1 var(--display);
+  letter-spacing: 0.5px;
+  background: linear-gradient(180deg, #ffe58a 0%, #f9c64a 48%, #e9962a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(3px 0 0 #3a2208) drop-shadow(-3px 0 0 #3a2208)
+    drop-shadow(0 3px 0 #3a2208) drop-shadow(0 -3px 0 #3a2208)
+    drop-shadow(0 4px 0 #1f1005);
+  padding: 0 4px 4px;
+  image-rendering: auto;
+}
+.tagline-sign {
+  grid-area: tag;
+  position: relative;
+  align-self: end;
+  justify-self: start;
+  margin: 18px 0 14px 46px;
+  padding: 8px 26px 10px;
+  font: 700 clamp(20px, 2vw, 30px) / 1 var(--display);
+  letter-spacing: 0.5px;
+  color: #ffe38c !important;
+  text-shadow:
+    var(--outline-text),
+    0 4px 0 #1f1005;
+  background: var(--wood-mid);
+  image-rendering: pixelated;
+  border: 3px solid var(--outline);
+  border-radius: 5px;
+  box-shadow:
+    inset 0 2px 0 #c9925a,
+    inset 0 -3px 0 #4a2b12,
+    0 5px 0 #1a0d05aa,
+    0 10px 18px #0004;
+  white-space: nowrap;
+}
+.tagline-sign span {
+  color: inherit;
+}
+.tagline-sign::before,
+.tagline-sign::after {
+  content: "";
+  position: absolute;
+  top: -24px;
+  width: 5px;
+  height: 22px;
+  background: repeating-linear-gradient(
+    180deg,
+    #3b3b44 0 5px,
+    #7c7c88 5px 7px,
+    #3b3b44 7px 10px
+  );
+  border: 1px solid #1c1c22;
+}
+.tagline-sign::before {
+  left: 14%;
+}
+.tagline-sign::after {
+  right: 14%;
+}
+.header-signs {
+  grid-area: signs;
+  justify-self: end;
+  align-self: start;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.server-tag {
+  position: relative;
+  margin-top: 6px;
+  padding: 9px 15px 10px;
+  font: 800 14px/1.1 var(--display);
+  text-align: center;
+  color: #f4dfa6;
+  background: var(--wood-dark);
+  image-rendering: pixelated;
+  border: 3px solid #1a0e06;
+  border-radius: 4px;
+  box-shadow:
+    inset 0 2px 0 #8a5a33,
+    0 4px 0 #0006,
+    0 8px 16px #0004;
+  transform: rotate(-3deg);
+  text-shadow: 0 2px 0 #000a;
+}
+.server-tag b {
+  font-size: 15px;
+  color: var(--gold);
+}
+.server-tag::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -28px;
+  width: 3px;
+  height: 26px;
+  background: #4a3319;
+}
+.portfolio-app .account-button {
+  margin-top: 16px;
+  height: 36px;
+  padding: 0 14px;
+  font:
+    700 13px/1 "Barlow",
+    sans-serif;
+  color: #fff4d8;
+  background: var(--wood-mid);
+  image-rendering: pixelated;
+  border: 3px solid var(--outline);
+  border-radius: 5px;
+  box-shadow:
+    inset 0 2px 0 #c9925a,
+    0 3px 0 #000a;
+  text-shadow: 0 1px 0 #000a;
+  white-space: nowrap;
+}
+.portfolio-app .account-button:hover {
+  filter: brightness(1.1);
+}
+.lantern {
+  position: relative;
+  margin-top: 30px;
+  width: 30px;
+  height: 42px;
+  border: 3px solid #1d140c;
+  border-radius: 5px 5px 7px 7px;
+  background:
+    linear-gradient(90deg, transparent 45%, #1d140c 45% 55%, transparent 55%),
+    radial-gradient(circle at 50% 58%, #fff3b0 0, #ffb13b 38%, #c2560d 78%);
+  box-shadow:
+    0 0 22px 8px #ffb34766,
+    inset 0 0 0 2px #6b4b2a;
+}
+.lantern::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -34px;
+  width: 4px;
+  height: 28px;
+  transform: translateX(-50%);
+  background: repeating-linear-gradient(180deg, #2c2c33 0 4px, #6e6e79 4px 6px);
+}
+.lantern::after {
+  content: "";
+  position: absolute;
+  left: -6px;
+  right: -6px;
+  top: -8px;
+  height: 7px;
+  background: #2a1d12;
+  border-radius: 3px 3px 0 0;
+}
+.market-tabs {
+  grid-area: tabs;
+  display: flex;
+  gap: 6px;
+  align-self: end;
+  min-width: 0;
+}
+.market-tabs > button,
+.market-tabs > a {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex: 0 1 164px;
+  min-width: 0;
+  height: 62px;
+  padding: 0 16px;
+  color: #f7e8c8;
+  font:
+    600 clamp(15px, 1.25vw, 20px) / 1 "Barlow",
+    sans-serif;
+  text-decoration: none;
+  text-shadow: 0 2px 0 #000a;
+  background: var(--wood-dark);
+  image-rendering: pixelated;
+  border: 3px solid #1a0e06;
+  border-bottom: 0;
+  border-radius: 7px 7px 0 0;
+  box-shadow:
+    inset 0 3px 0 #8a5a33,
+    inset 3px 0 0 #6b4424,
+    inset -3px 0 0 #3a220f;
+  white-space: nowrap;
+  transition: filter 0.15s;
+}
+.market-tabs > button:hover,
+.market-tabs > a:hover {
+  filter: brightness(1.18);
+}
+/* 36px boxes: the icons fill 75-90% of their transparent canvases. */
+.market-tabs .tab-icon {
+  width: 36px;
+  height: 36px;
+  margin: -8px -2px;
+  filter: drop-shadow(0 2px 0 #000a);
+  transition: transform 0.15s;
+}
+.market-tabs .sky-auction-gavel {
+  width: 40px;
+  height: 40px;
+  margin: -10px -4px;
+}
+.market-tabs > button:hover .tab-icon,
+.market-tabs > a:hover .tab-icon,
+.market-tabs > :focus-visible .tab-icon {
+  transform: translateY(-2px) rotate(-6deg);
+}
+.market-tabs > .active .tab-icon {
+  filter: drop-shadow(0 2px 0 #0e2a5c) drop-shadow(0 0 7px #fff3b066);
+}
+.market-tabs > .active {
+  color: #fff;
+  background: linear-gradient(180deg, #4d9bea 0%, #2f6fcb 60%, #2459b0 100%);
+  border-color: #102f66;
+  box-shadow:
+    inset 0 3px 0 #9cd0ff,
+    inset 3px 0 0 #5aa6f0,
+    inset -3px 0 0 #1c4a93,
+    0 0 0 2px #0e2a5c;
+  z-index: 2;
+}
+.market-tabs > .active::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -15px;
+  width: 30px;
+  height: 16px;
+  transform: translateX(-50%);
+  background: #2459b0;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  filter: drop-shadow(0 2px 0 #0e2a5c);
+}
+.portfolio-frame {
+  position: relative;
+  padding: 16px;
+  background: var(--wood-mid);
+  image-rendering: pixelated;
+  border: 3px solid var(--outline);
+  border-radius: 7px;
+  box-shadow:
+    inset 0 0 0 3px #b98450,
+    inset 0 0 0 6px #5a3818,
+    0 12px 28px #0006;
+}
+.portfolio-frame > * {
+  image-rendering: auto;
+}
+.portfolio-frame::before,
+.portfolio-frame::after {
+  content: "";
+  position: absolute;
+  top: -12px;
+  width: 44px;
+  height: min(78%, 900px);
+  background: url("/art/ui/vine.png") 0 0 / 64px 256px repeat-y;
+  image-rendering: pixelated;
+  pointer-events: none;
+  z-index: 6;
+}
+.portfolio-frame::before {
+  left: -24px;
+}
+.portfolio-frame::after {
+  right: -24px;
+  transform: scaleX(-1);
+  background-position: 0 90px;
+  height: min(60%, 700px);
+}
+.portfolio-app main button {
+  --edge: #9b7950;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 16px;
+  font:
+    700 15px/1 "Barlow",
+    sans-serif;
+  color: var(--ink);
+  background: #f0dfba;
+  text-decoration: none;
+  text-shadow: none;
+  border: 2px solid var(--edge);
+  border-radius: 5px;
+  box-shadow:
+    inset 0 2px 0 #ffffff5c,
+    inset 0 -3px 0 #00000030,
+    0 3px 0 var(--edge);
+  transition:
+    filter 0.15s,
+    transform 0.08s;
+}
+.portfolio-app main button:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.portfolio-app main button:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow:
+    inset 0 2px 0 #ffffff40,
+    0 1px 0 var(--edge);
+}
+.portfolio-app main button.primary {
+  --edge: #155a11;
+  color: #fff;
+  text-shadow: 0 1px 0 #0006;
+  background: linear-gradient(180deg, #52c043 0%, #2b8c22 100%);
+}
+.portfolio-app main button.danger {
+  --edge: #6b281b;
+  color: #fff;
+  background: linear-gradient(#b9583c, #91392c);
+}
+
+/* Fit the portfolio navigation into the original hanging-sign shell. */
+.market-header-inner {
+  grid-template-columns: max-content minmax(0, 1fr);
+  grid-template-areas: "brand signs" "tag tabs";
+  column-gap: 24px;
+}
+.portfolio-app .market-brand {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+.market-tabs {
+  justify-content: flex-end;
+  padding-left: 4px;
+}
+.market-tabs > a {
+  flex-basis: 172px;
+}
+.tagline-sign {
+  margin-left: 28px;
+  font-size: clamp(20px, 2vw, 28px);
+}
+.portfolio-app h1,
+.portfolio-app h2,
+.portfolio-app h3,
+.intro-features b {
+  font-family: var(--display);
+  font-weight: 750;
+  letter-spacing: 0;
+}
+.portfolio-app main {
+  max-width: 1760px;
+  padding: 0 clamp(8px, 2.4vw, 40px) 24px;
+  min-height: calc(100vh - 280px);
+}
+.portfolio-paper {
+  padding: 28px;
+  background: var(--paper);
+  border: 2px solid #3a2410;
+  border-radius: 4px;
+  box-shadow:
+    inset 0 0 0 2px #fff8e4,
+    inset 0 0 34px #d8bf8a66;
+}
+.portfolio-app footer {
+  color: #2b1d10;
+  font-weight: 600;
+  background: #d9ebf2cc;
+  border: 0;
+}
+.panel,
+.summary > div {
+  border: 2px solid #d6c298;
+  border-radius: 5px;
+  background: var(--card);
+  box-shadow:
+    0 3px 0 #cdb485,
+    0 7px 14px #5a3a1a1f;
+}
+.summary > div {
+  background: var(--green-bg);
+  border-color: var(--green-line);
+  box-shadow: 0 3px 0 #aac98b;
+}
+.summary dd,
+.holding-metrics dd {
+  font-weight: 700;
+}
+.editor {
+  border-color: #728b50;
+}
+.portfolio-layout aside a {
+  margin-bottom: 5px;
+  border: 1px solid transparent;
+}
+.portfolio-layout aside a[aria-current="page"] {
+  border-color: var(--green-line);
+  box-shadow: inset 0 1px 0 #fff8;
+}
+.notice,
+.market-note {
+  border-width: 2px;
+  box-shadow: inset 0 0 0 2px #fffaeb;
+  border-radius: 4px;
+}
+.intro {
+  padding: 38px 12px;
+}
+.intro h1 {
+  font-size: clamp(32px, 3.8vw, 52px);
+}
+.intro-art {
+  background: radial-gradient(ellipse, #e8d19966, transparent 68%);
+}
+.holding-art {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 66px;
+  flex-shrink: 0;
+  border: 2px solid #17131f;
+  border-radius: 3px;
+  background: radial-gradient(
+    ellipse at 50% 85%,
+    #8c6932 0%,
+    #302333 52%,
+    #14151e 100%
+  );
+  box-shadow: inset 0 0 0 2px #fff1;
+}
+.holding-art .item-art {
+  width: 56px;
+  height: 56px;
+  filter: drop-shadow(0 3px 2px #000a);
+}
+.sky-icon {
+  flex-shrink: 0;
+  pointer-events: none;
+}
+@media (max-width: 1200px) {
+  .market-header-inner {
+    grid-template-areas: "brand signs" "tag tag" "tabs tabs";
+  }
+  .market-tabs {
+    justify-content: flex-start;
+    margin-top: 8px;
+  }
+  .brand-word {
+    font-size: 48px;
+  }
+  .header-signs {
+    gap: 9px;
+  }
+  .server-tag {
+    display: none;
+  }
+}
+@media (max-width: 760px) {
+  .market-header {
+    padding: 0 8px;
+  }
+  .market-header-inner {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "brand" "tag" "signs" "tabs";
+    gap: 0;
+    padding-top: 18px;
+  }
+  .portfolio-app .market-brand {
+    justify-self: center;
+    gap: 9px;
+    padding: 7px 14px 8px 10px;
+    border-width: 3px;
+    max-width: 100%;
+  }
+  .market-brand .brand-gem {
+    width: 48px;
+    height: 48px;
+    margin: -6px -4px -6px -2px;
+  }
+  .brand-word {
+    font-size: clamp(24px, 8.4vw, 40px);
+    filter: drop-shadow(2px 0 0 #3a2208) drop-shadow(-2px 0 0 #3a2208)
+      drop-shadow(0 2px 0 #3a2208) drop-shadow(0 -2px 0 #3a2208)
+      drop-shadow(0 3px 0 #1f1005);
+  }
+  .market-brand::before,
+  .market-brand::after {
+    top: -18px;
+    height: 18px;
+    width: 5px;
+  }
+  .tagline-sign {
+    justify-self: center;
+    margin: 14px 0 0;
+    padding: 6px 16px 8px;
+    font-size: clamp(16px, 5vw, 22px);
+  }
+  .header-signs {
+    margin: 12px 6px;
+  }
+  .lantern {
+    display: none;
+  }
+  .portfolio-app .account-button {
+    margin: 0;
+    min-height: 40px;
+    padding: 0 12px;
+    font-size: 12px;
+  }
+  .market-tabs {
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+  }
+  .market-tabs > a {
+    flex: 1 1 0;
+    min-width: 0;
+    flex-direction: column;
+    gap: 4px;
+    height: 64px;
+    padding: 0 4px;
+    font-size: 12px;
+    border-width: 2px;
+  }
+  .market-tabs .tab-icon {
+    width: 30px;
+    height: 30px;
+    margin: -4px 0 -2px;
+  }
+  .market-tabs > .active::after {
+    bottom: -11px;
+    width: 22px;
+    height: 12px;
+  }
+  .portfolio-frame {
+    padding: 7px;
+  }
+  .portfolio-frame::before,
+  .portfolio-frame::after,
+  .market-header::before,
+  .market-header::after {
+    display: none;
+  }
+  .portfolio-paper {
+    padding: 18px 12px;
+  }
+  .portfolio-app .panel {
+    padding: 16px 12px;
+  }
+  .portfolio-app main button {
+    font-size: 12px;
+    padding: 8px 10px;
+    min-height: 42px;
+  }
+  .portfolio-heading {
+    align-items: flex-start;
+  }
+  .summary dd {
+    font-size: 22px;
+  }
+  .holding-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 10px;
+  }
+  .holding-metrics dd {
+    font-size: 14px;
+  }
+  .holding-return {
+    margin-left: 0;
+  }
+  .holding-art {
+    width: 60px;
+    height: 60px;
+  }
+  .holding-art .item-art {
+    width: 50px;
+    height: 50px;
+  }
+  .asset-title {
+    gap: 10px;
+  }
+  .intro {
+    padding: 12px 0;
+  }
+  .intro h1 {
+    font-size: 32px;
+  }
+  .intro-art {
+    min-height: 190px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .portfolio-app *,
+  .portfolio-app *::before,
+  .portfolio-app *::after {
+    transition: none !important;
+  }
+}

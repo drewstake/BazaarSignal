@@ -208,31 +208,9 @@ it("a budget stop from a physical request interrupts the collector without retry
   await expect(collector.tick()).rejects.toThrow("budget stopped");
   expect(denied).toHaveBeenCalledTimes(1);
 });
-it("seller lookup routes propagate a budget stop after draining parallel lookups", async () => {
-  const f = await fixture();
-  const { marketHandler } = await import("../collector/routes");
-  const { TrialStopped } = await import("../collector/trial");
-  const collector = new MarketCollector(f.store, defaultPolicy);
-  let drained = false;
-  vi.spyOn(collector.names, "resolve").mockImplementation(
-    async (id: string) => {
-      if (id.startsWith("a")) throw new TrialStopped("seller budget stopped");
-      await new Promise((resolve) => setTimeout(resolve, 10));
-      drained = true;
-      return "cached_name";
-    },
-  );
-  const res = response();
-  await expect(
-    marketHandler(collector)(
-      {
-        url: `/api/companion/player-names?ids=${"a".repeat(32)},${"b".repeat(32)}`,
-        method: "GET",
-        headers: {},
-      } as any,
-      res as any,
-    ),
-  ).rejects.toThrow("seller budget stopped");
-  expect(drained).toBe(true);
-  expect(res.headersSent).toBe(false);
+it("retired seller routes perform no storage or network work", async () => {
+ const { marketHandler } = await import("../collector/routes");
+ const res=response();
+ await marketHandler({} as any)({url:"/api/companion/player-names?ids="+"a".repeat(32),method:"GET",headers:{}} as any,res as any);
+ expect(res.status).toBe(410);
 });

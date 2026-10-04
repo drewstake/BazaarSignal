@@ -1,4 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
+// Exercise the reusable scheduler under an explicitly enabled test release.
+vi.mock('../shared/companion/portfolio-policy',()=>({PORTFOLIO_COLLECTION_ENABLED:true}));
 afterEach(()=>{vi.unstubAllGlobals();vi.unstubAllEnvs();vi.restoreAllMocks();vi.resetModules();});
 it('retains saved prices through a budget deferral, avoids repeat reads and checks again after reset',async()=>{
   vi.stubEnv('VITE_MARKET_UPDATES_PAUSED','false');vi.stubEnv('VITE_MARKET_OPERATING_MODE','free-tier');vi.stubGlobal('caches',undefined);

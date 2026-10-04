@@ -1,12 +1,6 @@
-import { activePage } from "../../shared/companion/active-auctions";
 // Explicit development fixtures only. Never used after a failed live request.
 import { normalizeBazaar } from "../../shared/companion/bazaar";
-import type {
-  AuctionFilters,
-  CollectorHealth,
-  ItemVariant,
-  Listing,
-} from "../../shared/companion/types";
+
 const rows = [
   ["SUMMONING_EYE", "Summoning Eye", "combat", "EPIC", 620000, 695000, 180000],
   [
@@ -124,64 +118,4 @@ export function bazaarFixtures() {
       explanation: "Explicit fixture standard-tax assumption.",
     },
   }));
-}
-export function auctionFixtures(f: AuctionFilters, page: number) {
-  const now = Date.now();
-  const variant: ItemVariant = {
-    version: 1,
-    fingerprint: "v1_fixture_livid",
-    itemId: "LIVID_DAGGER",
-    name: "Livid Dagger",
-    quantity: 1,
-    rarity: "LEGENDARY",
-    category: "sword",
-    enchantments: { sharpness: 6, critical: 6, ultimate_soul_eater: 3 },
-    modifiers: { modifier: "fabled", upgrade_level: 5, hot_potato_count: 10 },
-    complete: true,
-    issues: [],
-  };
-  const listing: Listing = {
-    id: "0123456789abcdef0123456789abcdef",
-    sellerName: "DemoSeller",
-    variant,
-    price: 2400000,
-    start: now - 300000,
-    end: now + 3600000,
-    upstreamAt: now - 12000,
-    observedAt: now,
-    status: "active",
-  };
-  const peers: Listing[] = Array.from({ length: 16 }, (_, i) => ({
-    ...listing,
-    id: "fixture-" + i,
-    seller: "seller-" + i,
-    price: 3200000 + i * 5000,
-  }));
-  const health: CollectorHealth = {
-    mode: "local",
-    startedAt: now - 86400000,
-    lastEndedSuccess: now,
-    lastActiveSuccess: now,
-    endedUpstreamAt: now,
-    activeUpstreamAt: now,
-    missedMs: 0,
-    gaps: [],
-    saleCount: 0,
-    variantCount: 1,
-    listingCount: 1,
-    rejectedCount: 0,
-    error: null,
-    scope: [],
-    writesToday: 0,
-    writeLimit: 12000,
-  };
-  return {
-    ...activePage([listing, ...peers], f, page, now, {
-      mayor: "Fixture",
-      multiplier: 1,
-      checkedAt: now,
-      explanation: "Explicit fixture standard-tax assumption.",
-    }),
-    health,
-  };
 }

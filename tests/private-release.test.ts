@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 // Deployment script is directly executable without a separate production build.
 // @ts-expect-error JavaScript operator utility
-import { verifyReleasePlan, uploadLocation, releasePatch, verifyLiveUpdate, verifyStoppedUpdate } from '../scripts/private-trial-release.mjs';
+import { verifyReleasePlan, uploadLocation, releasePatch, verifyLiveUpdate, verifyStoppedUpdate, verifySchedule } from '../scripts/private-trial-release.mjs';
 import { createHash } from 'node:crypto';
 
 const now = Date.parse('2026-10-01T16:50:00Z');
@@ -18,6 +18,14 @@ const plan = () => ({ project: 'bazaarsignal-510305', imageDigest: receipt.image
     logBytes: { used: 500000, hold: 16 * 1024 ** 2, headroom: 16 * 1024 ** 2, limit: 50 * 1024 ** 3 },
   } });
 describe('private release admission', () => {
+  it('paused portfolio releases cannot enable or change the existing hourly schedule',()=>{
+    const p={keepCollectionPaused:true,updateExistingLive:true};
+    expect(()=>verifySchedule(p,{state:'PAUSED',schedule:'0 * * * *'})).not.toThrow();
+    expect(()=>verifySchedule(p,{state:'ENABLED',schedule:'0 * * * *'})).toThrow();
+    expect(()=>verifySchedule(p,{state:'PAUSED',schedule:'* * * * *'})).toThrow();
+    expect(()=>verifySchedule({...p,keepCollectionPaused:false},{state:'ENABLED',schedule:'0 * * * *'})).toThrow();
+    expect(()=>verifySchedule({}, {state:'PAUSED',schedule:'0 * * * *'})).toThrow();
+  });
   it('explicit recovery deploys only against the unchanged inspected stopped ledger',()=>{
     const p:any={...plan(),operatingMode:'free-tier',updateExistingLive:true,recoverStopped:true,releaseId:'timeout-repair',services:['marketapi','refreshmarket']};
     const ledger={id:p.id,startsAt:Date.parse(p.startsAt),expiresAt:Date.parse(p.expiresAt),stoppedAt:now,reason:'The operation was aborted due to timeout',monthlyReserved:{cpuSeconds:500}};

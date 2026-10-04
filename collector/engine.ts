@@ -1,18 +1,7 @@
 import { createHash } from "node:crypto";
-import {
-  activePage,
-  activeOpportunity,
-  currentListing,
-} from "../shared/companion/active-auctions";
 import { normalizeBazaar } from "../shared/companion/bazaar";
-import {
-  confidenceRank,
-  defaultAuctionFilters,
-} from "../shared/companion/auctions";
 import type {
-  AuctionFilters,
   BazaarItem,
-  CollectorHealth,
   FeeContext,
   Listing,
 } from "../shared/companion/types";
@@ -28,7 +17,6 @@ import {
   defaultPolicy,
   type MarketPolicy,
 } from "./policy";
-import { PlayerNames } from "./player-name";
 import { TrialStopped } from "./trial";
 import { SnapshotReadCache } from './snapshot-read-cache';
 export { consistentSnapshot } from "../shared/companion/snapshot";
@@ -59,13 +47,11 @@ const unknownFees = (): FeeContext => ({
 /** Only tick() fetches Hypixel. Public methods read complete shared snapshots. */
 export class MarketCollector {
   readonly coordinator: Coordinator;
-  readonly names: PlayerNames;
   private timer?: ReturnType<typeof setTimeout>;
   private stopped = true;
   private running = false;
   // Derived read caches only. Coordination, budgets and source snapshots remain durable/shared.
   private decoding = new Map<string, Promise<Snapshot<any> | null>>();
-  private pages = new Map<string, ReturnType<typeof activePage>>();
   constructor(
     public store: CacheStore,
     public policy: MarketPolicy = defaultPolicy,
@@ -78,7 +64,6 @@ export class MarketCollector {
   ) {
     this.coordinator = new Coordinator(store, policy, now, random);
     this.now = this.coordinator.now;
-    this.names = new PlayerNames(store, network, now);
   }
   async read<T>(key: string): Promise<Snapshot<T> | null> {
     const pending = this.decoding.get(key);
@@ -96,7 +81,7 @@ export class MarketCollector {
     if (!job?.observedAt) return this.store.read(key).then(raw => raw ? JSON.parse(raw) : null);
     return this.snapshots.read<T>(key, tag, () => this.store.read(key));
   }
-  async tick() {
+  async tick(keys = ["catalog", "election", "bazaar", "auctions"]) {
     if (this.running) return;
     this.running = true;
     let acquired = false;
@@ -104,7 +89,7 @@ export class MarketCollector {
       acquired = await this.coordinator.acquire();
       if (!acquired) return;
       this.measure("collectorLeasesAcquired");
-      for (const key of ["catalog", "election", "bazaar", "auctions"]) {
+      for (const key of keys) {
         const c = await this.coordinator.state(),
           job = c.jobs[key] ?? emptyJob();
         if (job.nextAt > this.now() || c.blockedUntil > this.now()) continue;
@@ -414,109 +399,22 @@ export class MarketCollector {
       throw new Error("Market data unavailable; waiting for the shared cache.");
     return { ...s.data.raw, names: s.data.names };
   }
-  async list(filters: Partial<AuctionFilters>, page = 0) {
-    const s = await this.read<AuctionData>("auctions");
-    if (!s)
-      throw new Error(
-        "Auction cache is warming. Waiting for the first complete snapshot.",
-      );
-    const status = await this.status();
-    const health: CollectorHealth = {
-      mode: "shared",
-      startedAt: s.observedAt,
-      lastEndedSuccess: 0,
-      lastActiveSuccess: s.observedAt,
-      endedUpstreamAt: 0,
-      activeUpstreamAt: s.upstreamAt,
-      missedMs: 0,
-      gaps: [],
-      saleCount: 0,
-      variantCount: 0,
-      listingCount: s.data.listings.length,
-      rejectedCount: 0,
-      error: status.error,
-      scope: [],
-      writesToday: 0,
-      writeLimit: 0,
-    };
-    const clean = sanitizeFilters(filters),
-      now = this.now();
-    const key = JSON.stringify([
-      s.version,
-      s.observedAt,
-      clean,
-      page,
-      Math.floor(now / 5000),
-      now - s.upstreamAt > this.policy.staleMs,
-    ]);
-    let result = this.pages.get(key);
-    if (!result) {
-      result = activePage(s.data.listings, clean, page, now, s.data.fees);
-      if (this.pages.size >= 100)
-        this.pages.delete(this.pages.keys().next().value!);
-      this.pages.set(key, result);
-    }
-    return { ...result, version: s.version, status, health };
+  async portfolioAuctions(assets: string[] = []) {
+    const s = await this.read<AuctionData>('auctions');
+    if (!s) throw new Error('Auction price evidence unavailable from the shared cache.');
+    // Public market evidence only. No private demand or portfolio records.
+    const keys=new Set(assets),counts=new Map<string,number>();
+    // A bounded sample of the 20 lowest exact asks. The lowest-price reference
+    // is unchanged; counts and uncertainty describe this inspected sample.
+    const listings=s.data.listings.filter(l=>keys.has(l.variant.fingerprint)&&l.status==='active'&&l.end>s.observedAt)
+      .sort((a,b)=>a.price-b.price||a.id.localeCompare(b.id)).filter(l=>{const n=counts.get(l.variant.fingerprint)??0;counts.set(l.variant.fingerprint,n+1);return n<20;});
+    return {listings,version:s.version,status:await this.status('auctions'),sampleLimit:20};
   }
-  async detail(id: string, hours = 24) {
-    const s = await this.read<AuctionData>("auctions"),
-      l = s?.data.listings.find((l) => l.id === id);
-    return s && l
-      ? activeOpportunity(l, s.data.listings, this.now(), hours, s.data.fees)
-      : null;
+  async portfolioPrices(assets:string[] = []) {
+    const keys=new Set(assets);
+    const [bazaar,auctions]=await Promise.all([assets.some(id=>id.startsWith('bz_'))?this.read<BazaarData>('bazaar'):null,assets.some(id=>id.startsWith('v1_'))?this.portfolioAuctions(assets).catch(()=>null):null]);
+    return {bazaar:bazaar?.data.items.filter(i=>keys.has(`bz_${i.id}`))??[],listings:auctions?.listings??[],fixture:false};
   }
-  async recheck(id: string) {
-    if (!/^[a-f0-9]{32}$/i.test(id)) throw new Error("Invalid auction ID");
-    const s = await this.read<AuctionData>("auctions"),
-      now = this.now();
-    const l = s?.data.listings.find((l) => l.id === id);
-    const status =
-      !s || now - s.upstreamAt > this.policy.staleMs
-        ? "stale"
-        : l && currentListing(l, now)
-          ? "active"
-          : "unavailable";
-    return {
-      status,
-      checkedAt: now,
-      dataAt: s?.upstreamAt ?? 0,
-      command: status === "active" ? `/viewauction ${id}` : null,
-      source: "latest-complete-cached-snapshot",
-      seller: l?.seller,
-    };
-  }
-  async auctionCommand(id: string) {
-    const check = await this.recheck(id);
-    if (check.status !== "active")
-      throw new Error(
-        `Listing ${check.status}. Waiting for automatic market updates.`,
-      );
-    if (!check.seller) throw new Error("Seller identity unavailable.");
-    const seller = await this.names.resolve(check.seller);
-    if ((await this.recheck(id)).status !== "active")
-      throw new Error(
-        "Listing expired or snapshot stale. Waiting for automatic updates.",
-      );
-    return { command: `/ah ${seller}`, seller };
-  }
-}
-export function sanitizeFilters(
-  input: Partial<AuctionFilters>,
-): AuctionFilters {
-  const f = { ...defaultAuctionFilters };
-  if (!input || typeof input !== "object") return f;
-  for (const key of Object.keys(f) as (keyof AuctionFilters)[]) {
-    const value = input[key];
-    if (
-      typeof value === typeof f[key] &&
-      (typeof value !== "number" || Number.isFinite(value)) &&
-      (typeof value !== "string" || value.length <= 100)
-    )
-      (f as any)[key] = value;
-  }
-  if (![1, 6, 12, 24, 48].includes(f.durationHours)) f.durationHours = 24;
-  if (!Object.hasOwn(confidenceRank, f.confidence)) f.confidence = "medium";
-  return f;
 }
 export const message = (e: unknown) =>
   e instanceof Error ? e.message : "Market request failed";

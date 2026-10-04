@@ -5,6 +5,7 @@ import type { CacheStore } from "./cache-store";
 import { MarketCollector } from "./engine";
 import { defaultPolicy } from "./policy";
 import { marketHandler, type MarketResponder } from "./routes";
+import { demandJobs, type Demand } from './portfolio-demand';
 import {
   CLEANUP_INTERVAL_MS,
   TrialLedger,
@@ -26,6 +27,7 @@ export interface TrialRuntimeConfig {
   network?: typeof fetch;
   now?: () => number;
   report?: (measurement: Record<string, unknown>) => void;
+  portfolioDemand?: (session: TrialSession) => Promise<Demand>;
 }
 export function createTrialRuntime(config: TrialRuntimeConfig) {
   const now = config.now ?? Date.now;
@@ -177,7 +179,8 @@ export function createTrialRuntime(config: TrialRuntimeConfig) {
         "collector",
         `schedule-${createHash("sha256").update(eventId).digest("hex")}`,
         async (session, collector, store) => {
-          await collector.tick();
+          const jobs=config.portfolioDemand?demandJobs(await config.portfolioDemand(session),now()):undefined;
+          if(!jobs||jobs.length)await collector.tick(jobs);
           // At most one cleanup admission in this short trial, while the durable
           // cleanup key retains the requested maximum of 56/day between trials.
           if (store.cleanup) {
