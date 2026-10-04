@@ -2058,9 +2058,8 @@ img.item-art.pack.hero {
 .level-book-heading h4 { margin: 0; }
 .level-book-heading > span,
 .level-book-side-heading > span { font-size: 12px; color: var(--muted); }
-.level-book .level-book-time,
-.level-book .level-book-count,
-.level-book .level-book-note { margin: 6px 0; font-size: 12px; }
+.level-book .level-book-time { margin: 6px 0; font-size: 12px; }
+.level-book .level-book-total > div { flex-wrap: wrap; gap: 4px 10px; }
 .level-book-side { margin-top: 12px; }
 .level-book-side h5 { margin: 0; font-size: 14px; }
 .level-book-side.bids h5,

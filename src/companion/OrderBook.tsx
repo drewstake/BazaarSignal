@@ -1,6 +1,6 @@
 import type { BazaarItem } from "../../shared/companion/types";
 import { SampleTime } from "../SampleTime";
-import { exact } from "./components";
+import { Coin, exact } from "./components";
 
 /** Displays every saved price level without fetching more data. */
 export function BazaarOrderBook({ item }: { item: BazaarItem }) {
@@ -28,9 +28,6 @@ export function BazaarOrderBook({ item }: { item: BazaarItem }) {
       <p className="level-book-time">
         <SampleTime timestamp={item.upstreamAt} compact />
       </p>
-      <p className="level-book-note">
-        Gray bars show quantity at each price, on the same scale for both sides.
-      </p>
       <div className="level-book-sides">
         {(
           [
@@ -53,9 +50,20 @@ export function BazaarOrderBook({ item }: { item: BazaarItem }) {
               <h5>{title}</h5>
               <span>{hint}</span>
             </div>
-            <p className="level-book-count">
-              Showing all {levels.length} sampled price levels
-            </p>
+            <dl className="level-book-total">
+              <div>
+                <dt>Total value (shown)</dt>
+                <dd>
+                  <Coin
+                    value={levels.reduce(
+                      (total, level) => total + level.amount * level.pricePerUnit,
+                      0,
+                    )}
+                    full
+                  />
+                </dd>
+              </div>
+            </dl>
             {levels.length > 0 ? (
               <table aria-label={title}>
                 <thead>
@@ -89,9 +97,6 @@ export function BazaarOrderBook({ item }: { item: BazaarItem }) {
           </div>
         ))}
       </div>
-      <p className="level-book-note">
-        Cached snapshot · up to 30 levels per side · prices in coins before tax.
-      </p>
     </section>
   );
 }

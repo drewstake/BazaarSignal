@@ -19,8 +19,13 @@ test("name search reveals filtered items and keeps trade inputs explicit", async
   await inspector.getByLabel('Inspector quantity').fill('1');
   await expect(inspector).toContainText('Totals for 1 item');
   await expect(inspector).toContainText('1.25% sale tax');
-  await inspector.getByText('Liquidity & order book', {exact:false}).click();
-  await expect(inspector.getByText('Highest buy order / item')).toBeVisible();
+  const liquidity = inspector.getByRole('region', {name:'Liquidity', exact:true});
+  const book = inspector.getByRole('region', {name:'L2 order book'});
+  await expect(liquidity.getByText('Best buy order / item')).toBeVisible();
+  await expect(liquidity).toContainText('7d instant buys / sells');
+  expect(await liquidity.evaluate(el => el.nextElementSibling?.getAttribute('aria-label'))).toBe('L2 order book');
+  await expect(book.locator('.bids .level-book-total dd')).toHaveText('1,829,000,000');
+  await expect(book.locator('.asks .level-book-total dd')).toHaveText('4,239,500,000');
   await page.getByRole('button', {name:'Close item details'}).click();
   await expect(page.getByLabel('Quantity', {exact:true})).toHaveValue('1');
   await page.getByRole('button', {name:'Clear search',exact:true}).click();
@@ -53,7 +58,7 @@ test("Bazaar budget, activity, quantity, views, filter persistence and responsiv
   await expect(inspector.getByText("Fees & calculation")).toBeVisible();
   await inspector.getByLabel("Inspector quantity").fill("8");
   await expect(inspector).toContainText("Profit / unit");
-  await expect(inspector).toContainText("7-day units + sampled state");
+  await expect(inspector.getByRole('region', {name:'Liquidity', exact:true})).toContainText("7d instant buys / sells");
   await page.screenshot({
     path: `.local/companion/inspector-${info.project.name}.png`,
     fullPage: true,

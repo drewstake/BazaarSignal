@@ -956,14 +956,6 @@ export default function MarketApp() {
                     </div>
                   </div>
                   <div className="result-status">{freshness}</div>
-                  {view === "bazaar" &&
-                    bf.query.trim() &&
-                    rows.some((row) => row.outsideFilters) && (
-                      <p className="search-filter-note" role="status">
-                        Search includes items outside your filters. Estimates
-                        still use your strategy, quantity and fees.
-                      </p>
-                    )}
                   {(view === "bazaar" ? bazaarLoading : auctionLoading) ? (
                     <>
                       {view === "auctions" && (

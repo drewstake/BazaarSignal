@@ -33,11 +33,18 @@ test('production build displays the captured real cache without collecting or ch
   await expect(details.getByText('Totals for 1 item')).toBeVisible();
   await expect(details.locator('.data-time time')).toHaveAttribute('datetime',new Date(eye.upstreamAt).toISOString());
   const book = details.getByRole('region',{name:'L2 order book'});
+  const liquidity = details.getByRole('region',{name:'Liquidity',exact:true});
+  await expect(liquidity.getByText('Best buy order / item')).toBeVisible();
+  expect(await liquidity.evaluate(el => el.nextElementSibling?.getAttribute('aria-label'))).toBe('L2 order book');
   await expect(book).toBeVisible();
   await expect(book.locator('time')).toHaveAttribute('datetime',new Date(eye.upstreamAt).toISOString());
   const format = (n: number) => n.toLocaleString('en-US',{maximumFractionDigits:2});
   const bids = book.getByRole('table',{name:'Buy orders'});
   const asks = book.getByRole('table',{name:'Sell offers'});
+  for (const [side, levels] of [['bids',eye.bids],['asks',eye.asks]] as const) {
+    const total = levels.reduce((sum: number, level: {amount:number;pricePerUnit:number}) => sum + level.amount * level.pricePerUnit, 0);
+    await expect(book.locator(`.${side} .level-book-total dd`)).toHaveText(format(total));
+  }
   for (const [table, levels] of [[bids,eye.bids],[asks,eye.asks]] as const) {
     await expect(table.locator('tbody tr')).toHaveCount(levels.length);
     await expect(table.locator('tbody tr').first().locator('td')).toHaveText([

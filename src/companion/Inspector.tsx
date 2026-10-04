@@ -245,6 +245,64 @@ export function BazaarInspector({
           and fee evidence from the same collection period.
         </p>
       )}
+      <section className="inspector-section" aria-label="Liquidity">
+        <h4>
+          Liquidity
+          {q && (
+            <span className={`liquidity ${q.liquidity}`}>
+              {titleCase(q.liquidity)}
+            </span>
+          )}
+        </h4>
+        <dl>
+          <div>
+            <dt>Best buy order / item</dt>
+            <dd>
+              <Coin value={item.bids[0]?.pricePerUnit} full />
+            </dd>
+          </div>
+          <div>
+            <dt>Best sell offer / item</dt>
+            <dd>
+              <Coin value={item.asks[0]?.pricePerUnit} full />
+            </dd>
+          </div>
+          <div>
+            <dt>7d instant buys / sells</dt>
+            <dd>
+              {compact(item.instantBuyActivity7d)} /{" "}
+              {compact(item.instantSellActivity7d)}
+            </dd>
+          </div>
+          <div>
+            <dt>Your share of weaker side</dt>
+            <dd>
+              {q?.activityShare == null
+                ? "—"
+                : `${q.activityShare.toFixed(4)}%`}
+            </dd>
+          </div>
+          <div>
+            <dt>Visible buy / sell units</dt>
+            <dd>
+              {compact(item.bids.reduce((n, l) => n + l.amount, 0))} /{" "}
+              {compact(item.asks.reduce((n, l) => n + l.amount, 0))}
+            </dd>
+          </div>
+          <div>
+            <dt>Open buy / sell units</dt>
+            <dd>
+              {compact(item.openBuyQuantity)} / {compact(item.openSellQuantity)}
+            </dd>
+          </div>
+          <div>
+            <dt>Buy orders / sell offers</dt>
+            <dd>
+              {exact(item.buyOrderCount)} / {exact(item.sellOfferCount)}
+            </dd>
+          </div>
+        </dl>
+      </section>
       <BazaarOrderBook key={item.id} item={item} />
       <button className="button green watch-button" onClick={save}>
         <SkyIcon name="favorite-heart" size={30} className="watch-heart" />
@@ -309,77 +367,6 @@ export function BazaarInspector({
                 ? `Fee evidence sampled ${new Date(item.feeContext.checkedAt).toLocaleString()}. ${item.feeContext.explanation.replace("Current mayor", "Sampled mayor")}`
                 : "Fixture assumption: standard taxes with your selected Bazaar Flipper tier."}{" "}
               Passive prices join the best bid/ask without outbidding.
-            </p>
-          </details>
-          <details className="inspector-section">
-            <summary>
-              <h4>
-                Liquidity & order book{" "}
-                <span className={`liquidity ${q.liquidity}`}>
-                  {titleCase(q.liquidity)}
-                </span>
-              </h4>
-            </summary>
-            <dl>
-              <div>
-                <dt>Highest buy order / item</dt>
-                <dd>
-                  <Coin value={item.bids[0]?.pricePerUnit} full />
-                </dd>
-              </div>
-              <div>
-                <dt>Lowest sell offer / item</dt>
-                <dd>
-                  <Coin value={item.asks[0]?.pricePerUnit} full />
-                </dd>
-              </div>
-              <div>
-                <dt>Instant-buy activity</dt>
-                <dd>{compact(item.instantBuyActivity7d)}</dd>
-              </div>
-              <div>
-                <dt>Instant-sell activity</dt>
-                <dd>{compact(item.instantSellActivity7d)}</dd>
-              </div>
-              <div>
-                <dt>Your share of weaker side</dt>
-                <dd>
-                  {q.activityShare === null
-                    ? "Unknown"
-                    : `${q.activityShare.toFixed(4)}%`}
-                </dd>
-              </div>
-              <div>
-                <dt>Visible asks / bids</dt>
-                <dd>
-                  {compact(item.asks.reduce((n, l) => n + l.amount, 0))} /{" "}
-                  {compact(item.bids.reduce((n, l) => n + l.amount, 0))}
-                </dd>
-              </div>
-              <div>
-                <dt>Open buy-order units</dt>
-                <dd>{compact(item.openBuyQuantity)}</dd>
-              </div>
-              <div>
-                <dt>Open sell-offer units</dt>
-                <dd>{compact(item.openSellQuantity)}</dd>
-              </div>
-              <div>
-                <dt>Buy orders / sell offers</dt>
-                <dd>
-                  {exact(item.buyOrderCount)} / {exact(item.sellOfferCount)}
-                </dd>
-              </div>
-            </dl>
-            <p>
-              Activity: reported 7-day units + sampled state. Exact short-window
-              trades and fill time are unavailable. Outstanding orders are
-              competition, not completed trades.
-            </p>
-            <p>
-              Strong: 100K+ activity each side and ≤0.1% share. Balanced: 1K+
-              and ≤1% share, with depth covering quantity. Neither guarantees a
-              fill.
             </p>
           </details>
         </>
