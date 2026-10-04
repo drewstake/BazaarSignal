@@ -1,5 +1,7 @@
 # Free-tier infrastructure preparation — October 4, 2026
 
+Subsequent release: the user authorized committing and deploying all pending work. The [night-market release](NIGHT-MARKET-RELEASE.md) published Hosting, private Firestore rules/indexes and Apps Script version 14, including the disabled worker/email source gates described below. Market-service deployment remains blocked by the capacity guard, and Scheduler was verified `PAUSED` after rollout. The assessment below records the preparation state before that release.
+
 **Local preparation only; the supported production configuration remains paused.** No deployment, activation, billing/IAM change, production ledger write, upstream collection or email was performed. Unrelated workspace edits were preserved.
 
 ## Decision

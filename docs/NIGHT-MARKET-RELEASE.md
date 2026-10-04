@@ -20,4 +20,10 @@ The user authorized commit, push and deployment of all pending work. Hosting and
 
 The market-service predeploy command `node scripts/guard-market-deploy.cjs` rejected deployment because scope-aware capacity evidence is incomplete. No market-service rollout, activation, ledger reset or permission change is part of this release. The market service source is committed for a later release after the guard's prerequisites are satisfied.
 
-Deployment results are recorded after the authorized rollout below.
+## Deployed result
+
+Implementation commit `18d5db4` was pushed to `main`. Hosting at https://bazaarsignal.web.app and Firestore rules/indexes were released to `bazaarsignal`. The existing Apps Script deployment now serves version 14; its URL, manifest and OAuth scopes were preserved. Version 13 remains available for rollback.
+
+Production verification at 19:13 UTC confirmed that the published HTML and JavaScript bundle match the tested production build. The landing page passed 1440-, 390- and 320-pixel checks without JavaScript errors, horizontal overflow or market/backend requests. The existing Apps Script URL passed its read-only GET smoke check. Signed-in workflows were tested against isolated emulators without creating production test holdings or notifications.
+
+The market Scheduler remains `PAUSED` with its existing five-minute expression. Market functions were not deployed because the capacity guard rejected their rollout. No market-service image was uploaded, no scheduled collection or email was invoked, and no collection allowance was activated. Release receipts and production screenshots are under ignored `.local/night-market-release-after/`.
