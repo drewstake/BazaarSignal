@@ -4,11 +4,7 @@ import type { User } from "firebase/auth";
 import {
   Bell,
   BriefcaseBusiness,
-  ChevronLeft,
-  Info,
-  LockKeyhole,
   LogOut,
-  Pause,
   Plus,
   Settings,
   ShieldCheck,
@@ -19,7 +15,7 @@ import { signInErrorMessage } from "../sign-in-error";
 import { SampleTime } from "../SampleTime";
 import { readAccount } from "../account";
 import { requestBackend } from "../backend";
-import { exact, ItemArt, SkyIcon } from "./components";
+import { exact, percent, ItemArt, SkyIcon } from "./components";
 import { fixtureMode, getBazaar, marketRequest } from "./api";
 import { pollingDirective, visiblePoll } from "./polling";
 import { ownerCandidate } from "./usage-access";
@@ -49,8 +45,6 @@ import type { BazaarItem, Listing } from "../../shared/companion/types";
 import type { Workflow } from "../../shared/model";
 import HoldingEditor from "./HoldingEditor";
 import NotificationEditor from "./NotificationEditor";
-import ActionMenu from "./ActionMenu";
-import { portfolioCompact, portfolioPercent } from "./portfolio-format";
 import "./portfolio.css";
 import "./skyblock-theme.css";
 const UsageDashboard = lazy(() => import("./UsageDashboard"));
@@ -144,7 +138,7 @@ export default function PortfolioApp() {
       <header className="market-header">
         <div className="market-header-inner">
           <a className="market-brand" href="#view=portfolios">
-            <SkyIcon name="emerald" size={36} className="brand-gem" />
+            <SkyIcon name="emerald" size={72} className="brand-gem" />
             <span className="brand-word">BazaarSignal</span>
           </a>
           <p className="tagline-sign">Your SkyBlock portfolio.</p>
@@ -165,14 +159,26 @@ export default function PortfolioApp() {
                 href={`#view=${view}`}
                 aria-current={route.view === view ? "page" : undefined}
               >
-                <Icon size={17} />
+                {view === "portfolios" || view === "notifications" ? (
+                  <SkyIcon
+                    name={
+                      view === "portfolios" ? "watchlist-chest" : "alert-bell"
+                    }
+                    size={36}
+                    className="tab-icon"
+                  />
+                ) : (
+                  <Icon size={25} />
+                )}
                 <span>{label as string}</span>
               </a>
             ))}
           </nav>
           <div className="header-signs">
-            <span className="private-account">
-              <LockKeyhole size={15} /> Private account
+            <span className="server-tag">
+              HYPIXEL
+              <br />
+              <b>SKYBLOCK</b>
             </span>
             {user ? (
               <button
@@ -191,6 +197,7 @@ export default function PortfolioApp() {
                 Sign in with Google
               </button>
             )}
+            <span className="lantern" aria-hidden="true" />
           </div>
         </div>
       </header>
@@ -367,18 +374,11 @@ function Workspace({
     let alive = true;
     setLoading(true);
     setError("");
-    if (route.view === "usage") {
-      setLoading(false);
-      return;
-    }
+    if (route.view === "usage") { setLoading(false); return; }
     Promise.all([
-      route.view === "account"
-        ? Promise.resolve(portfolios)
-        : reads.read("portfolios", () => loadPortfolios(user.uid)),
-      route.view === "account"
-        ? Promise.resolve(notifications)
-        : reads.read("notifications", () => loadNotifications(user.uid)),
-      reads.read("preference", () => emailPreference(user.uid)),
+      route.view === "account" ? Promise.resolve(portfolios) : reads.read('portfolios', () => loadPortfolios(user.uid)),
+      route.view === "account" ? Promise.resolve(notifications) : reads.read('notifications', () => loadNotifications(user.uid)),
+      reads.read('preference', () => emailPreference(user.uid)),
     ])
       .then(([p, n, e]) => {
         if (alive && auth?.currentUser === user) {
@@ -409,10 +409,7 @@ function Workspace({
       return;
     }
     setHoldingLoading(true);
-    reads
-      .read(`holdings/${selected.id}`, () =>
-        loadHoldings(user.uid, selected.id),
-      )
+    reads.read(`holdings/${selected.id}`, () => loadHoldings(user.uid, selected.id))
       .then((h) => {
         if (alive && auth?.currentUser === user) setHoldings(h);
       })
@@ -474,11 +471,7 @@ function Workspace({
       now,
       paused || fixtureMode,
     );
-  async function action(
-    work: () => Promise<unknown>,
-    message: string,
-    changed?: string,
-  ) {
+  async function action(work: () => Promise<unknown>, message: string, changed?: string) {
     if (busy) return false;
     setBusy(true);
     setError("");
@@ -534,10 +527,6 @@ function Workspace({
       (n) =>
         !n.deleted && n.portfolioId === selected?.id && n.holdingId === h.id,
     );
-  const confirmation = useRef<HTMLElement>(null);
-  useEffect(() => {
-    if (removal) confirmation.current?.focus();
-  }, [removal]);
   if (route.view === "usage")
     return ownerCandidate(user) ? (
       <Suspense fallback={<p>Loading usage…</p>}>
@@ -550,363 +539,288 @@ function Workspace({
       </section>
     );
   return (
-    <div
-      className={
-        route.view === "portfolios" ? "portfolio-layout" : "workspace-page"
-      }
-    >
-      {route.view === "portfolios" && (
-        <aside className="portfolio-sidebar" aria-label="Your portfolios">
-          <h2>Your portfolios</h2>
-          <nav aria-label="Portfolio selection">
-            {portfolios.map((p) => (
-              <a
-                key={p.id}
-                href={`#view=portfolios&portfolio=${p.id}`}
-                aria-current={selected?.id === p.id ? "page" : undefined}
-              >
-                <BriefcaseBusiness size={20} />
-                <span>{p.name}</span>
-              </a>
-            ))}
-          </nav>
+    <>
+      <div className="page-title">
+        <div>
+          <p className="eyebrow">YOUR PRIVATE ACCOUNT</p>
+          <h1>
+            {route.view === "portfolios"
+              ? "Portfolios"
+              : route.view === "notifications"
+                ? "Notifications"
+                : "Account"}
+          </h1>
+          <p>
+            {route.view === "portfolios"
+              ? "A clear view of your SkyBlock holdings. Manually recorded, not connected to your inventory."
+              : route.view === "notifications"
+                ? "Percentage changes for the holdings you choose."
+                : "Your identity and delivery preferences."}
+          </p>
+        </div>
+        {route.view === "portfolios" && (
           <button
-            className="new-portfolio"
-            disabled={busy}
+            className="primary"
             onClick={() => {
               setName("");
               setPortfolioEditor("create");
             }}
+            disabled={busy}
           >
-            <Plus size={20} /> New portfolio
+            <Plus size={18} />
+            New portfolio
           </button>
-          <div className="tracking-note">
-            <Info size={17} />
-            <p>
-              Manually tracked<span>Not connected to your inventory.</span>
-            </p>
-          </div>
-        </aside>
+        )}
+      </div>
+      {error && (
+        <div className="error" role="alert">
+          {error}{" "}
+          <button onClick={() => { reads.invalidate(); setReload((v) => v + 1); }}>
+            Reload saved data
+          </button>
+        </div>
       )}
-      <div className="portfolio-content">
-        <div className="page-title">
-          <div>
-            {route.view === "portfolios" ? (
-              <p className="portfolio-breadcrumb">
-                <ChevronLeft size={16} /> Portfolios
+      {notice && (
+        <p className="notice" role="status">
+          {notice}
+        </p>
+      )}
+      <div className="market-note">
+        <span className="status-dot" />
+        {paused
+          ? "Market updates and new notification evaluation are paused."
+          : "Prices use the shared market cache."}{" "}
+        Your holdings remain editable.
+        {fixtureMode && (
+          <strong>
+            {" "}
+            Development fixtures — never eligible for notifications.
+          </strong>
+        )}
+      </div>
+      {loading && <p role="status">Loading private portfolios…</p>}
+      {route.view === "account" ? (
+        <section className="panel account">
+          <h2>Signed in with Google</h2>
+          <p>{user.email}</p>
+          <p>
+            <ShieldCheck size={18} /> Your portfolios, quantities, acquisition
+            costs and notification settings are private to this account.
+          </p>
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={emailEnabled}
+              disabled={busy}
+              onChange={(e) => {
+                const enabled = e.target.checked;
+                setEmailEnabled(enabled);
+                void action(
+                  () => emailPreference(user.uid, enabled),
+                  enabled
+                    ? "Email delivery enabled for your chosen holding notifications."
+                    : "Holding notification email delivery disabled.",
+                  "preference",
+                ).then((saved) => {
+                  if (!saved && auth?.currentUser === user)
+                    setEmailEnabled(!enabled);
+                });
+              }}
+            />
+            Allow email for my holding notifications
+          </label>
+          <p>
+            No holding notifications are created automatically. Delivery waits
+            for fresh eligible samples, verified identity, available quota and
+            an authorized service release.
+          </p>
+          <p>
+            Legacy price alerts keep their existing delivery settings until you
+            pause them in Notifications.
+          </p>
+        </section>
+      ) : route.view === "notifications" ? (
+        <>
+          <section className="panel">
+            <h2>Holding notifications</h2>
+            <p>
+              Email delivery is {emailEnabled ? "enabled" : "off in Account"}.
+              Market evaluation is{" "}
+              {paused
+                ? "paused"
+                : "subject to fresh evidence and service availability"}
+              .
+            </p>
+            {!notifications.some((n) => !n.deleted) ? (
+              <p>
+                No holding notifications yet. Open a portfolio and choose{" "}
+                <b>Set notification</b> on a holding.
               </p>
             ) : (
-              <p className="eyebrow">YOUR PRIVATE ACCOUNT</p>
-            )}
-            <div className="portfolio-title-row">
-              <h1>
-                {route.view === "portfolios"
-                  ? (selected?.name ?? "Portfolios")
-                  : route.view === "notifications"
-                    ? "Notifications"
-                    : "Account"}
-              </h1>
-              {route.view === "portfolios" && selected && (
-                <ActionMenu label="Portfolio actions" disabled={busy}>
-                  <button
-                    onClick={() => {
-                      setName(selected.name);
-                      setPortfolioEditor("rename");
-                    }}
-                  >
-                    Rename
-                  </button>
-                  <button
-                    className="destructive-action"
-                    onClick={() => setRemoval("portfolio")}
-                  >
-                    Delete portfolio
-                  </button>
-                </ActionMenu>
-              )}
-            </div>
-            <p>
-              {route.view === "portfolios"
-                ? "Your SkyBlock holdings, at a glance."
-                : route.view === "notifications"
-                  ? "Percentage changes for the holdings you choose."
-                  : "Your identity and delivery preferences."}
-            </p>
-          </div>
-          {route.view === "portfolios" && selected && (
-            <button
-              className="primary"
-              onClick={() => {
-                setEditor({ mode: "create" });
-                setNotificationEditor(null);
-              }}
-              disabled={busy || holdingLoading}
-            >
-              <Plus size={18} />
-              Add holding
-            </button>
-          )}
-        </div>
-        {error && (
-          <div className="error" role="alert">
-            {error}{" "}
-            <button
-              onClick={() => {
-                reads.invalidate();
-                setReload((v) => v + 1);
-              }}
-            >
-              Reload saved data
-            </button>
-          </div>
-        )}
-        {notice && (
-          <p className="notice" role="status">
-            {notice}
-          </p>
-        )}
-        <div className="market-note">
-          {paused ? (
-            <Pause size={16} className="pause-icon" aria-hidden="true" />
-          ) : (
-            <Info size={18} aria-hidden="true" />
-          )}
-          <div>
-            <strong>
-              {paused ? "Market updates paused" : "Shared market prices"}
-            </strong>{" "}
-            <span>Holdings are still editable.</span>
-            {fixtureMode && (
-              <strong>
-                {" "}
-                Development fixtures — never eligible for notifications.
-              </strong>
-            )}
-          </div>
-          {paused && (
-            <span className="market-note-detail">
-              New notification checks paused
-            </span>
-          )}
-        </div>
-        {loading && <p role="status">Loading private portfolios…</p>}
-        {route.view === "account" ? (
-          <section className="panel account">
-            <h2>Signed in with Google</h2>
-            <p>{user.email}</p>
-            <p>
-              <ShieldCheck size={18} /> Your portfolios, quantities, acquisition
-              costs and notification settings are private to this account.
-            </p>
-            <label className="check">
-              <input
-                type="checkbox"
-                checked={emailEnabled}
-                disabled={busy}
-                onChange={(e) => {
-                  const enabled = e.target.checked;
-                  setEmailEnabled(enabled);
-                  void action(
-                    () => emailPreference(user.uid, enabled),
-                    enabled
-                      ? "Email delivery enabled for your chosen holding notifications."
-                      : "Holding notification email delivery disabled.",
-                    "preference",
-                  ).then((saved) => {
-                    if (!saved && auth?.currentUser === user)
-                      setEmailEnabled(!enabled);
-                  });
-                }}
-              />
-              Allow email for my holding notifications
-            </label>
-            <p>
-              No holding notifications are created automatically. Delivery waits
-              for fresh eligible samples, verified identity, available quota and
-              an authorized service release.
-            </p>
-            <p>
-              Legacy price alerts keep their existing delivery settings until
-              you pause them in Notifications.
-            </p>
-          </section>
-        ) : route.view === "notifications" ? (
-          <>
-            <section className="panel">
-              <h2>Holding notifications</h2>
-              <p>
-                Email delivery is {emailEnabled ? "enabled" : "off in Account"}.
-                Market evaluation is{" "}
-                {paused
-                  ? "paused"
-                  : "subject to fresh evidence and service availability"}
-                .
-              </p>
-              {!notifications.some((n) => !n.deleted) ? (
-                <p>
-                  No holding notifications yet. Open a portfolio and choose{" "}
-                  <b>Set notification</b> on a holding.
-                </p>
-              ) : (
-                notifications
-                  .filter((n) => !n.deleted)
-                  .map((n) => {
-                    const portfolio = portfolios.find(
-                      (p) => p.id === n.portfolioId,
-                    );
-                    return (
-                      <article className="notification-row" key={n.id}>
-                        <div>
-                          <b>
-                            {portfolio?.name ?? "Deleted portfolio"} ·{" "}
-                            {n.holdingName ?? "Holding"}
-                          </b>
-                          <p>
-                            {n.up !== null ? `Up ${n.up}% ` : ""}
-                            {n.down !== null ? `Down ${n.down}%` : ""} ·{" "}
-                            {n.baseline === "acquisition"
-                              ? "Average acquisition price"
-                              : `Captured sample: ${exact(n.capturedPrice)} coins`}
-                          </p>
-                          <span>
-                            {!portfolio
-                              ? "Stopped: portfolio deleted"
-                              : n.enabled
-                                ? "Enabled · waiting for eligible checks"
-                                : "Paused"}
-                          </span>
-                        </div>
-                        <div className="actions">
-                          <button
-                            onClick={() =>
-                              navigate("portfolios", n.portfolioId)
-                            }
-                          >
-                            Open holding
-                          </button>
-                          <button
-                            disabled={busy || !portfolio}
-                            onClick={() =>
-                              void action(
-                                () =>
-                                  changeNotification(
-                                    user.uid,
-                                    n.portfolioId,
-                                    n.holdingId,
-                                    n.enabled ? "pause" : "resume",
-                                    undefined,
-                                    n,
-                                  ),
-                                "Notification updated.",
-                                "notifications",
-                              )
-                            }
-                          >
-                            {n.enabled ? "Pause" : "Resume"}
-                          </button>
-                          <button
-                            disabled={busy}
-                            onClick={() =>
-                              void action(
-                                () =>
-                                  changeNotification(
-                                    user.uid,
-                                    n.portfolioId,
-                                    n.holdingId,
-                                    "delete",
-                                    undefined,
-                                    n,
-                                  ),
-                                "Notification deleted.",
-                                "notifications",
-                              )
-                            }
-                          >
-                            Delete notification
-                          </button>
-                        </div>
-                      </article>
-                    );
-                  })
-              )}
-            </section>
-            <LegacyAlerts user={user} />
-          </>
-        ) : (
-          <>
-            {portfolioEditor && (
-              <form
-                className="panel editor"
-                aria-label={
-                  portfolioEditor === "create"
-                    ? "Create portfolio"
-                    : "Rename portfolio"
-                }
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  void action(
-                    async () => {
-                      const p = await savePortfolio(
-                        user.uid,
-                        name,
-                        portfolioEditor === "rename" ? selected : undefined,
-                      );
-                      navigate("portfolios", p.id);
-                    },
-                    "Portfolio saved.",
-                    "portfolios",
+              notifications
+                .filter((n) => !n.deleted)
+                .map((n) => {
+                  const portfolio = portfolios.find(
+                    (p) => p.id === n.portfolioId,
                   );
+                  return (
+                    <article className="notification-row" key={n.id}>
+                      <div>
+                        <b>
+                          {portfolio?.name ?? "Deleted portfolio"} ·{" "}
+                          {n.holdingName ?? "Holding"}
+                        </b>
+                        <p>
+                          {n.up !== null ? `Up ${n.up}% ` : ""}
+                          {n.down !== null ? `Down ${n.down}%` : ""} ·{" "}
+                          {n.baseline === "acquisition"
+                            ? "Average acquisition price"
+                            : `Captured sample: ${exact(n.capturedPrice)} coins`}
+                        </p>
+                        <span>
+                          {!portfolio
+                            ? "Stopped: portfolio deleted"
+                            : n.enabled
+                              ? "Enabled · waiting for eligible checks"
+                              : "Paused"}
+                        </span>
+                      </div>
+                      <div className="actions">
+                        <button
+                          onClick={() => navigate("portfolios", n.portfolioId)}
+                        >
+                          Open holding
+                        </button>
+                        <button
+                          disabled={busy || !portfolio}
+                          onClick={() =>
+                            void action(
+                              () =>
+                                changeNotification(
+                                  user.uid,
+                                  n.portfolioId,
+                                  n.holdingId,
+                                  n.enabled ? "pause" : "resume",
+                                  undefined,
+                                  n,
+                                ),
+                              "Notification updated.",
+                              "notifications",
+                            )
+                          }
+                        >
+                          {n.enabled ? "Pause" : "Resume"}
+                        </button>
+                        <button
+                          disabled={busy}
+                          onClick={() =>
+                            void action(
+                              () =>
+                                changeNotification(
+                                  user.uid,
+                                  n.portfolioId,
+                                  n.holdingId,
+                                  "delete",
+                                  undefined,
+                                  n,
+                                ),
+                              "Notification deleted.",
+                              "notifications",
+                            )
+                          }
+                        >
+                          Delete notification
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })
+            )}
+          </section>
+          <LegacyAlerts user={user} />
+        </>
+      ) : (
+        <>
+          {portfolioEditor && (
+            <form
+              className="panel editor"
+              aria-label={
+                portfolioEditor === "create"
+                  ? "Create portfolio"
+                  : "Rename portfolio"
+              }
+              onSubmit={(e) => {
+                e.preventDefault();
+                void action(async () => {
+                  const p = await savePortfolio(
+                    user.uid,
+                    name,
+                    portfolioEditor === "rename" ? selected : undefined,
+                  );
+                  navigate("portfolios", p.id);
+                }, "Portfolio saved.", "portfolios");
+              }}
+            >
+              <h2>
+                {portfolioEditor === "create"
+                  ? "Create portfolio"
+                  : "Rename portfolio"}
+              </h2>
+              <label>
+                Portfolio name
+                <input
+                  autoFocus
+                  maxLength={80}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </label>
+              <div className="actions">
+                <button className="primary" disabled={busy}>
+                  Save portfolio
+                </button>
+                <button type="button" onClick={() => setPortfolioEditor(null)}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
+          {!loading && !portfolios.length && !portfolioEditor && (
+            <section className="panel empty">
+              <SkyIcon name="watchlist-chest" size={72} />
+              <h2>Your first portfolio starts here</h2>
+              <p>
+                Add only the items you own, with your actual quantities and
+                costs.
+              </p>
+              <button
+                className="primary"
+                onClick={() => {
+                  setName("");
+                  setPortfolioEditor("create");
                 }}
               >
-                <h2>
-                  {portfolioEditor === "create"
-                    ? "Create portfolio"
-                    : "Rename portfolio"}
-                </h2>
-                <label>
-                  Portfolio name
-                  <input
-                    autoFocus
-                    maxLength={80}
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                  />
-                </label>
-                <div className="actions">
-                  <button className="primary" disabled={busy}>
-                    Save portfolio
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPortfolioEditor(null)}
+                Create portfolio
+              </button>
+            </section>
+          )}
+          {!!portfolios.length && (
+            <div className="portfolio-layout">
+              <aside aria-label="Your portfolios">
+                <h2>Your portfolios</h2>
+                {portfolios.map((p) => (
+                  <a
+                    key={p.id}
+                    href={`#view=portfolios&portfolio=${p.id}`}
+                    aria-current={selected?.id === p.id ? "page" : undefined}
                   >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            )}
-            {!loading && !portfolios.length && !portfolioEditor && (
-              <section className="panel empty">
-                <SkyIcon name="watchlist-chest" size={72} />
-                <h2>Your first portfolio starts here</h2>
-                <p>
-                  Add only the items you own, with your actual quantities and
-                  costs.
-                </p>
-                <button
-                  className="primary"
-                  onClick={() => {
-                    setName("");
-                    setPortfolioEditor("create");
-                  }}
-                >
-                  Create portfolio
-                </button>
-              </section>
-            )}
-            {!!portfolios.length && (
-              <>
+                    <BriefcaseBusiness size={17} />
+                    {p.name}
+                  </a>
+                ))}
+              </aside>
+              <div className="portfolio-content">
                 {!selected ? (
                   <section className="panel">
                     <h2>Portfolio unavailable</h2>
@@ -917,13 +831,27 @@ function Workspace({
                   </section>
                 ) : (
                   <>
+                    <div className="portfolio-heading">
+                      <h2>{selected.name}</h2>
+                      <div className="actions">
+                        <button
+                          onClick={() => {
+                            setName(selected.name);
+                            setPortfolioEditor("rename");
+                          }}
+                        >
+                          Rename
+                        </button>
+                        <button onClick={() => setRemoval("portfolio")}>
+                          Delete portfolio
+                        </button>
+                      </div>
+                    </div>
                     {removal && (
                       <section
                         className="panel confirm"
                         role="alertdialog"
                         aria-label="Confirm deletion"
-                        ref={confirmation}
-                        tabIndex={-1}
                       >
                         <h2>
                           Delete{" "}
@@ -972,10 +900,12 @@ function Workspace({
                     )}
                     <dl className="summary">
                       <Metric
+                        label="Total cost basis"
+                        value={totals.costBasis}
+                      />
+                      <Metric
                         label="Estimated value"
                         value={totals.value}
-                        overview
-                        featured
                         note={
                           totals.missing
                             ? "Incomplete valuation"
@@ -985,15 +915,9 @@ function Workspace({
                         }
                       />
                       <Metric
-                        label="Total cost basis"
-                        value={totals.costBasis}
-                        overview
-                      />
-                      <Metric
                         label="Unrealized P&L"
                         value={totals.pnl}
-                        note={portfolioPercent(totals.returnPercent)}
-                        overview
+                        note={percent(totals.returnPercent)}
                         profit
                       />
                     </dl>
@@ -1018,18 +942,17 @@ function Workspace({
                       <h2>
                         Holdings <span>{holdings.length}</span>
                       </h2>
-                      <span className="holdings-count">
-                        {exact(
-                          holdings.reduce(
-                            (count, h) =>
-                              count +
-                              h.quantity *
-                                (h.kind === "auction" ? h.stackSize : 1),
-                            0,
-                          ),
-                        )}{" "}
-                        items total
-                      </span>
+                      <button
+                        className="primary"
+                        disabled={busy || holdingLoading}
+                        onClick={() => {
+                          setEditor({ mode: "create" });
+                          setNotificationEditor(null);
+                        }}
+                      >
+                        <Plus size={18} />
+                        Add holding
+                      </button>
                     </div>
                     {editor && (
                       <HoldingEditor
@@ -1076,24 +999,18 @@ function Workspace({
                                   <ItemArt id={h.itemId} size="small" />
                                 </span>
                                 <div>
-                                  <div className="asset-name">
-                                    <h3>{h.name}</h3>
-                                    <span className="market-badge">
-                                      {h.kind === "bazaar"
-                                        ? "Bazaar"
-                                        : "Auction House"}
-                                    </span>
-                                  </div>
+                                  <h3>{h.name}</h3>
                                   <span className="muted">
-                                    {exact(h.quantity)}{" "}
+                                    {h.kind === "bazaar"
+                                      ? "Bazaar"
+                                      : `Auction House · stack of ${h.stackSize}`}{" "}
+                                    · {exact(h.quantity)}{" "}
                                     {h.kind === "auction" ? "stacks" : "items"}
-                                    {h.kind === "auction" &&
-                                      ` · ${exact(h.stackSize)} items per stack`}
                                   </span>
                                 </div>
                               </div>
                               <div
-                                className={`holding-return ${v.pnl === null ? "muted" : v.pnl < 0 ? "loss" : "gain"}`}
+                                className={`holding-return ${v.pnl !== null && v.pnl < 0 ? "loss" : "gain"}`}
                               >
                                 <strong>
                                   {v.pnl === null
@@ -1103,70 +1020,50 @@ function Workspace({
                                 <span>
                                   {v.pnl === null
                                     ? "Waiting for price evidence"
-                                    : `${portfolioPercent(v.returnPercent)} unrealized return`}
+                                    : `${percent(v.returnPercent)} unrealized return`}
                                 </span>
                               </div>
                             </div>
                             <dl className="holding-metrics">
                               <Metric
-                                label={
-                                  h.kind === "auction"
-                                    ? "Stacks owned"
-                                    : "Quantity"
-                                }
-                                value={h.quantity}
-                                unit=""
-                              />
-                              <Metric
-                                label="Avg. acquisition"
+                                label="Average acquisition"
                                 value={h.costBasis / h.quantity}
-                                unit={
-                                  h.kind === "auction"
-                                    ? "coins / stack"
-                                    : "coins / item"
-                                }
+                              />
+                              <Metric label="Cost basis" value={h.costBasis} />
+                              <Metric
+                                label="Reference per unit"
+                                value={v.referencePrice}
                               />
                               <Metric
-                                label="Reference price"
-                                value={v.referencePrice}
-                                unit={
-                                  h.kind === "auction"
-                                    ? "coins / stack"
-                                    : "coins / item"
-                                }
+                                label="Estimated position value"
+                                value={v.value}
                               />
-                              <Metric label="Position value" value={v.value} />
                             </dl>
-                            <details className="valuation-details">
-                              <summary>
-                                <span>Valuation details</span>
-                                <span className="reference">
-                                  {v.reference}
-                                  {h.kind === "auction" &&
-                                    ` · ${v.comparables} comparable listings`}
-                                </span>
-                              </summary>
-                              <p>
-                                Cost basis: <b>{exact(h.costBasis)} coins</b>
-                              </p>
-                              <p className="sample">
-                                {v.sampledAt ? (
-                                  <>
-                                    <b>
-                                      {v.freshness === "stale"
-                                        ? "Last-known estimate"
-                                        : "Fresh sample"}
-                                    </b>{" "}
-                                    ·{" "}
-                                    <SampleTime
-                                      timestamp={v.sampledAt}
-                                      now={now}
-                                    />
-                                  </>
-                                ) : (
-                                  "No usable price sample"
-                                )}
-                              </p>
+                            <p className="reference">
+                              {v.reference}
+                              {h.kind === "auction" &&
+                                ` · ${v.comparables} comparable listings`}
+                            </p>
+                            <p className="sample">
+                              {v.sampledAt ? (
+                                <>
+                                  <b>
+                                    {v.freshness === "stale"
+                                      ? "Last-known estimate"
+                                      : "Fresh sample"}
+                                  </b>{" "}
+                                  ·{" "}
+                                  <SampleTime
+                                    timestamp={v.sampledAt}
+                                    now={now}
+                                  />
+                                </>
+                              ) : (
+                                "No usable price sample"
+                              )}
+                            </p>
+                            <details>
+                              <summary>Valuation details</summary>
                               {h.kind === "auction" ? (
                                 <>
                                   <pre>{h.configuration}</pre>
@@ -1202,15 +1099,30 @@ function Workspace({
                               )}
                             </details>
                             <div className="holding-bottom">
-                              <div className="holding-notification">
-                                <span className="notification-status">
-                                  <Bell size={15} />
-                                  {notification
-                                    ? `${notification.enabled ? "Enabled" : "Paused"} · ${notification.up === null ? "" : `↑ ${notification.up}% `}${notification.down === null ? "" : `↓ ${notification.down}% `} · baseline ${exact(notificationBaseline(notification, h))}`
-                                    : "Notifications off"}
-                                </span>
+                              <span className="notification-status">
+                                <Bell size={15} />
+                                {notification
+                                  ? `${notification.enabled ? "Enabled" : "Paused"} · ${notification.up === null ? "" : `↑ ${notification.up}% `}${notification.down === null ? "" : `↓ ${notification.down}% `} · baseline ${exact(notificationBaseline(notification, h))}`
+                                  : "Notifications off"}
+                              </span>
+                              <div className="actions">
                                 <button
-                                  className="text-action"
+                                  disabled={busy}
+                                  onClick={() =>
+                                    setEditor({ mode: "purchase", holding: h })
+                                  }
+                                >
+                                  Add purchase
+                                </button>
+                                <button
+                                  disabled={busy}
+                                  onClick={() =>
+                                    setEditor({ mode: "edit", holding: h })
+                                  }
+                                >
+                                  Edit
+                                </button>
+                                <button
                                   disabled={busy}
                                   onClick={() => {
                                     setNotificationEditor(h);
@@ -1221,58 +1133,26 @@ function Workspace({
                                     ? "Edit notification"
                                     : "Set notification"}
                                 </button>
-                              </div>
-                              <div className="actions">
                                 <button
                                   disabled={busy}
-                                  onClick={() => {
-                                    setEditor({ mode: "edit", holding: h });
-                                    setNotificationEditor(null);
-                                  }}
+                                  onClick={() => setRemoval(h)}
                                 >
-                                  Edit
+                                  Delete
                                 </button>
-                                <button
-                                  className="purchase-action"
-                                  disabled={busy}
-                                  onClick={() => {
-                                    setEditor({ mode: "purchase", holding: h });
-                                    setNotificationEditor(null);
-                                  }}
-                                >
-                                  Add purchase
-                                </button>
-                                <ActionMenu
-                                  label={`${h.name} actions`}
-                                  disabled={busy}
-                                >
-                                  <button
-                                    className="destructive-action"
-                                    disabled={busy}
-                                    onClick={() => setRemoval(h)}
-                                  >
-                                    Delete
-                                  </button>
-                                </ActionMenu>
                               </div>
                             </div>
                           </article>
                         );
                       })
                     )}
-                    <p className="estimate-note">
-                      <Info size={16} /> Estimates use{" "}
-                      {totals.stale || paused ? "last-known" : "available"}{" "}
-                      market prices.
-                    </p>
                   </>
                 )}
-              </>
-            )}
-          </>
-        )}
-      </div>
-    </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </>
   );
 }
 function Metric({
@@ -1280,46 +1160,22 @@ function Metric({
   value,
   note,
   profit = false,
-  overview = false,
-  featured = false,
-  unit = "coins",
 }: {
   label: string;
   value: number | null;
   note?: string;
   profit?: boolean;
-  overview?: boolean;
-  featured?: boolean;
-  unit?: string;
 }) {
   return (
     <div
-      className={`${featured ? "featured-metric" : ""} ${profit && value !== null ? (value < 0 ? "loss" : "gain") : ""}`}
+      className={profit && value !== null ? (value < 0 ? "loss" : "gain") : ""}
     >
-      <dt>
-        {label}
-        {featured && note && <span className="estimate-badge">{note}</span>}
-      </dt>
+      <dt>{label}</dt>
       <dd>
-        <span className={value === null ? "unavailable-value" : undefined}>
-          {value === null
-            ? "Unavailable"
-            : overview
-              ? portfolioCompact(value)
-              : exact(value)}
-        </span>
-        {value !== null && unit && <small>{unit}</small>}
-        {profit && note && note !== "—" && (
-          <span className="return-badge">{note}</span>
-        )}
-        {overview && value !== null && (
-          <span className="metric-exact">
-            {exact(value)}
-            {profit ? " coins" : ""}
-          </span>
-        )}
+        {value === null ? "Unavailable" : exact(value)}
+        {value !== null && <small>coins</small>}
       </dd>
-      {note && !featured && !profit && <dd className="metric-note">{note}</dd>}
+      {note && <span>{note}</span>}
     </div>
   );
 }

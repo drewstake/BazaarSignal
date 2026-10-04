@@ -54,14 +54,14 @@ const noOverflow = async (page: Page) =>
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
-async function seedPrices(page: Page, bid = 13000000) {
+async function seedPrices(page: Page) {
   const stamp = Date.now() - 10000,
     item = {
       ...normalizeBazaar(
         "BOOSTER_COOKIE",
         {
           buy_summary: [{ pricePerUnit: 14000000, amount: 1000, orders: 2 }],
-          sell_summary: [{ pricePerUnit: bid, amount: 500, orders: 2 }],
+          sell_summary: [{ pricePerUnit: 13000000, amount: 500, orders: 2 }],
         },
         stamp,
         stamp,
@@ -198,7 +198,6 @@ test("notification controls persist, respect revisions and stay retired after ho
   await form.getByLabel("Upward threshold (%)").fill("20");
   await form.getByRole("button", { name: "Save and enable" }).click();
   await expect(form).toHaveCount(0);
-  await card.getByRole("button", { name: "Booster Cookie actions" }).click();
   await card.getByRole("button", { name: "Delete", exact: true }).click();
   await page.getByRole("button", { name: "Confirm delete" }).click();
   await expect(card).toHaveCount(0);
@@ -292,7 +291,6 @@ test("portfolio CRUD, cost calculation, purchases, unavailable prices, identity 
     path: `.local/portfolio-holdings-${info.project.name}.png`,
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Portfolio actions" }).click();
   await page.getByRole("button", { name: "Rename", exact: true }).click();
   const rename = page.getByRole("form", { name: "Rename portfolio" });
   await rename.getByLabel("Portfolio name").fill("Materials");
@@ -311,11 +309,9 @@ test("portfolio CRUD, cost calculation, purchases, unavailable prices, identity 
   await signIn(page, id);
   await page.goto(url);
   await expect(card).toBeVisible();
-  await card.getByRole("button", { name: "Booster Cookie actions" }).click();
   await card.getByRole("button", { name: "Delete", exact: true }).click();
   await page.getByRole("button", { name: "Confirm delete" }).click();
   await expect(card).toHaveCount(0);
-  await page.getByRole("button", { name: "Portfolio actions" }).click();
   await page.getByRole("button", { name: "Delete portfolio" }).click();
   await page.getByRole("button", { name: "Confirm delete" }).click();
   await expect(
@@ -437,80 +433,6 @@ test("one search selects either market and never saves a stale item selection", 
     page.getByRole("article", { name: "Unlisted test sword holding" }),
   ).toContainText("Auction House");
 });
-
-test("redesigned overview keeps exact values and keyboard-accessible management actions", async ({
-  page,
-}, info) => {
-  await signIn(page, `redesign-${info.project.name}-${Date.now()}`);
-  await seedPrices(page, 12194646.8);
-  await create(page, "drewstake’s main");
-  await add(page, "BOOSTER_COOKIE", "286", "12.2M");
-  await page.reload();
-  const card = page.getByRole("article", { name: "Booster Cookie holding" });
-  await expect(card).toContainText("-0.04% unrealized return");
-  await expect(page.locator(".summary")).toContainText("3.488B");
-  await expect(page.locator(".summary")).toContainText("3,487,668,984.8");
-  await expect(page.locator(".summary")).toContainText("3,489,200,000");
-  await expect(
-    card.getByRole("button", { name: "Delete", exact: true }),
-  ).toBeHidden();
-
-  const menu = page.getByRole("button", { name: "Portfolio actions" });
-  await menu.focus();
-  await page.keyboard.press("Enter");
-  await expect(menu).toHaveAttribute("aria-expanded", "true");
-  await page.keyboard.press("Tab");
-  await expect(
-    page.getByRole("button", { name: "Rename", exact: true }),
-  ).toBeFocused();
-  await page.keyboard.press("Escape");
-  await expect(menu).toBeFocused();
-  await expect(menu).toHaveAttribute("aria-expanded", "false");
-  await menu.click();
-  await page
-    .getByRole("heading", { name: "drewstake’s main", exact: true })
-    .click();
-  await expect(menu).toHaveAttribute("aria-expanded", "false");
-
-  await card.getByRole("button", { name: "Booster Cookie actions" }).click();
-  await card.getByRole("button", { name: "Delete", exact: true }).click();
-  await expect(page.getByRole("alertdialog")).toBeFocused();
-  await page
-    .getByRole("alertdialog")
-    .getByRole("button", { name: "Cancel" })
-    .click();
-  await expect(card).toBeVisible();
-  await card.getByText("Valuation details", { exact: true }).click();
-  await expect(card.getByText("Cost basis:", { exact: false })).toBeVisible();
-  await expect(
-    card.getByText("Last-known estimate", { exact: true }),
-  ).toBeVisible();
-  await card.getByText("Valuation details", { exact: true }).click();
-  await noOverflow(page);
-  await page.screenshot({
-    path: `.local/portfolio-redesign-${info.project.name}.png`,
-    fullPage: true,
-  });
-
-  if (info.project.name === "desktop") {
-    await menu.click();
-    await page.getByRole("button", { name: "Rename", exact: true }).click();
-    const rename = page.getByRole("form", { name: "Rename portfolio" });
-    await rename
-      .getByLabel("Portfolio name")
-      .fill("LongPortfolioName".repeat(5));
-    await rename.getByRole("button", { name: "Save portfolio" }).click();
-    await expect(rename).toHaveCount(0);
-    for (const width of [320, 768, 1280]) {
-      await page.setViewportSize({ width, height: 1000 });
-      await noOverflow(page);
-      await expect(
-        page.getByRole("button", { name: "Add holding", exact: true }),
-      ).toBeVisible();
-    }
-  }
-});
-
 test("legacy positions migrate once on login and persist through reload", async ({
   page,
 }, info) => {

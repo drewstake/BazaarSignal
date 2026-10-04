@@ -1,1129 +1,738 @@
 @import url("https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Tektur:wdth,wght@75..100,400..900&display=swap");
 
-/* Parchment workspace with restrained SkyBlock artwork and display type. */
+/* Original BazaarSignal artwork, tokens, hanging signs and wooden tabs. */
 .portfolio-app {
-  --ink: #262217;
-  --muted: #716c5e;
-  --line: #e0d7c2;
-  --paper: #faf7ed;
-  --paper-light: #fdfbf5;
-  --card: #fdfbf5;
-  --green: #3b702c;
-  --green-bg: #edf2dd;
+  --ink: #2b1d10;
+  --ink-soft: #5a4632;
+  --muted: #7a6750;
+  --line: #e2d1ab;
+  --paper: #f6ebcf;
+  --paper-light: #fbf4e2;
+  --card: #fcf7ea;
+  --outline: #24140a;
+  --wood-edge: #c08a52;
+  --green: #2d7a1c;
+  --green-bg: #e2f0cd;
+  --green-line: #b8d69a;
+  --blue: #2a6fd0;
+  --gold: #ffd24a;
+  /* Tektur: blocky, chamfered display face matching the reference signage. */
   --display: "Tektur", "Barlow", sans-serif;
-  min-height: 100vh;
+  --condensed: "Tektur", "Barlow", sans-serif;
+  --wood-dark: url("/art/ui/wood-dark.png") 0 0 / 128px 64px;
+  --wood-mid: url("/art/ui/wood-mid.png") 0 0 / 128px 64px;
+  --wood-light: url("/art/ui/wood-light.png") 0 0 / 128px 64px;
+  --outline-text:
+    -2px -2px 0 #3a2208, 2px -2px 0 #3a2208, -2px 2px 0 #3a2208,
+    2px 2px 0 #3a2208, 0 -2px 0 #3a2208, 0 2px 0 #3a2208, -2px 0 0 #3a2208,
+    2px 0 0 #3a2208;
   color: var(--ink);
-  color-scheme: light;
-  background: var(--paper);
   font:
-    500 15px/1.5 "Barlow",
-    system-ui,
+    500 14px/1.45 "Barlow",
     sans-serif;
-  border-top: 12px solid #77502c;
-  border-image: url("/art/ui/wood-mid.png") 12 repeat;
-}
-.portfolio-app .muted,
-.portfolio-app small {
-  color: var(--muted);
-}
-.portfolio-app h1 {
-  font-family: var(--display);
-  font-weight: 750;
-}
-.portfolio-app h2,
-.portfolio-app h3 {
-  font-weight: 700;
-}
-.portfolio-app button {
-  border-color: #d3c5a9;
-  background: transparent;
-  box-shadow: none;
-}
-.portfolio-app button:hover {
-  background: #f0ebdc;
-}
-.portfolio-app button.primary {
-  color: #fff;
-  border-color: #4a7936;
-  background: linear-gradient(#65974c, #477632);
-  box-shadow:
-    inset 0 1px 0 #ffffff24,
-    0 1px 2px #344b1815;
-}
-.portfolio-app button.primary:hover {
-  background: #3d6d2c;
-}
-.portfolio-app button.danger {
-  color: #fff;
-  background: #994738;
-  border-color: #994738;
-}
-.portfolio-app button.danger:hover {
-  background: #7f382c;
-}
-.portfolio-app :focus-visible {
-  outline: 3px solid #4b7a36;
-  outline-offset: 3px;
+  min-height: 100vh;
+  color-scheme: light;
+  background:
+    url("/art/sky-islands.png") center top / max(100%, 1500px) auto no-repeat,
+    linear-gradient(180deg, #5fa9e8 0, #9fd0f3 520px, #cfe8f7 900px, #a9d3ee);
+  overflow-x: clip;
 }
 .market-header {
   position: relative;
-  border-bottom: 1px solid var(--line);
+  z-index: 4;
+  padding: 0 clamp(12px, 2.4vw, 40px);
 }
+/* Vines hanging at the page edges, kept to the header like the reference. */
+.market-header::before,
 .market-header::after {
   content: "";
   position: absolute;
-  top: -12px;
-  right: 3px;
-  width: 30px;
-  height: 53px;
-  background: url("/art/ui/vine.png") top right / 32px 128px no-repeat;
+  top: 0;
+  width: 40px;
+  height: 230px;
+  background: url("/art/ui/vine.png") 0 0 / 64px 256px repeat-y;
   image-rendering: pixelated;
   pointer-events: none;
+  -webkit-mask-image: linear-gradient(#000 70%, transparent);
+  mask-image: linear-gradient(#000 70%, transparent);
+}
+.market-header::before {
+  left: 0;
+}
+.market-header::after {
+  right: 0;
+  transform: scaleX(-1);
+  background-position: 0 120px;
 }
 .market-header-inner {
-  max-width: 1760px;
-  min-height: 76px;
-  margin: auto;
-  padding: 14px 30px;
-  display: flex;
-  align-items: center;
-  gap: 22px;
+  max-width: 1680px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) minmax(240px, 330px);
+  grid-template-areas:
+    "brand brand signs"
+    "tag tabs search";
+  column-gap: 20px;
+  align-items: end;
+  padding-top: 22px;
 }
-.market-brand {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  color: var(--ink);
-  text-decoration: none;
-  flex-shrink: 0;
+.portfolio-app .market-brand {
+  grid-area: brand;
+  justify-self: start;
+  position: relative;
+  --iron: #3f3f4a;
+  --nail: radial-gradient(
+    circle,
+    #b9b9c4 0 1.5px,
+    #3f3f4a 2px 3px,
+    transparent 3.5px
+  );
+  gap: 14px;
+  padding: 10px 32px 12px 18px;
+  background:
+    var(--nail) 7px 7px / 8px 8px no-repeat,
+    var(--nail) right 7px top 7px / 8px 8px no-repeat,
+    var(--nail) 7px calc(100% - 7px) / 8px 8px no-repeat,
+    var(--nail) right 7px bottom 7px / 8px 8px no-repeat,
+    linear-gradient(var(--iron) 0 0) 3px 3px / 24px 5px no-repeat,
+    linear-gradient(var(--iron) 0 0) 3px 3px / 5px 24px no-repeat,
+    linear-gradient(var(--iron) 0 0) right 3px top 3px / 24px 5px no-repeat,
+    linear-gradient(var(--iron) 0 0) right 3px top 3px / 5px 24px no-repeat,
+    linear-gradient(var(--iron) 0 0) 3px calc(100% - 3px) / 24px 5px no-repeat,
+    linear-gradient(var(--iron) 0 0) 3px calc(100% - 3px) / 5px 24px no-repeat,
+    linear-gradient(var(--iron) 0 0) right 3px bottom 3px / 24px 5px no-repeat,
+    linear-gradient(var(--iron) 0 0) right 3px bottom 3px / 5px 24px no-repeat,
+    var(--wood-mid);
+  image-rendering: pixelated;
+  border: 4px solid var(--outline);
+  border-radius: 7px;
+  box-shadow:
+    inset 0 3px 0 #c9925a,
+    inset 3px 0 0 #a8733f,
+    inset -3px 0 0 #5a3818,
+    inset 0 -4px 0 #4a2b12,
+    0 6px 0 #1a0d05aa,
+    0 12px 22px #0005;
 }
-.brand-gem {
-  width: 34px;
-  height: 34px;
-  object-fit: contain;
+.market-brand::before,
+.market-brand::after {
+  content: "";
+  position: absolute;
+  top: -26px;
+  width: 6px;
+  height: 26px;
+  background: repeating-linear-gradient(
+    180deg,
+    #3b3b44 0 5px,
+    #7c7c88 5px 7px,
+    #3b3b44 7px 10px
+  );
+  border: 1px solid #1c1c22;
+}
+.market-brand::before {
+  left: 16%;
+}
+.market-brand::after {
+  right: 16%;
+}
+/* The emerald fills ~60% x 87% of its canvas: a 76px box shows a ~46x66px gem. */
+.market-brand .brand-gem {
+  width: 76px;
+  height: 76px;
+  margin: -8px -6px -8px -4px;
+  filter: drop-shadow(0 3px 0 #0007) drop-shadow(0 0 10px #3cff8a55);
 }
 .brand-word {
-  font: 750 25px/1.2 var(--display);
-  letter-spacing: -0.8px;
+  font: 800 clamp(40px, 4.2vw, 66px) / 1 var(--display);
+  letter-spacing: 0.5px;
+  background: linear-gradient(180deg, #ffe58a 0%, #f9c64a 48%, #e9962a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(3px 0 0 #3a2208) drop-shadow(-3px 0 0 #3a2208)
+    drop-shadow(0 3px 0 #3a2208) drop-shadow(0 -3px 0 #3a2208)
+    drop-shadow(0 4px 0 #1f1005);
+  padding: 0 4px 4px;
+  image-rendering: auto;
 }
 .tagline-sign {
-  color: var(--muted);
-  font-size: 13px;
-  margin: 0 auto 0 0;
-}
-.market-tabs {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-  margin-left: auto;
-}
-.market-tabs > a {
-  display: flex;
-  gap: 7px;
-  align-items: center;
-  justify-content: center;
-  min-height: 42px;
-  padding: 8px 11px;
-  color: var(--muted);
-  text-decoration: none;
-  border-radius: 6px;
-  font-size: 14px;
+  grid-area: tag;
+  position: relative;
+  align-self: end;
+  justify-self: start;
+  margin: 18px 0 14px 46px;
+  padding: 8px 26px 10px;
+  font: 700 clamp(20px, 2vw, 30px) / 1 var(--display);
+  letter-spacing: 0.5px;
+  color: #ffe38c !important;
+  text-shadow:
+    var(--outline-text),
+    0 4px 0 #1f1005;
+  background: var(--wood-mid);
+  image-rendering: pixelated;
+  border: 3px solid var(--outline);
+  border-radius: 5px;
+  box-shadow:
+    inset 0 2px 0 #c9925a,
+    inset 0 -3px 0 #4a2b12,
+    0 5px 0 #1a0d05aa,
+    0 10px 18px #0004;
   white-space: nowrap;
 }
-.market-tabs > a:hover {
-  color: var(--green);
-  background: #f0eddf;
+.tagline-sign span {
+  color: inherit;
 }
-.market-tabs > a.active {
-  color: var(--green);
-  background: #eaf0dc;
-  font-weight: 700;
+.tagline-sign::before,
+.tagline-sign::after {
+  content: "";
+  position: absolute;
+  top: -24px;
+  width: 5px;
+  height: 22px;
+  background: repeating-linear-gradient(
+    180deg,
+    #3b3b44 0 5px,
+    #7c7c88 5px 7px,
+    #3b3b44 7px 10px
+  );
+  border: 1px solid #1c1c22;
+}
+.tagline-sign::before {
+  left: 14%;
+}
+.tagline-sign::after {
+  right: 14%;
 }
 .header-signs {
+  grid-area: signs;
+  justify-self: end;
+  align-self: start;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.server-tag {
+  position: relative;
+  margin-top: 6px;
+  padding: 9px 15px 10px;
+  font: 800 14px/1.1 var(--display);
+  text-align: center;
+  color: #f4dfa6;
+  background: var(--wood-dark);
+  image-rendering: pixelated;
+  border: 3px solid #1a0e06;
+  border-radius: 4px;
+  box-shadow:
+    inset 0 2px 0 #8a5a33,
+    0 4px 0 #0006,
+    0 8px 16px #0004;
+  transform: rotate(-3deg);
+  text-shadow: 0 2px 0 #000a;
+}
+.server-tag b {
+  font-size: 15px;
+  color: var(--gold);
+}
+.server-tag::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -28px;
+  width: 3px;
+  height: 26px;
+  background: #4a3319;
+}
+.portfolio-app .account-button {
+  margin-top: 16px;
+  height: 36px;
+  padding: 0 14px;
+  font:
+    700 13px/1 "Barlow",
+    sans-serif;
+  color: #fff4d8;
+  background: var(--wood-mid);
+  image-rendering: pixelated;
+  border: 3px solid var(--outline);
+  border-radius: 5px;
+  box-shadow:
+    inset 0 2px 0 #c9925a,
+    0 3px 0 #000a;
+  text-shadow: 0 1px 0 #000a;
+  white-space: nowrap;
+}
+.portfolio-app .account-button:hover {
+  filter: brightness(1.1);
+}
+.lantern {
+  position: relative;
+  margin-top: 30px;
+  width: 30px;
+  height: 42px;
+  border: 3px solid #1d140c;
+  border-radius: 5px 5px 7px 7px;
+  background:
+    linear-gradient(90deg, transparent 45%, #1d140c 45% 55%, transparent 55%),
+    radial-gradient(circle at 50% 58%, #fff3b0 0, #ffb13b 38%, #c2560d 78%);
+  box-shadow:
+    0 0 22px 8px #ffb34766,
+    inset 0 0 0 2px #6b4b2a;
+}
+.lantern::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -34px;
+  width: 4px;
+  height: 28px;
+  transform: translateX(-50%);
+  background: repeating-linear-gradient(180deg, #2c2c33 0 4px, #6e6e79 4px 6px);
+}
+.lantern::after {
+  content: "";
+  position: absolute;
+  left: -6px;
+  right: -6px;
+  top: -8px;
+  height: 7px;
+  background: #2a1d12;
+  border-radius: 3px 3px 0 0;
+}
+.market-tabs {
+  grid-area: tabs;
+  display: flex;
+  gap: 6px;
+  align-self: end;
+  min-width: 0;
+}
+.market-tabs > button,
+.market-tabs > a {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex: 0 1 164px;
+  min-width: 0;
+  height: 62px;
+  padding: 0 16px;
+  color: #f7e8c8;
+  font:
+    600 clamp(15px, 1.25vw, 20px) / 1 "Barlow",
+    sans-serif;
+  text-decoration: none;
+  text-shadow: 0 2px 0 #000a;
+  background: var(--wood-dark);
+  image-rendering: pixelated;
+  border: 3px solid #1a0e06;
+  border-bottom: 0;
+  border-radius: 7px 7px 0 0;
+  box-shadow:
+    inset 0 3px 0 #8a5a33,
+    inset 3px 0 0 #6b4424,
+    inset -3px 0 0 #3a220f;
+  white-space: nowrap;
+  transition: filter 0.15s;
+}
+.market-tabs > button:hover,
+.market-tabs > a:hover {
+  filter: brightness(1.18);
+}
+/* 36px boxes: the icons fill 75-90% of their transparent canvases. */
+.market-tabs .tab-icon {
+  width: 36px;
+  height: 36px;
+  margin: -8px -2px;
+  filter: drop-shadow(0 2px 0 #000a);
+  transition: transform 0.15s;
+}
+.market-tabs .sky-auction-gavel {
+  width: 40px;
+  height: 40px;
+  margin: -10px -4px;
+}
+.market-tabs > button:hover .tab-icon,
+.market-tabs > a:hover .tab-icon,
+.market-tabs > :focus-visible .tab-icon {
+  transform: translateY(-2px) rotate(-6deg);
+}
+.market-tabs > .active .tab-icon {
+  filter: drop-shadow(0 2px 0 #0e2a5c) drop-shadow(0 0 7px #fff3b066);
+}
+.market-tabs > .active {
+  color: #fff;
+  background: linear-gradient(180deg, #4d9bea 0%, #2f6fcb 60%, #2459b0 100%);
+  border-color: #102f66;
+  box-shadow:
+    inset 0 3px 0 #9cd0ff,
+    inset 3px 0 0 #5aa6f0,
+    inset -3px 0 0 #1c4a93,
+    0 0 0 2px #0e2a5c;
+  z-index: 2;
+}
+.market-tabs > .active::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -15px;
+  width: 30px;
+  height: 16px;
+  transform: translateX(-50%);
+  background: #2459b0;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  filter: drop-shadow(0 2px 0 #0e2a5c);
+}
+.portfolio-frame {
+  position: relative;
+  padding: 16px;
+  background: var(--wood-mid);
+  image-rendering: pixelated;
+  border: 3px solid var(--outline);
+  border-radius: 7px;
+  box-shadow:
+    inset 0 0 0 3px #b98450,
+    inset 0 0 0 6px #5a3818,
+    0 12px 28px #0006;
+}
+.portfolio-frame > * {
+  image-rendering: auto;
+}
+.portfolio-frame::before,
+.portfolio-frame::after {
+  content: "";
+  position: absolute;
+  top: -12px;
+  width: 44px;
+  height: min(78%, 900px);
+  background: url("/art/ui/vine.png") 0 0 / 64px 256px repeat-y;
+  image-rendering: pixelated;
+  pointer-events: none;
+  z-index: 6;
+}
+.portfolio-frame::before {
+  left: -24px;
+}
+.portfolio-frame::after {
+  right: -24px;
+  transform: scaleX(-1);
+  background-position: 0 90px;
+  height: min(60%, 700px);
+}
+.portfolio-app main button {
+  --edge: #9b7950;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 16px;
+  font:
+    700 15px/1 "Barlow",
+    sans-serif;
+  color: var(--ink);
+  background: #f0dfba;
+  text-decoration: none;
+  text-shadow: none;
+  border: 2px solid var(--edge);
+  border-radius: 5px;
+  box-shadow:
+    inset 0 2px 0 #ffffff5c,
+    inset 0 -3px 0 #00000030,
+    0 3px 0 var(--edge);
+  transition:
+    filter 0.15s,
+    transform 0.08s;
+}
+.portfolio-app main button:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.portfolio-app main button:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow:
+    inset 0 2px 0 #ffffff40,
+    0 1px 0 var(--edge);
+}
+.portfolio-app main button.primary {
+  --edge: #155a11;
+  color: #fff;
+  text-shadow: 0 1px 0 #0006;
+  background: linear-gradient(180deg, #52c043 0%, #2b8c22 100%);
+}
+.portfolio-app main button.danger {
+  --edge: #6b281b;
+  color: #fff;
+  background: linear-gradient(#b9583c, #91392c);
+}
+
+/* Fit the portfolio navigation into the original hanging-sign shell. */
+.market-header-inner {
+  grid-template-columns: max-content minmax(0, 1fr);
+  grid-template-areas: "brand signs" "tag tabs";
+  column-gap: 24px;
+}
+.portfolio-app .market-brand {
   display: flex;
   align-items: center;
-  gap: 15px;
+  text-decoration: none;
 }
-.private-account {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  white-space: nowrap;
-  color: #666052;
-  font-size: 13px;
+.market-tabs {
+  justify-content: flex-end;
+  padding-left: 4px;
 }
-.account-button {
-  white-space: nowrap;
-  font-size: 13px;
-  padding: 7px 10px;
+.market-tabs > a {
+  flex-basis: 172px;
+}
+.tagline-sign {
+  margin-left: 28px;
+  font-size: clamp(20px, 2vw, 28px);
+}
+.portfolio-app h1,
+.portfolio-app h2,
+.portfolio-app h3,
+.intro-features b {
+  font-family: var(--display);
+  font-weight: 750;
+  letter-spacing: 0;
 }
 .portfolio-app main {
   max-width: 1760px;
-  padding: 0;
-  margin: auto;
-  min-height: calc(100vh - 145px);
+  padding: 0 clamp(8px, 2.4vw, 40px) 24px;
+  min-height: calc(100vh - 280px);
 }
 .portfolio-paper {
-  min-width: 0;
-}
-.portfolio-paper > .notice,
-.portfolio-paper > .error {
-  margin: 20px 30px;
+  padding: 28px;
+  background: var(--paper);
+  border: 2px solid #3a2410;
+  border-radius: 4px;
+  box-shadow:
+    inset 0 0 0 2px #fff8e4,
+    inset 0 0 34px #d8bf8a66;
 }
 .portfolio-app footer {
-  background: var(--paper);
-  border-color: var(--line);
-  color: var(--muted);
-  font-weight: 400;
-  padding: 17px 20px;
+  color: #2b1d10;
+  font-weight: 600;
+  background: #d9ebf2cc;
+  border: 0;
 }
-.workspace-page,
-.portfolio-paper > .intro,
-.portfolio-paper > .panel,
-.portfolio-paper > .usage-page {
-  margin: 32px;
-}
-.workspace-page .portfolio-content {
-  padding: 0;
-}
-.portfolio-layout {
-  grid-template-columns: 236px minmax(0, 1fr);
-  gap: 0;
-  min-height: calc(100vh - 145px);
-}
-.portfolio-layout .portfolio-sidebar {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  min-width: 0;
-  padding: 28px 18px 22px;
-  background: #f3efdf88;
-  border-right: 1px solid var(--line);
-}
-.portfolio-sidebar h2 {
-  padding: 0 8px;
-  font:
-    700 11px/1.5 "Barlow",
-    sans-serif;
-  letter-spacing: 1.6px;
-  margin: 0 0 17px;
-}
-.portfolio-layout .portfolio-sidebar a {
-  position: relative;
-  min-height: 48px;
-  margin-bottom: 7px;
-  gap: 11px;
-  padding: 12px;
-  border: 1px solid transparent;
-  font-size: 15px;
-  line-height: 1.3;
-  color: #5b584a;
-}
-.portfolio-layout .portfolio-sidebar a:hover {
-  background: #ecebdc;
-}
-.portfolio-layout .portfolio-sidebar a[aria-current="page"] {
-  background: #e7eed5;
-  color: #2f5524;
-  border-color: #d2dfb7;
-}
-.portfolio-sidebar a[aria-current="page"]::before {
-  content: "";
-  position: absolute;
-  left: -1px;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  border-radius: 6px 0 0 6px;
-  background: #497b35;
-}
-.portfolio-sidebar a span {
-  min-width: 0;
-}
-.portfolio-sidebar .new-portfolio {
-  min-height: 46px;
-  margin-top: 7px;
-  justify-content: flex-start;
-  padding-left: 17px;
-  gap: 11px;
-}
-.tracking-note {
-  display: flex;
-  gap: 9px;
-  align-items: flex-start;
-  margin: auto 6px 0;
-  padding-top: 24px;
-  color: var(--muted);
-  font-size: 13px;
-}
-.tracking-note svg {
-  margin-top: 3px;
-}
-.tracking-note p {
-  margin: 0;
-  line-height: 1.5;
-}
-.tracking-note span {
-  display: block;
-  font-size: 12px;
-}
-.portfolio-content {
-  min-width: 0;
-  padding: 28px clamp(24px, 3vw, 48px) 32px;
-}
-.page-title {
-  margin-bottom: 24px;
-  gap: 22px;
-}
-.page-title > div {
-  min-width: 0;
-}
-.page-title > button {
-  flex-shrink: 0;
-  align-self: center;
-  padding: 11px 20px;
-  min-height: 46px;
-}
-.page-title .portfolio-breadcrumb {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 16px;
-  font-size: 13px;
-  color: #696456;
-}
-.portfolio-title-row {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-  min-width: 0;
-}
-.portfolio-title-row h1 {
-  font-size: clamp(26px, 2.7vw, 40px);
-  line-height: 1.25;
-  letter-spacing: -0.8px;
-  margin: 0 0 7px;
-  overflow-wrap: anywhere;
-  min-width: 0;
-}
-.portfolio-title-row .action-menu {
-  flex-shrink: 0;
-  margin-bottom: 7px;
-}
-.page-title p {
-  color: var(--muted);
-  font-size: 16px;
-}
-.market-note {
-  min-height: 54px;
-  padding: 12px 16px;
-  border: 1px solid #e9cd91;
-  background: #fcf2d9;
-  color: #6d592f;
-  margin-bottom: 20px;
-  gap: 13px;
-  font-size: 14px;
-  line-height: 1.45;
-}
-.market-note strong {
-  color: #4e3c1c;
-  margin-right: 9px;
-}
-.market-note .pause-icon {
-  box-sizing: content-box;
-  padding: 5px;
-  background: #a97618;
-  border-radius: 50%;
-  color: #fff;
-}
-.market-note-detail {
-  margin-left: auto;
-  font-size: 12px;
-  text-align: right;
-}
-.panel {
-  border-color: var(--line);
-  border-radius: 8px;
-  box-shadow: 0 2px 5px #44362008;
-}
-.editor {
-  border-color: #a8bb8d;
-}
-.summary {
-  gap: 0;
-  border: 1px solid #d9cfb8;
-  border-radius: 8px;
-  margin-bottom: 26px;
+.panel,
+.summary > div {
+  border: 2px solid #d6c298;
+  border-radius: 5px;
   background: var(--card);
+  box-shadow:
+    0 3px 0 #cdb485,
+    0 7px 14px #5a3a1a1f;
 }
 .summary > div {
-  display: block;
-  border: 0;
-  border-right: 1px solid var(--line);
-  border-radius: 0;
-  background: transparent;
-  padding: 22px 25px;
-  min-width: 0;
+  background: var(--green-bg);
+  border-color: var(--green-line);
+  box-shadow: 0 3px 0 #aac98b;
 }
-.summary > div:first-child {
-  border-radius: 7px 0 0 7px;
-}
-.summary > div:last-child {
-  border: 0;
-}
-.summary > .featured-metric {
-  background: #eef3df;
-}
-.summary dt {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 7px;
-  margin-bottom: 14px;
-  color: #625f50;
-  text-transform: uppercase;
-  font-size: 11px;
+.summary dd,
+.holding-metrics dd {
   font-weight: 700;
-  letter-spacing: 0.65px;
-  min-height: 26px;
 }
-.estimate-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 8px;
-  border: 1px solid #c5d6a8;
-  border-radius: 20px;
-  font-size: 11px;
-  line-height: 1.3;
-  font-weight: 500;
-  text-transform: none;
-  letter-spacing: 0;
-  color: #486b31;
+.editor {
+  border-color: #728b50;
 }
-.estimate-badge::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #6a854b;
-  flex-shrink: 0;
+.portfolio-layout aside a {
+  margin-bottom: 5px;
+  border: 1px solid transparent;
 }
-.summary dd {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  column-gap: 7px;
-  row-gap: 3px;
-  font-size: clamp(27px, 2.8vw, 43px);
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -1px;
-  text-align: left;
-  overflow-wrap: anywhere;
+.portfolio-layout aside a[aria-current="page"] {
+  border-color: var(--green-line);
+  box-shadow: inset 0 1px 0 #fff8;
 }
-.summary dd small {
-  font-size: 15px;
-  font-weight: 500;
-  margin: 0;
+.notice,
+.market-note {
+  border-width: 2px;
+  box-shadow: inset 0 0 0 2px #fffaeb;
+  border-radius: 4px;
 }
-.summary .metric-exact {
-  display: block;
-  flex-basis: 100%;
-  font-size: 16px;
-  font-weight: 500;
-  color: #625f50;
-  letter-spacing: 0;
-  margin-top: 5px;
+.intro {
+  padding: 38px 12px;
 }
-.summary .return-badge {
-  align-self: center;
-  margin-left: auto;
-  padding: 5px 8px;
-  font-size: 13px;
-  line-height: 1.3;
-  letter-spacing: 0;
-  border-radius: 6px;
-  background: #e5efdc;
+.intro h1 {
+  font-size: clamp(32px, 3.8vw, 52px);
 }
-.summary .loss .return-badge {
-  background: #f8e2d8;
-}
-.summary .unavailable-value {
-  font-size: 25px;
-  letter-spacing: -0.5px;
-  color: var(--muted);
-}
-.gain {
-  color: #3c7338;
-}
-.loss {
-  color: #ac4c3b;
-}
-.holding-toolbar {
-  margin: 26px 0 15px;
-  gap: 10px;
-}
-.holding-toolbar h2 {
-  display: flex;
-  gap: 9px;
-  align-items: center;
-  font-size: 23px;
-  letter-spacing: -0.3px;
-}
-.holding-toolbar h2 span {
-  display: grid;
-  place-items: center;
-  min-width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: #e9efda;
-  color: #4f7036;
-  padding: 3px 8px;
-  font-size: 13px;
-  margin: 0;
-}
-.holdings-count {
-  font-size: 13px;
-  color: var(--muted);
-}
-.holding {
-  padding: 20px 22px 16px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 5px #4436200c;
-}
-.holding-top {
-  gap: 20px;
-}
-.asset-title {
-  gap: 16px;
-}
-.asset-title > div {
-  min-width: 0;
-}
-.asset-name {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 7px 12px;
-  margin-bottom: 4px;
-}
-.asset-title h3 {
-  margin: 0;
-  font-size: 21px;
-  line-height: 1.25;
-}
-.asset-title .muted {
-  font-size: 14px;
-}
-.market-badge {
-  padding: 3px 10px;
-  border-radius: 5px;
-  background: #f0ebdc;
-  font-size: 12px;
-  color: #655e4c;
-  white-space: nowrap;
+.intro-art {
+  background: radial-gradient(ellipse, #e8d19966, transparent 68%);
 }
 .holding-art {
   display: grid;
   place-items: center;
-  width: 68px;
-  height: 68px;
+  width: 76px;
+  height: 66px;
   flex-shrink: 0;
-  border: 1px solid #27212d;
-  border-radius: 5px;
+  border: 2px solid #17131f;
+  border-radius: 3px;
   background: radial-gradient(
     ellipse at 50% 85%,
-    #635034,
-    #282332 50%,
-    #14151e
+    #8c6932 0%,
+    #302333 52%,
+    #14151e 100%
   );
+  box-shadow: inset 0 0 0 2px #fff1;
 }
 .holding-art .item-art {
-  width: 54px;
-  height: 54px;
-  object-fit: contain;
-  image-rendering: pixelated;
-  filter: drop-shadow(0 3px 2px #0009);
-}
-.holding-return {
-  min-width: 0;
-  gap: 3px;
-}
-.holding-return strong {
-  font-size: 20px;
-  line-height: 1.3;
-  font-weight: 700;
-  overflow-wrap: anywhere;
-}
-.holding-return span {
-  font-size: 12px;
-}
-.holding-metrics {
-  margin: 16px 0 18px;
-  padding: 20px 0 0;
-  border-top-color: var(--line);
-  border-bottom: 0;
-  gap: 0;
-}
-.holding-metrics > div {
-  min-width: 0;
-  padding: 0 18px;
-  border-left: 1px solid var(--line);
-}
-.holding-metrics > div:first-child {
-  padding-left: 8px;
-  border: 0;
-}
-.holding-metrics dt {
-  font-size: 13px;
-  color: var(--muted);
-  margin-bottom: 6px;
-}
-.holding-metrics dd {
-  font-weight: 700;
-  font-size: clamp(17px, 1.65vw, 23px);
-  line-height: 1.25;
-}
-.holding-metrics dd small {
-  font-size: 12px;
-  font-weight: 400;
-}
-.valuation-details {
-  background: #f6f3e9;
-  border: 1px solid #e8dfcc;
-  border-radius: 6px;
-  padding: 0 14px;
-  font-size: 13px;
-}
-.valuation-details summary {
-  padding: 12px 0;
-  color: #534f41;
-}
-.valuation-details summary > span:first-child {
-  margin-left: 8px;
-  font-weight: 600;
-}
-.valuation-details .reference {
-  float: right;
-  max-width: 70%;
-  font-size: 12px;
-  margin: 1px 0 0 14px;
-  color: var(--muted);
-}
-.valuation-details summary::after {
-  content: "";
-  display: block;
-  clear: both;
-}
-.valuation-details p {
-  margin: 10px 0 14px;
-}
-.valuation-details .sample {
-  font-size: 12px;
-}
-.holding-bottom {
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top-color: var(--line);
-  gap: 12px;
-}
-.holding-notification {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px 16px;
-  min-width: 0;
-}
-.notification-status {
-  font-size: 12px;
-  gap: 9px;
-  color: var(--muted);
-  overflow-wrap: anywhere;
-}
-.holding-notification .text-action {
-  color: var(--green);
-  border: 0;
-  border-left: 1px solid var(--line);
-  border-radius: 0;
-  padding: 7px 0 7px 16px;
-  font-size: 13px;
-}
-.holding-bottom .actions {
-  gap: 9px;
-  align-items: center;
-  margin-left: auto;
-}
-.holding-bottom .actions > button {
-  min-height: 42px;
-  font-size: 14px;
-  padding: 8px 19px;
-}
-.holding-bottom .purchase-action {
-  color: var(--green);
-  border-color: #6e8d53;
-}
-.estimate-note {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 18px 0 0;
-  padding-top: 14px;
-  border-top: 1px solid var(--line);
-  color: var(--muted);
-  font-size: 12px;
-}
-.action-menu {
-  position: relative;
-}
-.action-menu .action-menu-trigger {
-  min-width: 42px;
-  min-height: 42px;
-  padding: 8px;
-}
-.action-menu-panel {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 6px);
-  min-width: 175px;
-  padding: 5px;
-  border: 1px solid #d3c5a9;
-  border-radius: 8px;
-  background: var(--card);
-  box-shadow: 0 8px 24px #3d311b26;
-  z-index: 6;
-}
-.action-menu-panel:not([hidden]) {
-  display: grid;
-}
-.action-menu-panel button {
-  justify-content: flex-start;
-  padding: 10px 12px;
-  font-size: 14px;
-  border: 0;
-  border-radius: 4px;
-  min-height: 42px;
-  text-align: left;
-  white-space: nowrap;
-}
-.portfolio-app .destructive-action {
-  color: #9e4032;
-}
-.portfolio-title-row .action-menu-panel {
-  left: 0;
-  right: auto;
-}
-.confirm:focus {
-  outline: 2px solid #b07852;
-  outline-offset: 3px;
+  width: 56px;
+  height: 56px;
+  filter: drop-shadow(0 3px 2px #000a);
 }
 .sky-icon {
   flex-shrink: 0;
   pointer-events: none;
 }
-@media (min-width: 1450px) {
-  .summary {
-    grid-template-columns: 1.1fr 0.95fr 1fr;
-  }
-}
-@media (max-width: 1250px) {
-  .tagline-sign {
-    display: none;
-  }
+@media (max-width: 1200px) {
   .market-header-inner {
-    gap: 16px;
-    padding-inline: 22px;
-  }
-  .summary > div {
-    padding: 18px;
-  }
-  .summary dt {
-    min-height: 50px;
-    align-content: flex-start;
-  }
-}
-@media (max-width: 1000px) {
-  .market-header-inner {
-    flex-wrap: wrap;
-    gap: 10px 20px;
-  }
-  .header-signs {
-    margin-left: auto;
+    grid-template-areas: "brand signs" "tag tag" "tabs tabs";
   }
   .market-tabs {
-    order: 3;
-    width: 100%;
-    justify-content: center;
-    border-top: 1px solid var(--line);
-    padding-top: 8px;
-  }
-  .portfolio-layout {
-    grid-template-columns: 190px minmax(0, 1fr);
-  }
-  .portfolio-layout .portfolio-sidebar {
-    padding-inline: 12px;
-  }
-  .portfolio-content {
-    padding: 24px 22px;
-  }
-  .market-note-detail {
-    display: none;
-  }
-  .summary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .summary > .featured-metric:first-child {
-    grid-column: 1 / -1;
-    border: 0;
-    border-bottom: 1px solid var(--line);
-    border-radius: 7px 7px 0 0;
-  }
-  .summary dt {
-    min-height: 0;
-    margin-bottom: 10px;
-  }
-  .summary dd {
-    font-size: 29px;
-  }
-  .summary .metric-exact {
-    font-size: 14px;
-  }
-  .holding-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    row-gap: 20px;
-  }
-  .holding-metrics > div:nth-child(odd) {
-    border-left: 0;
-    padding-left: 8px;
-  }
-  .holding-top {
-    flex-wrap: wrap;
-  }
-  .holding-return {
-    text-align: left;
-  }
-  .valuation-details .reference {
-    float: none;
-    display: block;
-    max-width: none;
-    margin: 5px 0 0 20px;
-  }
-  .page-title {
-    align-items: flex-start;
-    flex-wrap: wrap;
-  }
-  .page-title > button {
-    align-self: auto;
-  }
-  .holding-notification .text-action {
-    border: 0;
-    padding-left: 0;
-  }
-}
-@media (max-width: 700px) {
-  .portfolio-app {
-    border-top-width: 8px;
-  }
-  .market-header-inner {
-    padding: 14px 16px 8px;
-    gap: 12px;
+    justify-content: flex-start;
+    margin-top: 8px;
   }
   .brand-word {
-    font-size: 21px;
+    font-size: 48px;
   }
-  .brand-gem {
-    width: 28px;
-    height: 28px;
+  .header-signs {
+    gap: 9px;
   }
-  .private-account {
+  .server-tag {
     display: none;
   }
-  .account-button {
-    font-size: 12px;
-    padding: 7px 9px;
+}
+@media (max-width: 760px) {
+  .market-header {
+    padding: 0 8px;
+  }
+  .market-header-inner {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "brand" "tag" "signs" "tabs";
+    gap: 0;
+    padding-top: 18px;
+  }
+  .portfolio-app .market-brand {
+    justify-self: center;
+    gap: 9px;
+    padding: 7px 14px 8px 10px;
+    border-width: 3px;
+    max-width: 100%;
+  }
+  .market-brand .brand-gem {
+    width: 48px;
+    height: 48px;
+    margin: -6px -4px -6px -2px;
+  }
+  .brand-word {
+    font-size: clamp(24px, 8.4vw, 40px);
+    filter: drop-shadow(2px 0 0 #3a2208) drop-shadow(-2px 0 0 #3a2208)
+      drop-shadow(0 2px 0 #3a2208) drop-shadow(0 -2px 0 #3a2208)
+      drop-shadow(0 3px 0 #1f1005);
+  }
+  .market-brand::before,
+  .market-brand::after {
+    top: -18px;
+    height: 18px;
+    width: 5px;
+  }
+  .tagline-sign {
+    justify-self: center;
+    margin: 14px 0 0;
+    padding: 6px 16px 8px;
+    font-size: clamp(16px, 5vw, 22px);
+  }
+  .header-signs {
+    margin: 12px 6px;
+  }
+  .lantern {
+    display: none;
+  }
+  .portfolio-app .account-button {
+    margin: 0;
     min-height: 40px;
+    padding: 0 12px;
+    font-size: 12px;
   }
   .market-tabs {
-    gap: 2px;
-    padding-top: 8px;
-  }
-  .market-tabs > a {
-    flex: 1;
-    gap: 5px;
-    padding: 7px 5px;
-    font-size: 12px;
-  }
-  .market-tabs > a svg {
-    width: 15px;
-    height: 15px;
-  }
-  .portfolio-layout {
-    display: block;
-    min-height: auto;
-  }
-  .portfolio-layout .portfolio-sidebar {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 9px 12px;
-    padding: 16px;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-  }
-  .portfolio-sidebar h2 {
-    grid-column: 1 / -1;
+    gap: 4px;
     margin: 0;
     padding: 0;
-    font-size: 10px;
   }
-  .portfolio-sidebar nav {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+  .market-tabs > a {
+    flex: 1 1 0;
     min-width: 0;
-  }
-  .portfolio-layout .portfolio-sidebar a {
-    margin: 0;
-    padding: 9px 10px;
-    min-height: 44px;
-    max-width: 100%;
-    font-size: 13px;
-  }
-  .portfolio-sidebar a svg {
-    width: 17px;
-    height: 17px;
-  }
-  .portfolio-sidebar .new-portfolio {
-    margin: 0;
-    align-self: start;
-    min-height: 44px;
-    padding: 9px 11px;
+    flex-direction: column;
+    gap: 4px;
+    height: 64px;
+    padding: 0 4px;
     font-size: 12px;
-    gap: 5px;
+    border-width: 2px;
   }
-  .tracking-note {
+  .market-tabs .tab-icon {
+    width: 30px;
+    height: 30px;
+    margin: -4px 0 -2px;
+  }
+  .market-tabs > .active::after {
+    bottom: -11px;
+    width: 22px;
+    height: 12px;
+  }
+  .portfolio-frame {
+    padding: 7px;
+  }
+  .portfolio-frame::before,
+  .portfolio-frame::after,
+  .market-header::before,
+  .market-header::after {
     display: none;
   }
-  .portfolio-content {
-    padding: 23px 16px;
+  .portfolio-paper {
+    padding: 18px 12px;
   }
-  .workspace-page,
-  .portfolio-paper > .intro,
-  .portfolio-paper > .panel,
-  .portfolio-paper > .usage-page {
-    margin: 23px 16px;
+  .portfolio-app .panel {
+    padding: 16px 12px;
   }
-  .portfolio-paper > .notice,
-  .portfolio-paper > .error {
-    margin: 16px;
-  }
-  .page-title {
-    flex-direction: row;
-    gap: 14px;
-    margin-bottom: 19px;
-  }
-  .page-title > div {
-    width: 100%;
-  }
-  .page-title > button {
-    align-self: auto;
-    padding: 9px 15px;
-    min-height: 44px;
-  }
-  .portfolio-title-row h1 {
-    font-size: 27px;
-  }
-  .portfolio-title-row {
-    justify-content: space-between;
-    gap: 10px;
-  }
-  .portfolio-title-row .action-menu-panel {
-    left: auto;
-    right: 0;
-  }
-  .page-title .portfolio-breadcrumb {
-    margin-bottom: 10px;
+  .portfolio-app main button {
     font-size: 12px;
+    padding: 8px 10px;
+    min-height: 42px;
   }
-  .page-title p {
-    font-size: 14px;
-  }
-  .market-note {
-    flex-direction: row;
+  .portfolio-heading {
     align-items: flex-start;
-    gap: 10px;
-    padding: 12px;
-    font-size: 13px;
-    margin-bottom: 16px;
-  }
-  .market-note .pause-icon {
-    margin-top: 3px;
-  }
-  .market-note strong,
-  .market-note div > span {
-    display: block;
-  }
-  .summary {
-    gap: 0;
-    margin-bottom: 20px;
-  }
-  .summary > div {
-    display: block;
-    padding: 16px;
-  }
-  .summary dt {
-    font-size: 10px;
-    gap: 6px;
   }
   .summary dd {
-    font-size: 26px;
-    text-align: left;
-    letter-spacing: -0.6px;
+    font-size: 22px;
   }
-  .summary dd small {
-    font-size: 12px;
+  .holding-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 10px;
   }
-  .summary .featured-metric dd {
-    font-size: 36px;
-  }
-  .summary .metric-exact {
-    font-size: 12px;
-    overflow-wrap: anywhere;
-  }
-  .summary .return-badge {
-    font-size: 11px;
-    margin-left: 0;
-  }
-  .summary .unavailable-value {
-    font-size: 19px;
-  }
-  .holding-toolbar {
-    margin: 22px 0 13px;
-  }
-  .holding-toolbar h2 {
-    font-size: 21px;
-  }
-  .holdings-count {
-    font-size: 12px;
-  }
-  .holding {
-    padding: 16px;
-  }
-  .holding-top {
-    gap: 15px;
-  }
-  .holding-art {
-    width: 54px;
-    height: 54px;
-  }
-  .holding-art .item-art {
-    width: 44px;
-    height: 44px;
-  }
-  .asset-title {
-    gap: 12px;
-  }
-  .asset-title h3 {
-    font-size: 19px;
-  }
-  .asset-title .muted {
-    font-size: 12px;
-  }
-  .market-badge {
-    font-size: 10px;
-    padding: 2px 7px;
+  .holding-metrics dd {
+    font-size: 14px;
   }
   .holding-return {
     margin-left: 0;
   }
-  .holding-return strong {
-    font-size: 18px;
+  .holding-art {
+    width: 60px;
+    height: 60px;
   }
-  .holding-metrics {
-    padding-top: 17px;
-    gap: 18px 0;
+  .holding-art .item-art {
+    width: 50px;
+    height: 50px;
   }
-  .holding-metrics > div {
-    padding: 0 10px;
-  }
-  .holding-metrics > div:nth-child(odd) {
-    padding-left: 0;
-  }
-  .holding-metrics dt {
-    font-size: 12px;
-  }
-  .holding-metrics dd {
-    font-size: 17px;
-  }
-  .holding-metrics dd small {
-    font-size: 11px;
-  }
-  .valuation-details {
-    padding: 0 10px;
-  }
-  .valuation-details .reference {
-    font-size: 11px;
-  }
-  .holding-bottom {
+  .asset-title {
     gap: 10px;
-  }
-  .holding-notification {
-    width: 100%;
-    justify-content: space-between;
-    gap: 4px;
-  }
-  .holding-notification .text-action {
-    font-size: 12px;
-  }
-  .notification-status {
-    font-size: 11px;
-    gap: 6px;
-  }
-  .holding-bottom .actions {
-    width: 100%;
-    margin: 0;
-    gap: 8px;
-  }
-  .holding-bottom .actions > button {
-    flex: 1;
-    font-size: 13px;
-    padding: 8px 10px;
-    min-height: 44px;
-  }
-  .action-menu .action-menu-trigger {
-    min-height: 44px;
-    min-width: 44px;
   }
   .intro {
     padding: 12px 0;
   }
   .intro h1 {
-    font-size: 34px;
+    font-size: 32px;
   }
   .intro-art {
-    min-height: 200px;
-  }
-}
-@media (max-width: 380px) {
-  .portfolio-layout .portfolio-sidebar {
-    grid-template-columns: 1fr;
-  }
-  .portfolio-sidebar .new-portfolio {
-    justify-self: start;
-  }
-  .market-tabs > a {
-    flex-direction: column;
-    font-size: 11px;
-    gap: 3px;
-  }
-  .brand-word {
-    font-size: 19px;
-  }
-  .summary > div {
-    padding: 13px;
-  }
-  .summary dd {
-    font-size: 23px;
+    min-height: 190px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
