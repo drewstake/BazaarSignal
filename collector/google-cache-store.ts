@@ -2,6 +2,14 @@ import { randomUUID } from "node:crypto";
 import type { Firestore, DocumentSnapshot } from "firebase-admin/firestore";
 import type { CacheStore } from "./cache-store";
 import { decodeInlineSnapshot, encodeInlineSnapshot, inlineSnapshotLimits } from './inline-snapshot';
+import { errorDiagnostic, type DiagnosticReporter } from './diagnostics';
+
+export interface GoogleStoreRetries {
+  wait?: (ms: number) => Promise<unknown>;
+  random?: () => number;
+  assertOpen?: () => void;
+  report?: DiagnosticReporter;
+}
 
 export interface SnapshotBlobs {
   put(name: string, value: string): Promise<void>;
@@ -31,6 +39,7 @@ export class GoogleCacheStore implements CacheStore {
     readonly collection = "marketCache",
     readonly readCacheMs = 0,
     readonly inlineSmallSnapshots = false,
+    private retries: GoogleStoreRetries = {},
   ) {}
   private ref(key: string) {
     if (!/^[a-z-]+$/.test(key)) throw new Error("Invalid cache key");
@@ -72,6 +81,32 @@ export class GoogleCacheStore implements CacheStore {
     finally { this.inflight.delete(key); }
   }
   async commit(
+    key: string,
+    expected: string | null,
+    value: string,
+    payload?: { key: string; value: string },
+  ) {
+    for (let attempt = 0; ; attempt++) {
+      this.retries.assertOpen?.();
+      try { return await this.commitOnce(key, expected, value, payload); }
+      catch (error) {
+        const { code, message } = error as { code?: number; message?: string };
+        // Only explicit resource rejections are retried. Never replay an
+        // ambiguous timeout/5xx, or keep hammering an exhausted quota.
+        const retryable = (code === 8 || code === 429) && !/quota/i.test(message ?? '');
+        const retry = retryable && attempt < 2;
+        const delayMs = retry ? Math.floor(250 * 2 ** attempt * (1 + (this.retries.random ?? Math.random)())) : 0;
+        this.retries.report?.({ event: retry ? 'firestore_retry' : 'firestore_operation_failed',
+          severity: retry ? 'WARNING' : 'ERROR', operation: 'commit', key, attempt: attempt + 1,
+          at: Date.now(), ...(retry ? { delayMs } : {}), ...errorDiagnostic(error) });
+        if (!retry) throw error;
+        await (this.retries.wait ?? (ms => new Promise(resolve => setTimeout(resolve, ms))))(delayMs);
+        // commitOnce clears its read version/cache even on failure. A new read
+        // rechecks expected state and the lease before another atomic publish.
+      }
+    }
+  }
+  private async commitOnce(
     key: string,
     expected: string | null,
     value: string,

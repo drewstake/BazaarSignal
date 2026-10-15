@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { emptyAdmin } from "../../shared/admin";
+import { BILLING_ACCOUNT_ID, BILLING_INTERVAL_START, BILLING_SUBSCRIPTION } from '../../shared/paid-spending';
 // Admin times stay in fixed EST even for a viewer outside Eastern time.
 test.use({ timezoneId: "Asia/Tokyo" });
 async function signIn(page: Page, email: string) {
@@ -57,6 +58,32 @@ const report = () => {
   return r;
 };
 
+test('actual Google spending drives the budget display even above the old reserve stop', async ({ page }, info) => {
+  const snapshot = report(), publishedAt = Date.now() - 3600000;
+  snapshot.pilot!.reservedUsd = 5.3;
+  snapshot.pilot!.billing = {
+    accountId: BILLING_ACCOUNT_ID, budgetId: 'test-budget', subscription: BILLING_SUBSCRIPTION,
+    intervalStart: BILLING_INTERVAL_START, scope: 'BazaarSignal market project · after credits',
+    latest: { actualUsd: 0, publishedAt, receivedAt: Date.now(), intervalStart: BILLING_INTERVAL_START },
+  };
+  snapshot.billing = { actualUsd: 0, measuredAt: publishedAt, reason: 'Google-reported net cost after credits.', sourceUrl: 'https://console.cloud.google.com/billing' };
+  await page.route('**/macros/s/portfolio-emulator/exec', route => route.fulfill({ json: { ok: true, data: snapshot } }));
+  await page.goto('/#view=admin');
+  await signIn(page, 'drewstake3@gmail.com');
+  await expect(page.getByText('Active paid pilot', { exact: true })).toBeVisible();
+  const cards = page.locator('.admin-cards').first();
+  await expect(cards.locator('article').nth(0)).toContainText('$0.00');
+  await expect(cards.locator('article').nth(1)).toContainText('no longer triggers a spending pause');
+  await expect(cards.locator('article').nth(3)).toContainText('$4.50');
+  await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '0');
+  await expect(page.getByRole('progressbar')).toHaveAttribute('aria-label', 'Reported Google spending toward pause limit');
+  await expect(page.getByText('Connect spending data', { exact: true })).toHaveCount(0);
+  await page.getByText('How this reserve is calculated', { exact: true }).click();
+  await expect(cards.locator('article').nth(1)).toContainText('$1.00 fixed safety buffer + $4.30');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: `.local/actual-spending-${info.project.name}.png`, fullPage: true });
+});
+
 test("owner-only Admin, legacy Usage redirect, private response lifecycle and mobile layout", async ({
   page,
 }, info) => {
@@ -98,11 +125,11 @@ test("owner-only Admin, legacy Usage redirect, private response lifecycle and mo
   await expect(page.locator(".admin-cards").first()).toContainText("$1.012");
   await expect(page.locator(".admin-cards").first()).toContainText("$3.488");
   await expect(
-    page.getByRole("link", { name: "Billing export setup" }),
+    page.getByRole("link", { name: "Google billing notification timing" }),
   ).toBeHidden();
-  await page.getByText("Connect spending data", { exact: true }).click();
+  await page.getByText("About Google spending updates", { exact: true }).click();
   await expect(
-    page.getByRole("link", { name: "Billing export setup" }),
+    page.getByRole("link", { name: "Google billing notification timing" }),
   ).toBeVisible();
   await expect(page.getByText("Popular pages", { exact: true })).toBeVisible();
   expect(calls).toBe(1);

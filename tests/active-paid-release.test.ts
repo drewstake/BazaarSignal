@@ -7,6 +7,18 @@ import { verifyReleasePlan, releaseLedgerKey, verifyPaidReleaseBudget, verifyPai
 const now = Date.parse('2026-10-14T00:10:00Z');
 const root = 'projects/bazaarsignal-510305/locations/us-central1';
 const hash = (v: string) => createHash('sha256').update(v).digest('hex');
+it('admits releases above the reservation threshold only with verified actual spending below the stop', () => {
+  const b = budget(); b.reservedUsd = 6;
+  b.billing = { accountId: '012803-EA91BE-8DCD32', budgetId: 'test-budget',
+    subscription: 'projects/bazaarsignal-510305/subscriptions/bazaar-paid-spend-october',
+    scope: 'BazaarSignal', intervalStart: Date.parse('2026-10-01T07:00:00Z'),
+    latest: { actualUsd: 0, publishedAt: now - 60000, receivedAt: now, intervalStart: Date.parse('2026-10-01T07:00:00Z') } };
+  expect(() => verifyPaidReleaseBudget(plan(), b, now)).not.toThrow();
+  b.billing.latest.actualUsd = 4.5;
+  expect(() => verifyPaidReleaseBudget(plan(), b, now)).toThrow();
+  delete b.billing.latest;
+  expect(() => verifyPaidReleaseBudget(plan(), b, now)).toThrow();
+});
 const legacy = '{"id":"free-20261001","stoppedAt":123,"monthlyReserved":{"cpuSeconds":10140}}';
 const receipt = { imageDigest: `sha256:${'a'.repeat(64)}`, applicationOnly: true, localRuntimeSmokeVerified: true,
   requiredBaseImage: 'us-central1-docker.pkg.dev/serverless-runtimes/google-24-full/runtimes/nodejs24', cloudBuildMinutes: 0,

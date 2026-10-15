@@ -18,6 +18,7 @@ import {
 import { backoff, defaultPolicy, type MarketPolicy } from "./policy";
 import { TrialStopped } from "./trial";
 import { SnapshotReadCache } from "./snapshot-read-cache";
+import { errorDiagnostic, type DiagnosticReporter } from './diagnostics';
 export interface Snapshot<T> {
   version: string;
   upstreamAt: number;
@@ -55,6 +56,7 @@ export class MarketCollector {
     private measure: CollectorMeasurement = () => {},
     private refreshAlignmentMs = 0,
     private snapshots = new SnapshotReadCache(),
+    private report?: DiagnosticReporter,
   ) {
     this.coordinator = new Coordinator(store, policy, now, random);
     this.now = this.coordinator.now;
@@ -285,6 +287,8 @@ export class MarketCollector {
         unchanged ? `${key}SnapshotsUnchanged` : `${key}SnapshotsPublished`,
       );
     } catch (e) {
+      this.report?.({ event: 'collection_failed', severity: 'ERROR', job: key,
+        at: this.now(), durationMs: this.now() - started, ...errorDiagnostic(e) });
       if (e instanceof TrialStopped) throw e;
       this.measure(`${key}RefreshesFailed`);
       await this.coordinator.change((c) => {

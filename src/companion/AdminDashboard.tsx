@@ -87,6 +87,8 @@ export default function AdminDashboard({ user }: { user: User }) {
     u = data?.users,
     t = data?.traffic;
   const status = data ? pilotStatus(data, now) : "Checking access";
+  const actualSpend = p?.billing?.latest;
+  const pauseAmount = actualSpend?.actualUsd ?? p?.reservedUsd;
   const measured = (at: number | null | undefined) => (
     <small className="admin-measured">
       Measured {date(at)}
@@ -206,83 +208,122 @@ export default function AdminDashboard({ user }: { user: User }) {
             </details>
           </section>
           <div className="admin-section-heading">
-            <h2>Spending &amp; safeguards</h2>
+            <h2>Google billing &amp; app safety limits</h2>
             <span>USD · October pilot</span>
           </div>
           <div className="admin-cards">
             <article>
               <span>Actual Google charges</span>
               <strong>{money(data.billing.actualUsd)}</strong>
-              <p>{data.billing.reason}</p>
+              <p>{!p?.billing && data.billing.actualUsd == null
+                ? 'No Google spending reading in this saved report. Updated billing details appear with the next daily snapshot.'
+                : data.billing.reason}</p>
+              <p>
+                Google Billing reports costs minus savings and credits. The app
+                safety reserve below does not measure money spent.
+              </p>
+              {data.billing.measuredAt != null && measured(data.billing.measuredAt)}
+              {actualSpend && (
+                <p>
+                  Spending pause: {money(p?.stopUsd)} in reported net cost.
+                  Billing delays can allow charges beyond this threshold.
+                  {now - actualSpend.publishedAt > 86400000 && ' Billing update overdue; last reported cost retained.'}
+                </p>
+              )}
               <a href={data.billing.sourceUrl} target="_blank" rel="noreferrer">
                 Open Google Billing <ArrowUpRight size={13} />
               </a>
               <details>
-                <summary>Connect spending data</summary>
+                <summary>About Google spending updates</summary>
                 <p>
-                  Use an existing Cloud Billing cost export with read access and
-                  a bounded query budget. Google charges can arrive late;
-                  reservations are never substituted for billing records. No
-                  export or paid analytics service is enabled here.
+                  The collector checks Google billing notifications hourly. Google
+                  publishes net cost updates several times a day, after credits.
+                  This dashboard shows the saved daily reading and its original
+                  publication time. An unavailable reading is never treated as $0.
                 </p>
                 <a
-                  href="https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-setup"
+                  href="https://docs.cloud.google.com/billing/docs/how-to/budgets-programmatic-notifications"
                   target="_blank"
                   rel="noreferrer"
                 >
-                  Billing export setup
+                  Google billing notification timing
                 </a>
               </details>
             </article>
             <article>
-              <span>Estimated costs reserved</span>
+              <span>App safety reserve</span>
               <strong>{money(p?.reservedUsd)}</strong>
               <p>
-                Conservative gross-cost holds, including the $1 fixed reserve.
-                Failed or uncertain work keeps its reservation.
+                {actualSpend
+                  ? 'Historical conservative accounting only. This amount no longer triggers a spending pause.'
+                  : 'Internal allowance used until a Google spending feed is verified.'}{' '}
+                No money is charged or held by Google for this reserve.
               </p>
+              <details>
+                <summary>How this reserve is calculated</summary>
+                {p && p.reservedUsd >= 1 && (
+                  <p>
+                    $1.00 fixed safety buffer + {money(p.reservedUsd - 1)} in
+                    operation and deployment holds = {money(p.reservedUsd)}.
+                  </p>
+                )}
+                <p>
+                  Each admitted price check or browser request adds a hold for
+                  its maximum allowed resource use at gross rates. Deployment
+                  holds are included too. Holds stay in the ledger after work
+                  finishes, fails, or uses fewer resources than allowed. Google
+                  free allowances, savings, and credits are not subtracted.
+                </p>
+                <p>
+                  This reserve can grow while Google reports $0.00 total cost.
+                  Only Google billing records establish actual charges.
+                </p>
+              </details>
               {measured(p?.measuredAt)}
             </article>
             <article>
-              <span>Monthly budget target</span>
+              <span>Monthly app budget target</span>
               <strong>{money(p?.budgetUsd)}</strong>
               <p>
-                Application stops at {money(p?.stopUsd)} reserved. Google
-                billing is separate; this is not a provider invoice cap.
+                Application pauses at {money(p?.stopUsd)}{' '}
+                {actualSpend ? 'in Google-reported net spending, after credits.' : 'reserved until actual spending is connected.'}{' '}
+                This is not a provider invoice cap.
               </p>
               {p && (
                 <div
                   className="admin-budget-bar"
                   role="progressbar"
-                  aria-label="Application budget reserved"
+                  aria-label={actualSpend ? 'Reported Google spending toward pause limit' : 'App safety reserve toward pause limit'}
                   aria-valuemin={0}
                   aria-valuemax={p.stopUsd}
-                  aria-valuenow={Math.min(p.stopUsd, p.reservedUsd)}
-                  aria-valuetext={`${money(p.reservedUsd)} reserved of ${money(p.stopUsd)} application stop`}
+                  aria-valuenow={Math.max(0, Math.min(p.stopUsd, pauseAmount!))}
+                  aria-valuetext={`${money(pauseAmount)} ${actualSpend ? 'reported spending' : 'reserved'} of ${money(p.stopUsd)} pause threshold`}
                 >
                   <i
                     style={{
-                      width: `${Math.min(100, (100 * p.reservedUsd) / p.stopUsd)}%`,
+                      width: `${Math.max(0, Math.min(100, (100 * pauseAmount!) / p.stopUsd))}%`,
                     }}
                   />
                 </div>
               )}
             </article>
             <article>
-              <span>Remaining estimated headroom</span>
+              <span>{actualSpend ? 'Reported spending headroom' : 'App allowance before pause'}</span>
               <strong>
                 {p
-                  ? money(Math.max(0, p.stopUsd - p.reservedUsd))
+                  ? money(Math.max(0, p.stopUsd - pauseAmount!))
                   : "Unavailable"}
               </strong>
               <p>
-                Application stop minus reservations.{" "}
+                {p
+                  ? `${money(p.stopUsd)} pause limit − ${money(pauseAmount)} ${actualSpend ? 'reported net spending' : 'safety reserve'}.`
+                  : "Pause limit minus safety reserve."}{" "}
                 {p
                   ? `${money(p.budgetUsd - p.stopUsd)} stays outside the admission limit.`
                   : ""}{" "}
-                Actual unspent money is unknown.
+                {actualSpend ? 'Unreported charges may reduce this amount.' : 'This is room for more app activity, not an unspent Google balance.'}
               </p>
-              {measured(p?.measuredAt)}
+              {measured(actualSpend?.publishedAt ?? p?.measuredAt)}
             </article>
           </div>
           <div className="admin-section-heading">

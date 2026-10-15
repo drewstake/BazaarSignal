@@ -1,4 +1,5 @@
 import { USAGE_OWNER_EMAIL } from "./published-usage";
+import type { PaidBilling } from './paid-spending';
 
 export const ADMIN_CACHE_MS = 24 * 60 * 60_000;
 export const ADMIN_CLOCK_OFFSET = (12 * 60 + 10) * 60_000;
@@ -26,6 +27,7 @@ export interface AdminReport {
     reason: string | null;
     lastPriceCheck: number | null;
     priceError: string | null;
+    billing?: PaidBilling;
   } | null;
   scheduler: {
     measuredAt: number;
@@ -118,7 +120,7 @@ export function pilotStatus(report: AdminReport, now: number) {
     s = report.scheduler;
   if (!p) return "Unavailable";
   if (now >= p.expiresAt) return "Expired";
-  if (p.stoppedAt || p.reservedUsd >= p.stopUsd) return "Stopped";
+  if (p.stoppedAt || (p.billing?.latest ? p.billing.latest.actualUsd >= p.stopUsd : p.reservedUsd >= p.stopUsd)) return "Stopped";
   if (
     !s ||
     now - p.measuredAt >= ADMIN_CACHE_MS + 60 * 60_000 ||

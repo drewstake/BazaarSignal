@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { loadDeploymentAccounting, verifyDeploymentAccounting } from './deployment-accounting.mjs';
+import { validPaidBilling } from '../shared/paid-spending.ts';
 
 const project = 'bazaarsignal-510305';
 const root = `projects/${project}/locations/us-central1`;
@@ -42,7 +43,9 @@ export function verifyPaidReleaseBudget(plan, ledger, now = Date.now()) {
       ledger.expiresAt !== Date.parse(paidEnd) || now >= ledger.expiresAt || ledger.expiresAt <= ledger.startsAt ||
       ledger.expiresAt - ledger.startsAt > 32 * 86400000 || ledger.stoppedAt !== undefined || ledger.reason !== undefined ||
       ledger.limitUsd !== 5 || ledger.stopUsd !== 4.5 || !Number.isFinite(ledger.reservedUsd) ||
-      ledger.reservedUsd < 1 || ledger.reservedUsd > 4.5 || !counters(ledger.reserved) || !counters(ledger.observed) ||
+      ledger.reservedUsd < 1 || (ledger.billing && !validPaidBilling(ledger.billing, now)) ||
+      (ledger.billing?.latest ? ledger.billing.latest.actualUsd >= 4.5 : ledger.reservedUsd > 4.5) ||
+      !counters(ledger.reserved) || !counters(ledger.observed) ||
       !ledger.admissions || Array.isArray(ledger.admissions) || typeof ledger.admissions !== 'object' ||
       Object.keys(ledger.admissions).length >= 4000 || !/^[a-f0-9]{64}$/.test(ledger.legacyLedgerSha256) ||
       ledger.legacyLedgerSha256 !== plan.legacyLedgerSha256)
@@ -52,7 +55,7 @@ export function verifyPaidReleaseBudget(plan, ledger, now = Date.now()) {
     throw new Error('Invalid retained paid deployments');
   const held = deployments[plan.releaseId];
   if (held && (held.reservedUsd !== .5 || held.imageDigest !== plan.imageDigest)) throw new Error('Paid rollout identity changed');
-  if (!held && (Object.keys(deployments).length >= 16 || ledger.reservedUsd + .5 > ledger.stopUsd))
+  if (!held && (Object.keys(deployments).length >= 16 || (!ledger.billing?.latest && ledger.reservedUsd + .5 > ledger.stopUsd)))
     throw new Error('Paid deployment lacks $0.50 reservation headroom');
 }
 
@@ -63,6 +66,12 @@ export function verifyPaidContinuity(before, after) {
     if (after[key] !== before[key]) throw new Error(`Paid identity changed: ${key}`);
   if (after.reservedUsd < before.reservedUsd || (after.lastCollectorAt ?? 0) < (before.lastCollectorAt ?? 0))
     throw new Error('Paid counters moved backwards');
+  if (before.billing) {
+    for (const key of ['accountId','budgetId','subscription','scope','intervalStart'])
+      if (before.billing[key] !== after.billing?.[key]) throw new Error('Google billing identity changed');
+    if (before.billing.latest && (!after.billing?.latest || after.billing.latest.publishedAt < before.billing.latest.publishedAt))
+      throw new Error('Google spending observation moved backwards');
+  }
   for (const group of ['reserved','observed']) {
     if (!counters(after[group])) throw new Error('Invalid paid counters');
     for (const [key, value] of Object.entries(before[group]))

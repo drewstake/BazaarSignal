@@ -11,6 +11,7 @@ import {
   type AdminReport,
 } from "../shared/admin";
 import { paidPilotActive } from "../shared/paid-pilot";
+import { validPaidBilling } from '../shared/paid-spending';
 
 declare const UrlFetchApp: any,
   ScriptApp: any,
@@ -59,7 +60,7 @@ export function measureAdmin(
       ![budget.startsAt, budget.expiresAt, budget.reservedUsd].every(
         Number.isFinite,
       ) ||
-      budget.reservedUsd < 1
+      budget.reservedUsd < 1 || (budget.billing && !validPaidBilling(budget.billing, now))
     )
       throw Error("Invalid paid ledger");
     const job = control.jobs?.bazaar;
@@ -74,7 +75,19 @@ export function measureAdmin(
       reason: budget.reason ?? null,
       lastPriceCheck: job?.lastCheckedAt ?? null,
       priceError: job?.error ?? null,
+      ...(budget.billing ? { billing: budget.billing } : {}),
     };
+    if (budget.billing) {
+      const b = budget.billing;
+      report.billing = {
+        actualUsd: b.latest?.actualUsd ?? null,
+        measuredAt: b.latest?.publishedAt ?? null,
+        sourceUrl: `https://console.cloud.google.com/billing/${b.accountId}/budgets`,
+        reason: b.latest
+          ? `${b.scope}. Google-reported net cost; updates can arrive hours late. ${b.error ?? ''}`
+          : 'Awaiting the first Google billing notification. The reserve safeguard remains active until spending is verified.',
+      };
+    }
   });
   source("Scheduler and deployed expiration", () => {
     const scheduler = get(

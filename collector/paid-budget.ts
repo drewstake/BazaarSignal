@@ -7,6 +7,8 @@ import { MarketCollector } from './engine';
 import { livePolicy } from './allowance-live';
 import { marketHandler } from './routes';
 import { SnapshotReadCache } from './snapshot-read-cache';
+import { type PaidBilling, type GoogleSpend, validPaidBilling, validGoogleSpend } from '../shared/paid-spending';
+import { errorDiagnostic, type DiagnosticReporter } from './diagnostics';
 
 export const PAID_INTERVAL_MS = 3_600_000;
 export const PAID_BUDGET_KEY = 'paid-budget-october';
@@ -25,6 +27,7 @@ export interface PaidBudget {
   reserved: Counters; observed: Counters; legacyLedgerSha256: string;
   stoppedAt?: number; reason?: string; lastCollectorAt?: number;
   admissions: Record<string, { at: number; finished?: boolean }>;
+  billing?: PaidBilling;
 }
 export const paidEnvelope = (kind: 'collector' | 'browser'): Counters => ({
   runRequests: 1, cpuSeconds: kind === 'collector' ? 100 : 20,
@@ -36,7 +39,8 @@ export const paidEnvelope = (kind: 'collector' | 'browser'): Counters => ({
   hypixelRequests: kind === 'collector' ? 9 : 0, sellerRequests: 0,
   upstreamResponseBytes: kind === 'collector' ? 64 * 1024 ** 2 : 0,
   firestoreEgressBytes: (kind === 'collector' ? 512 : 128) * 1024 ** 2,
-  firestoreStorageBytes: 1152 * 1024, storageEgressBytes: 24 * 1024 ** 2,
+  // Retain capacity for the original inline publication and two counted retries.
+  firestoreStorageBytes: (kind === 'collector' ? 3 : 1) * 1152 * 1024, storageEgressBytes: 24 * 1024 ** 2,
   egressBytes: kind === 'collector' ? 65536 : 16 * 1024,
   logBytes: kind === 'collector' ? 128 * 1024 : 16 * 1024,
 });
@@ -44,22 +48,24 @@ export function paidCost(costs: Counters) {
   for (const n of Object.values(costs)) if (!Number.isFinite(n) || n < 0) throw new TrialStopped('Invalid paid reservation');
   return Math.ceil(Object.entries(paidRates).reduce((sum, [key, rate]) => sum + (costs[key] ?? 0) * rate, 0) * 1e9) / 1e9;
 }
-export function validatePaid(s: PaidBudget | null, now: number) {
+export function validatePaid(s: PaidBudget | null, now: number, billingNow = now) {
   if (!s || s.version !== 1 || s.id !== 'paid-202610' ||
     ![s.startsAt,s.expiresAt,s.reservedUsd,s.limitUsd,s.stopUsd].every(Number.isFinite) ||
     s.startsAt > now || now >= s.expiresAt || s.expiresAt <= s.startsAt || s.expiresAt - s.startsAt > 32 * 86400000 ||
-    s.limitUsd !== 5 || s.stopUsd !== 4.5 || s.reservedUsd < 1 || s.reservedUsd > s.stopUsd ||
+    s.limitUsd !== 5 || s.stopUsd !== 4.5 || s.reservedUsd < 1 ||
+    (s.billing && !validPaidBilling(s.billing, billingNow)) ||
+    (s.billing?.latest ? s.billing.latest.actualUsd >= s.stopUsd : s.reservedUsd > s.stopUsd) ||
     !/^[a-f0-9]{64}$/.test(s.legacyLedgerSha256) || !s.reserved || !s.observed || !s.admissions ||
     s.stoppedAt !== undefined) throw new TrialStopped(s?.reason ?? 'Paid budget is missing, stopped or expired');
 }
 export class PaidLedger {
-  constructor(private store: CacheStore, private clock = Date.now) {}
+  constructor(private store: CacheStore, private clock = Date.now, private report?: DiagnosticReporter) {}
   private async change<T>(fn: (s: PaidBudget, now: number) => T, terminal = false) {
     for (let attempt = 0; attempt < 4; attempt++) {
       const raw = await this.store.read(PAID_BUDGET_KEY);
       const s: PaidBudget | null = raw ? JSON.parse(raw) : null;
       const now = this.store.time ? await this.store.time() : this.clock();
-      if (!terminal) validatePaid(s, now);
+      if (!terminal) validatePaid(s, now, this.clock());
       if (!s) throw new TrialStopped('Paid budget missing');
       const result = fn(s, now);
       if (raw === JSON.stringify(s) || await this.store.commit(PAID_BUDGET_KEY, raw, JSON.stringify(s))) return result;
@@ -68,11 +74,11 @@ export class PaidLedger {
   }
   private reserve(s: PaidBudget, costs: Counters) {
     const usd = paidCost(costs);
-    if (s.reservedUsd + usd > s.stopUsd) throw new TrialStopped('Paid budget reservation stop reached ($4.50 of $5)');
+    if (!s.billing?.latest && s.reservedUsd + usd > s.stopUsd) throw new TrialStopped('Paid budget reservation stop reached ($4.50 of $5)');
     s.reservedUsd += usd;
     for (const [k,n] of Object.entries(costs)) s.reserved[k] = (s.reserved[k] ?? 0) + n;
   }
-  async admit(kind: 'collector' | 'browser', id: string) {
+  async admit(kind: 'collector' | 'browser', id: string, deadline = Infinity) {
     if (!/^[a-zA-Z0-9:_./-]{1,250}$/.test(id) || ['__proto__','constructor','prototype'].includes(id)) throw new TrialStopped('Invalid paid invocation');
     return this.change((s, now) => {
       if (Object.hasOwn(s.admissions,id)) return null;
@@ -83,7 +89,7 @@ export class PaidLedger {
       this.reserve(s, {...envelope, firestoreReads: envelope.firestoreReads + 20, firestoreWrites: envelope.firestoreWrites + 8});
       s.admissions[id] = { at: now };
       if (kind === 'collector') s.lastCollectorAt = now;
-      return new TrialSession(this, s.id, id, Math.min(s.expiresAt,now + (kind === 'collector' ? 80000 : 14000)), envelope, this.clock, now - this.clock(), 'normal');
+      return new TrialSession(this, s.id, id, Math.min(s.expiresAt,now + (kind === 'collector' ? 80000 : 14000), deadline), envelope, this.clock, now - this.clock(), 'normal');
     });
   }
   async add(id: string, costs: Counters) {
@@ -104,28 +110,70 @@ export class PaidLedger {
   async stop(reason: string) {
     await this.change((s,now) => { s.stoppedAt ??= now; s.reason ??= reason; }, true);
   }
+  async refreshBilling(feed: (billing: PaidBilling, save: (costs: GoogleSpend[]) => Promise<void>, now: number) => Promise<void>) {
+    const raw = await this.store.read(PAID_BUDGET_KEY);
+    const s: PaidBudget | null = raw ? JSON.parse(raw) : null;
+    if (!s?.billing || s.stoppedAt !== undefined) return;
+    try {
+      await feed(s.billing, async costs => {
+        await this.change((current, now) => {
+          const billing = current.billing;
+          // Receipt timestamps and Pub/Sub dates use wall time. Firestore's
+          // snapshot clock remains solely for coordination/admission deadlines.
+          const billingNow = this.clock();
+          if (!billing || billing.budgetId !== s.billing!.budgetId || !validPaidBilling(billing, billingNow))
+            throw Error('Google billing configuration changed');
+          if (current.stoppedAt !== undefined) return;
+          for (const cost of costs) {
+            if (!validGoogleSpend(cost, billing.intervalStart, billingNow)) throw Error('Invalid Google cost update');
+            if (!billing.latest || cost.publishedAt > billing.latest.publishedAt ||
+                (cost.publishedAt === billing.latest.publishedAt && cost.actualUsd > billing.latest.actualUsd)) billing.latest = cost;
+          }
+          billing.checkedAt = billingNow;
+          delete billing.error;
+          if (billing.latest && billing.latest.actualUsd >= current.stopUsd) {
+            current.stoppedAt = now;
+            current.reason = 'Google-reported net spending reached the $4.50 pause threshold';
+          }
+        }, true);
+      }, this.clock());
+    } catch (error) {
+      this.report?.({ event: 'billing_feed_failed', severity: 'WARNING', at: this.clock(), ...errorDiagnostic(error) });
+      // A late/missing feed is unknown, never $0 and never a reservation-based
+      // stop after activation. Retain the last actual cost and expose the failure.
+      await this.change((current, now) => {
+        if (current.billing) {
+          current.billing.checkedAt = this.clock();
+          current.billing.error = 'Google spending feed unavailable; last reported cost retained.';
+        }
+      }, true);
+    }
+  }
 }
 
 export function createPaidRuntime(config: {
   expiresAt: number; store: (session?: TrialSession) => CacheStore;
   shutdown: () => Promise<void>; network?: typeof fetch; now?: () => number;
   report?: (data: Record<string, unknown>) => void;
+  billingFeed?: (billing: PaidBilling, save: (costs: GoogleSpend[]) => Promise<void>, now: number) => Promise<void>;
 }) {
   const now = config.now ?? Date.now;
   // One bounded immutable-payload cache per warm runtime. Stores, sessions,
   // durable budget admission and control/freshness reads remain request-local.
   const snapshots = new SnapshotReadCache();
   async function run(kind: 'collector' | 'browser', id: string, work: (session: TrialSession, collector: MarketCollector) => Promise<void>) {
-    const raw = config.store(), ledger = new PaidLedger(raw, now);
+    const deadline = now() + (kind === 'collector' ? 80000 : 14000);
+    const raw = config.store(), ledger = new PaidLedger(raw, now, config.report);
     let session: TrialSession | null = null;
     try {
       if (!Number.isFinite(config.expiresAt) || now() >= config.expiresAt) throw new TrialStopped('Paid release expired');
-      session = await ledger.admit(kind, id);
+      if (kind === 'collector' && config.billingFeed) await ledger.refreshBilling(config.billingFeed);
+      session = await ledger.admit(kind, id, deadline);
       if (!session) return;
       const store = config.store(session);
       try {
         const collector = new MarketCollector(store, livePolicy, session.network(config.network), now, Math.random,
-          (key,amount) => session!.count(key,amount), PAID_INTERVAL_MS, snapshots);
+          (key,amount) => session!.count(key,amount), PAID_INTERVAL_MS, snapshots, config.report);
         await work(session,collector);
       } finally { await store.close(); }
       await session.finish();

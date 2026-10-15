@@ -4,6 +4,8 @@ import { GoogleCacheStore, type SnapshotBlobs } from "./google-cache-store";
 import type { Counters, TrialSession } from "./trial";
 import { TrialStopped } from "./trial";
 import { inlineSnapshotLimits, INLINE_DOCUMENT_OVERHEAD, INLINE_SNAPSHOT_PREFIX } from './inline-snapshot';
+import { setTimeout as delay } from 'node:timers/promises';
+import type { DiagnosticReporter } from './diagnostics';
 
 export interface GoogleTransport {
   project: string;
@@ -15,6 +17,7 @@ export interface GoogleTransport {
   collection?: string;
   onAttempt?: (costs: Counters) => void;
   inlineSmallSnapshots?: boolean;
+  report?: DiagnosticReporter;
 }
 /** Bound reads before JSON/gzip decoding; no SDK retry can issue an uncounted RPC. */
 async function bytes(response: Response, limit: number) {
@@ -40,7 +43,7 @@ async function bytes(response: Response, limit: number) {
 }
 /** A narrow REST implementation of the Firestore methods GoogleCacheStore uses.
  * Each attempted RPC is counted before sending. Automatic transport retries are
- * intentionally absent; the existing durable CAS handles contention explicitly.
+ * absent here; GoogleCacheStore explicitly bounds/revalidates resource retries.
  */
 export function trialGoogleStore(
   config: GoogleTransport,
@@ -283,5 +286,9 @@ export function trialGoogleStore(
       return result;
     },
   };
-  return new GoogleCacheStore(db, blobs, config.collection, 0, config.inlineSmallSnapshots);
+  return new GoogleCacheStore(db, blobs, config.collection, 0, config.inlineSmallSnapshots, {
+    assertOpen: () => session?.assertOpen(),
+    wait: ms => delay(ms, undefined, { signal: session?.signal(ms + 1000) }),
+    report: config.report,
+  });
 }

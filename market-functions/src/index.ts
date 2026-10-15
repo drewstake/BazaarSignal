@@ -17,6 +17,7 @@ import type { TrialSession } from '../../collector/trial';
 import { pausedMarketResponse } from '../../collector/paused-response';
 import { createMeasurementRuntime, verifyMeasurementContainment } from '../../collector/measurement';
 import { createPaidRuntime } from '../../collector/paid-budget';
+import { googleBillingFeed } from '../../collector/paid-billing';
 
 // Source implementation only: the deployment guard still requires verified
 // preflight. Missing release deadlines or ledger always stop optional work.
@@ -34,8 +35,10 @@ const ownerUsage = usageHandler({
 const live = process.env.MARKET_OPERATING_MODE === "free-tier";
 const paid = process.env.MARKET_OPERATING_MODE === 'paid-budget';
 const paidRuntime = createPaidRuntime({
+  billingFeed: googleBillingFeed(token),
   expiresAt: Date.parse(process.env.MARKET_LIVE_END ?? ''),
-  store: session => trialGoogleStore({project,bucket:`${project}-market-cache`,token,inlineSmallSnapshots:true},session),
+  store: session => trialGoogleStore({project,bucket:`${project}-market-cache`,token,inlineSmallSnapshots:true,
+    report: data => console.info(JSON.stringify(data))},session),
   shutdown: () => stopTrialInfrastructure({project,token}),
   report: data => console.info(JSON.stringify(data)),
 });
