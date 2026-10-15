@@ -1,0 +1,31 @@
+{
+  "at": "2026-10-15T07:03:01.861Z",
+  "receipt": ".local/paid-observation-1792047782860.json",
+  "legacyUnchanged": true,
+  "scheduler": {
+    "state": "ENABLED",
+    "schedule": "0 * * * *",
+    "lastAttemptTime": "2026-10-15T07:00:02.738913Z",
+    "status": {}
+  },
+  "budget": {
+    "reservedUsd": 2.1186557479999966,
+    "stopUsd": 4.5,
+    "stoppedAt": null,
+    "reason": null
+  },
+  "bazaar": {
+    "nextAt": 1792047906580,
+    "upstreamAt": 1792047602829,
+    "observedAt": 1792047608321,
+    "snapshotVersion": "1792047602829:b00b486a93b74859464e1600f1abd988978cbbe5fa863a2a9d05748a8b44445c:a96ea8f4c77c4efabcb506f3c1597150faea39b39a6cb6c37b27e05ade2d43d6",
+    "lastCheckedAt": 1792047608321,
+    "durationMs": 1741,
+    "lastAttemptDurationMs": 1741,
+    "pages": 0,
+    "intervalMs": 300000,
+    "cadenceMs": 60000,
+    "failures": 0,
+    "error": null
+  }
+}

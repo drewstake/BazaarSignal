@@ -1,0 +1,8 @@
+{
+  "at": "2026-10-15T07:00:51.824Z",
+  "calls": 2,
+  "release": "projects/bazaarsignal/releases/cloud.firestore",
+  "ruleset": "projects/bazaarsignal/rulesets/954256fe-f51d-400f-8cef-f21ca651e13f",
+  "matchesLocal": true,
+  "localSha256": "73e7910eae65a68e2228c7f93c82c8d99ce0d1f828e6ba2821d682e359e8434a"
+}

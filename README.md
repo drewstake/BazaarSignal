@@ -4,7 +4,7 @@
 
 The [October 13 Admin release](docs/ADMIN-RELEASE.md) simplifies Portfolio, combines account and notification controls in Settings, and replaces Usage & Costs with owner-only operating and audience measurements. The [October 4 infrastructure preparation](docs/FREE-TIER-PREPARATION.md) and [night-market release](docs/NIGHT-MARKET-RELEASE.md) describe the earlier paused free-tier deployment.
 
-The [October 15 application audit](docs/APP-AUDIT-2026-10-15.md) records locally implemented loading, cache, rendering, artwork, recovery and backend improvements with before/after evidence. These changes have not been deployed. Portfolios above 100 distinct assets now use sequential batches of at most 100; an uncached read can require one budgeted GET per batch, so review that recurring-usage change before activation.
+The [October 15 application audit](docs/APP-AUDIT-2026-10-15.md) records loading, cache, rendering, artwork, recovery and backend improvements with before/after evidence. The separately authorized [October 15 deployment](docs/APP-AUDIT-DEPLOYMENT-2026-10-15.md) released the site, market API and notification worker. Portfolios above 100 distinct assets now use sequential batches of at most 100; an uncached read can require one budgeted GET per batch, within the existing admission and expiration safeguards.
 
 A private SkyBlock portfolio tracker for manually recorded Bazaar items. Create named portfolios, record acquisition costs and additional purchases, inspect estimated value and unrealized returns, and choose holding-based percentage notifications. Previously saved Auction House records remain preserved.
 

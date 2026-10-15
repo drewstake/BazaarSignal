@@ -1,0 +1,17 @@
+{
+  "at": "2026-10-15T07:01:21.868Z",
+  "version": 20,
+  "previousVersion": 19,
+  "deploymentId": "AKfycbzcKMazci0idgnN_tyccU8Q2ab6KRGWKm9Wo363sSwgIt946DmAcO_VU3yVSspplIat9Q",
+  "sourceSha256": "5e51bfe9c6ad4a73f5673b038e926d8999e22222297d20b098c7d8006b5395c7",
+  "sourceMatchesLocal": true,
+  "unchanged": [
+    "deployment URL",
+    "execute-as account",
+    "access setting",
+    "entrypoints",
+    "triggers",
+    "script properties"
+  ],
+  "uiConfirmation": "Deployment successfully updated. Version 20"
+}

@@ -1,0 +1,105 @@
+{
+  "at": "2026-10-15T06:59:43.915Z",
+  "maxCalls": 26,
+  "calls": 19,
+  "priceRequests": [
+    {
+      "ms": 1784.4362000000003,
+      "decodedBytes": 3991,
+      "encoding": "gzip",
+      "asks": 30,
+      "bids": 30,
+      "error": null,
+      "version": "1792044002785:b00b486a93b74859464e1600f1abd988978cbbe5fa863a2a9d05748a8b44445c:a96ea8f4c77c4efabcb506f3c1597150faea39b39a6cb6c37b27e05ade2d43d6",
+      "sources": {
+        "bazaar": {
+          "upstreamAt": 1792044002785,
+          "observedAt": 1792044023789
+        }
+      },
+      "usage": {
+        "mode": "normal",
+        "pollMs": 3600000,
+        "bazaarMs": 3600000,
+        "trialId": "paid-202610",
+        "expiresAt": 1793516400000
+      }
+    },
+    {
+      "ms": 403.7001,
+      "decodedBytes": 3991,
+      "encoding": "gzip",
+      "asks": 30,
+      "bids": 30,
+      "error": null,
+      "version": "1792044002785:b00b486a93b74859464e1600f1abd988978cbbe5fa863a2a9d05748a8b44445c:a96ea8f4c77c4efabcb506f3c1597150faea39b39a6cb6c37b27e05ade2d43d6",
+      "sources": {
+        "bazaar": {
+          "upstreamAt": 1792044002785,
+          "observedAt": 1792044023789
+        }
+      },
+      "usage": {
+        "mode": "normal",
+        "pollMs": 3600000,
+        "bazaarMs": 3600000,
+        "trialId": "paid-202610",
+        "expiresAt": 1793516400000
+      }
+    }
+  ],
+  "checks": {
+    "htmlMatches": true,
+    "assets": [
+      {
+        "asset": "/assets/app-B8UwKIqa.js",
+        "sha256": "cd5b8d55e06515b9fdddf63208a2c97f77ba0c234c225e2cad484735c2267ce3",
+        "bytes": 445223
+      },
+      {
+        "asset": "/assets/Workspace-DIpPnNfF.js",
+        "sha256": "0ed1ab652a19d71ccf948122a03e570e860dabcba461ef6dde8c08a57fec8465",
+        "bytes": 499601
+      },
+      {
+        "asset": "/assets/night-market/scene-only.webp",
+        "available": true
+      },
+      {
+        "asset": "/assets/night-market/reference.webp",
+        "available": true
+      },
+      {
+        "asset": "/assets/night-market/workspace-courtyard.webp",
+        "available": true
+      }
+    ],
+    "hostingVersion": "sites/bazaarsignal/versions/3b7c75c254b43a38",
+    "legacyUnchanged": true,
+    "scheduler": {
+      "state": "ENABLED",
+      "schedule": "0 * * * *"
+    },
+    "marketapi": {
+      "revision": "projects/bazaarsignal-510305/locations/us-central1/services/marketapi/revisions/marketapi-00022-sk6",
+      "permissionsUnchanged": true
+    },
+    "refreshmarket": {
+      "revision": "projects/bazaarsignal-510305/locations/us-central1/services/refreshmarket/revisions/refreshmarket-00018-jdq",
+      "permissionsUnchanged": true
+    },
+    "upstreamCollectionUnchanged": true,
+    "sameGeneration": true
+  },
+  "errors": [],
+  "budget": {
+    "beforeReservedUsd": 2.1136152739999967,
+    "afterReservedUsd": 2.1147373639999967,
+    "smokeReservationIncrementUsd": 0.0011220899999999645,
+    "stopUsd": 4.5,
+    "rolloutReservationUsd": 0.5,
+    "actualGoogleCharges": "unknown"
+  },
+  "result": "passed",
+  "finishedAt": "2026-10-15T06:59:51.347Z"
+}
