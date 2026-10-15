@@ -1,6 +1,6 @@
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex } from "@noble/hashes/utils.js";
-import { validPosition, valuePosition, type Position } from "./positions";
+import { validPosition, valuePosition, type Position, type BazaarValuationBasis } from "./positions";
 import type { BazaarItem, ItemVariant, Json } from "./types";
 
 export interface Portfolio {
@@ -199,6 +199,7 @@ export function valueHolding(
   retiredListings: unknown[],
   now = Date.now(),
   lastKnown = false,
+  basis: BazaarValuationBasis = "ask",
 ): HoldingValue {
   if (holding.kind === "bazaar")
     return {
@@ -207,9 +208,12 @@ export function valueHolding(
         bazaar.find((b) => b.id === holding.itemId),
         now,
         lastKnown,
+        basis,
       ),
-      source: "bazaar-bid-v1",
-      reference: "Highest instant-sell bid · before selling fees and slippage",
+      source: basis === "ask" ? "bazaar-ask-v1" : "bazaar-bid-v1",
+      reference: basis === "ask"
+        ? "Lowest sell offer (best ask) · before selling fees; order fill is not guaranteed"
+        : "Highest instant-sell bid · before selling fees and slippage",
       comparables: null,
       uncertainty: [],
     };

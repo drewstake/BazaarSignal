@@ -1,15 +1,17 @@
 import { PORTFOLIO_COLLECTION_ENABLED } from '../../shared/companion/portfolio-policy';
 import { MARKET_REFRESH_MS, nextMarketRead } from '../../shared/market-schedule';
+import { paidPilotActive, PAID_PILOT_INTERVAL } from '../../shared/paid-pilot';
 export const PAUSED_MESSAGE = "Updates paused to protect the free allowance";
 export type PollDirective = { mode: "normal" | "warning" | "slow" | "paused"; pollMs: number; bazaarMs?: number; auctionMs?: number; retryAt?: number; reason?: string; expiresAt?: number; serverNow?: number; trialId?: string };
 const configuredEnd = Date.parse(import.meta.env.VITE_MARKET_TRIAL_END ?? "");
 const configuredTrialId = import.meta.env.VITE_MARKET_TRIAL_ID;
-const liveMode = import.meta.env.VITE_MARKET_OPERATING_MODE === "free-tier";
+const paidMode = paidPilotActive(import.meta.env.VITE_MARKET_OPERATING_MODE);
+const liveMode = paidMode || import.meta.env.VITE_MARKET_OPERATING_MODE === "free-tier";
 const maximumWindow = liveMode ? 32 * 86400_000 : 15 * 60_000;
 const boundedTrial = /^[a-zA-Z0-9_-]{1,100}$/.test(configuredTrialId ?? '') && Number.isFinite(configuredEnd) && configuredEnd > Date.now() && configuredEnd - Date.now() <= maximumWindow;
-export const configuredPause = !PORTFOLIO_COLLECTION_ENABLED || import.meta.env.VITE_MARKET_UPDATES_PAUSED === "true" ||
+export const configuredPause = (!PORTFOLIO_COLLECTION_ENABLED && !paidMode) || import.meta.env.VITE_MARKET_UPDATES_PAUSED === "true" ||
   (!import.meta.env.DEV && (import.meta.env.VITE_MARKET_UPDATES_PAUSED !== "false" || !boundedTrial));
-let directive: PollDirective = { mode: configuredPause ? "paused" : "normal", pollMs: liveMode ? MARKET_REFRESH_MS : 20_000,
+let directive: PollDirective = { mode: configuredPause ? "paused" : "normal", pollMs: paidMode ? PAID_PILOT_INTERVAL : liveMode ? MARKET_REFRESH_MS : 20_000,
   ...(boundedTrial ? { expiresAt: configuredEnd, trialId: configuredTrialId } : {}) };
 let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
 function expire() {

@@ -1,14 +1,15 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { TrendingUp } from "lucide-react";
 import type { portfolioTotals } from "../../shared/companion/portfolio";
 import { compact, exact } from "./components";
+import { formatEstDate, formatEstDateTime, formatEstTime } from "../time";
 import {
   appendValueSnapshot,
   emptyValueHistory,
   parseValueHistory,
   portfolioValueHistoryKey,
   portfolioValueSnapshot,
-  visibleValuePoints,
+  HISTORY_DAYS,
 } from "./portfolio-value-history";
 import "./portfolio-value-chart.css";
 
@@ -19,19 +20,8 @@ const periods = [
   { label: "All", duration: null },
 ];
 const timeLabel = (at: number, day: boolean) =>
-  new Date(at).toLocaleString(
-    undefined,
-    day
-      ? { hour: "numeric", minute: "2-digit" }
-      : { month: "short", day: "numeric" },
-  );
-const pointLabel = (at: number) =>
-  new Date(at).toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  day ? formatEstTime(at) : formatEstDate(at);
+const pointLabel = formatEstDateTime;
 
 export default function PortfolioValueChart({
   uid,
@@ -58,7 +48,10 @@ export default function PortfolioValueChart({
   const [period, setPeriod] = useState(0);
   const [active, setActive] = useState<number | null>(null);
   const gradientId = `portfolio-value-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
-  const snapshot = !loading && !fixture ? portfolioValueSnapshot(totals) : null;
+  const snapshot = useMemo(
+    () => (!loading && !fixture ? portfolioValueSnapshot(totals) : null),
+    [loading, fixture, totals],
+  );
   const signature = snapshot?.signature;
   useEffect(() => {
     if (snapshot)
@@ -74,35 +67,49 @@ export default function PortfolioValueChart({
   }, [history, storageKey]);
   useEffect(() => setActive(null), [period, history]);
 
-  const points = visibleValuePoints(history.points, periods[period].duration);
+  // Keep exact rolling-window boundaries, while reusing geometry as long as
+  // the visible records are unchanged. Cursor movement never rebuilds 5,000 points.
+  const cutoff =
+    Date.now() - (periods[period].duration ?? HISTORY_DAYS * 86_400_000);
+  const firstVisible = history.points.findIndex((point) => point.at > cutoff);
+  const points = useMemo(
+    () =>
+      history.points.slice(
+        firstVisible < 0 ? history.points.length : firstVisible,
+      ),
+    [history.points, firstVisible],
+  );
+  const { first, last, low, high, x, y, line, area } = useMemo(() => {
+    const first = points[0],
+      last = points.at(-1);
+    const max = Math.max(0, ...points.map((point) => point.value));
+    const min = points.length
+      ? Math.min(...points.map((point) => point.value))
+      : 0;
+    const padding = Math.max((max - min) * 0.18, max * 0.015, 1);
+    const low = Math.max(0, min - padding),
+      high = max + padding;
+    const x = (at: number) =>
+      first && last && first.at !== last.at
+        ? 12 + ((at - first.at) / (last.at - first.at)) * 976
+        : 500;
+    const y = (value: number) => 242 - ((value - low) / (high - low)) * 224;
+    const line = points
+      .map(
+        (point, index) =>
+          `${index ? "L" : "M"}${x(point.at).toFixed(2)},${y(point.value).toFixed(2)}`,
+      )
+      .join(" ");
+    const area =
+      points.length > 1
+        ? `${line} L${x(last!.at)},242 L${x(first.at)},242 Z`
+        : "";
+    return { first, last, low, high, x, y, line, area };
+  }, [points]);
   const focusedIndex = Math.min(active ?? points.length - 1, points.length - 1);
   const focused = points[focusedIndex];
-  const first = points[0],
-    last = points.at(-1);
   const intraday =
     period === 0 || (!!first && !!last && last.at - first.at < 86_400_000);
-  const max = Math.max(0, ...points.map((point) => point.value));
-  const min = points.length
-    ? Math.min(...points.map((point) => point.value))
-    : 0;
-  const padding = Math.max((max - min) * 0.18, max * 0.015, 1);
-  const low = Math.max(0, min - padding),
-    high = max + padding;
-  const x = (at: number) =>
-    first && last && first.at !== last.at
-      ? 12 + ((at - first.at) / (last.at - first.at)) * 976
-      : 500;
-  const y = (value: number) => 242 - ((value - low) / (high - low)) * 224;
-  const line = points
-    .map(
-      (point, index) =>
-        `${index ? "L" : "M"}${x(point.at).toFixed(2)},${y(point.value).toFixed(2)}`,
-    )
-    .join(" ");
-  const area =
-    points.length > 1
-      ? `${line} L${x(last!.at)},242 L${x(first.at)},242 Z`
-      : "";
   const change =
     first && last && points.length > 1 ? last.value - first.value : null;
   const changePercent =
@@ -114,11 +121,9 @@ export default function PortfolioValueChart({
       ? "Demo prices"
       : totals.missing
         ? "Incomplete prices"
-        : totals.stale
-          ? "Last-known prices"
-          : totals.value === null
-            ? "Awaiting prices"
-            : "Estimated value";
+        : totals.value === null
+          ? "Awaiting prices"
+          : "Estimated value";
   const selectPoint = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!points.length) return;
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -166,9 +171,7 @@ export default function PortfolioValueChart({
             {loading ? "—" : exact(currentValue)} <small>coins</small>
           </strong>
           <span>
-            {active !== null && focused
-              ? `${pointLabel(focused.at)}${focused.stale ? " · Last-known prices" : ""}`
-              : status}
+            {active !== null && focused ? pointLabel(focused.at) : status}
           </span>
         </div>
         {change !== null && (
@@ -262,7 +265,7 @@ export default function PortfolioValueChart({
                 aria-label="Explore portfolio value history"
                 aria-valuetext={
                   focused
-                    ? `${pointLabel(focused.at)}: ${exact(focused.value)} coins${focused.stale ? ", last-known prices" : ""}`
+                    ? `${pointLabel(focused.at)}: ${exact(focused.value)} coins`
                     : undefined
                 }
                 min="0"

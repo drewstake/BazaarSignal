@@ -181,7 +181,8 @@ it("rejects foreign origins and unauthenticated access before reporting, and der
       collection: {},
       spending: {},
     }));
-  const handler = localWorkspaceHandler("unused", {verify, report});
+  const adminReport=vi.fn(async(history:boolean)=>({history,private:true}));
+  const handler = localWorkspaceHandler("unused", {verify, report,adminReport});
   const server = createServer((req, res) => {
     void handler(req, res, () => res.writeHead(404).end());
   });
@@ -213,6 +214,12 @@ it("rejects foreign origins and unauthenticated access before reporting, and der
     expect(fresh.stale).toBe(false);
     expect(fresh.generatedAt).toBe(now);
     expect(report).toHaveBeenCalledTimes(2);
+    const adminUrl=url.replace('/api/owner/usage','/api/local/account');
+    for(const action of ['admin-report','admin-history']) {
+      const r=await fetch(adminUrl,{method:'POST',body:JSON.stringify({action,idToken:'valid'})});
+      expect(r.status).toBe(200);expect((await r.json()).data).toEqual({history:action==='admin-history',private:true});
+    }
+    expect(adminReport).toHaveBeenCalledTimes(2);
     verify.mockResolvedValue({
       ...identity,
       uid: "someone-else",
@@ -222,6 +229,8 @@ it("rejects foreign origins and unauthenticated access before reporting, and der
       (await fetch(url, { headers: { Authorization: "Bearer valid" } })).status,
     ).toBe(403);
     expect(report).toHaveBeenCalledTimes(2);
+    expect((await fetch(adminUrl,{method:'POST',body:JSON.stringify({action:'admin-report',idToken:'valid'})})).status).toBe(403);
+    expect(adminReport).toHaveBeenCalledTimes(2);
   } finally {
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }

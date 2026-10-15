@@ -48,6 +48,7 @@ export default function NotificationEditor({
       aria-label="Holding notification"
     >
       <h2>Notify me about {holding.name}</h2>
+      <p>Saving tracks the best sell offer (lowest ask), before selling fees.</p>
       <fieldset disabled={busy}>
         <label>
           Baseline

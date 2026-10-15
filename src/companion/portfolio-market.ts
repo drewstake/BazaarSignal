@@ -7,18 +7,41 @@ import type { BazaarItem } from '../../shared/companion/types';
 export interface PortfolioMarket {
   bazaar: BazaarItem[]; listings: never[];
   versions?: {bazaar:string|null};
+  error?: string | null;
+  stale?: boolean;
 }
 export async function portfolioMarket(assets:string[],signal?:AbortSignal):Promise<PortfolioMarket> {
-  assets=assets.filter(id=>/^bz_[A-Za-z0-9_:-]{1,100}$/.test(id));
+  assets=[...new Set(assets.filter(id=>/^bz_[A-Za-z0-9_:-]{1,100}$/.test(id)))].sort();
   if(!assets.length)return {bazaar:[],listings:[]};
   if(fixtureMode)return {bazaar:(await import('./fixtures')).bazaarFixtures(),listings:[]};
-  try {return await marketRequest(`portfolio-prices?assets=${encodeURIComponent([...new Set(assets)].sort().join(','))}`,signal);}
+  try {
+    const results: PortfolioMarket[] = [];
+    // The API accepts at most 100 assets. Sequential reads let every batch
+    // observe the previous response's budget/pause directive before doing I/O.
+    for (let offset = 0; offset < assets.length; offset += 100) {
+      signal?.throwIfAborted();
+      try {
+        const result = await marketRequest<PortfolioMarket>(`portfolio-prices?assets=${encodeURIComponent(assets.slice(offset, offset + 100).join(','))}`, signal);
+        if (!Array.isArray(result?.bazaar)) throw new Error('The market response is invalid.');
+        results.push(result);
+      } catch (error) {
+        signal?.throwIfAborted();
+        if (!results.length) throw error;
+        return { bazaar: results.flatMap(result => result.bazaar), listings: [], stale: true,
+          error: `Some prices are unavailable: ${error instanceof Error ? error.message : 'Market service unavailable.'}` };
+      }
+    }
+    if (results.length === 1) return results[0];
+    return { bazaar: results.flatMap(result => result.bazaar), listings: [],
+      error: results.find(result => result.error)?.error ?? null,
+      stale: results.some(result => result.stale) };
+  }
   catch(error) {
     // Read the previous full public cache during the paused migration. This
     // branch cannot fetch: getBazaar uses the same terminal pause gate.
     if(pollingDirective().mode!=='paused'||!assets.some(id=>id.startsWith('bz_')))throw error;
     const saved=await getBazaar(signal),keys=new Set(assets);
-    return {bazaar:saved.items.filter(i=>keys.has(`bz_${i.id}`)),listings:[]};
+    return {bazaar:saved.items.filter(i=>keys.has(`bz_${i.id}`)),listings:[],error:saved.error,stale:saved.status?.stale};
   }
 }
 
@@ -26,6 +49,9 @@ export async function portfolioMarket(assets:string[],signal?:AbortSignal):Promi
  * Gate before tokens or network. Hidden/unmounted portfolios relinquish demand;
  * bounded server leases handle crashes and lost disconnects. */
 export function visiblePortfolioPresence(user:User,assets:string[]) {
+  // Paid collection and mail run hourly regardless of visible demand. Skip the
+  // no-op admission (and token/preflight/leave requests) before creating timers.
+  if(import.meta.env.VITE_MARKET_OPERATING_MODE==='paid-budget')return ()=>{};
   assets=assets.filter(id=>/^bz_[A-Za-z0-9_:-]{1,100}$/.test(id));
   if(fixtureMode||!assets.length||pollingDirective().mode==='paused')return ()=>{};
   const tab=crypto.randomUUID();let registered=false,closed=false;

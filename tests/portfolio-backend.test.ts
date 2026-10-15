@@ -4,6 +4,7 @@ const storage = vi.hoisted(() => ({
   docs: new Map<string, any>(),
   version: 0,
   commits: [] as any[],
+  reads: [] as string[],
   legacy: { alerts: [], mail: [] },
   admissions: 0,
   prices: { bazaar: [], listings: [] } as any,
@@ -34,7 +35,7 @@ const encode = (v: any): any =>
             };
 vi.mock("../apps-script/store", () => ({
   DOCUMENT: "projects/test/databases/(default)/documents",
-  readDoc: (path: string) => storage.docs.get(path) ?? null,
+  readDoc: (path: string) => { storage.reads.push(path); return storage.docs.get(path) ?? null; },
   loadUser: () => ({ state: storage.legacy }),
   loadControl: () => ({
     state: { admissions: storage.admissions },
@@ -164,6 +165,7 @@ beforeEach(() => {
   storage.docs.clear();
   storage.version = 0;
   storage.commits = [];
+  storage.reads = [];
   storage.admissions = 0;
   storage.accountEnabled = true;
   storage.quota = 100;
@@ -183,8 +185,8 @@ function workerSample(price: number, stamp: number) {
       normalizeBazaar(
         "BOOSTER_COOKIE",
         {
-          sell_summary: [{ pricePerUnit: price, amount: 100, orders: 1 }],
-          buy_summary: [],
+          sell_summary: [{ pricePerUnit: price - 10, amount: 100, orders: 1 }],
+          buy_summary: [{ pricePerUnit: price, amount: 100, orders: 1 }],
         },
         stamp,
         stamp,
@@ -193,6 +195,23 @@ function workerSample(price: number, stamp: number) {
     listings: [],
   };
 }
+it('reads a shared portfolio once and writes the evaluated ledger once when nothing needs pruning', () => {
+  const notification = portfolioNotificationRequest(identity, request(), now);
+  for (const itemId of ['ENCHANTED_DIAMOND', 'ENCHANTED_GOLD']) {
+    const holdingId = `bz_${itemId}`, notificationId = `${pid}__${holdingId}`;
+    seed(`users/alice/portfolios/${pid}/holdings/${holdingId}`, { ...h, id: holdingId, itemId });
+    seed(`users/alice/portfolioNotifications/${notificationId}`, { ...notification, id: notificationId, holdingId });
+  }
+  seed('users/alice/portfolioPreferences/main', { emailEnabled: true });
+  workerSample(100, now - 2000);
+  storage.reads = []; storage.commits = [];
+  expect(runPortfolioNotifications(now)).toEqual({ processed: 1 });
+  expect(storage.reads).toHaveLength(6); // Ledger, preference, one parent, three holdings. Previously eight.
+  expect(storage.reads.filter(path => path === `users/alice/portfolios/${pid}`)).toHaveLength(1);
+  expect(storage.commits).toHaveLength(1); // Previously an identical second write.
+  expect(storage.commits[0].filter((write: any) => write.update)).toHaveLength(1);
+  expect((globalThis as any).MailApp.sendEmail).not.toHaveBeenCalled();
+});
 it("runs the persisted worker through priming, crossing, verified recipient lookup and replay deduplication", () => {
   portfolioNotificationRequest(identity, request(), now);
   seed("users/alice/portfolioPreferences/main", { emailEnabled: true });
@@ -298,8 +317,8 @@ it("captures only a valid fresh server sample and never trusts browser prices or
   const item = normalizeBazaar(
     "BOOSTER_COOKIE",
     {
-      sell_summary: [{ pricePerUnit: 120, amount: 100, orders: 1 }],
-      buy_summary: [],
+      sell_summary: [{ pricePerUnit: 100, amount: 100, orders: 1 }],
+      buy_summary: [{ pricePerUnit: 120, amount: 100, orders: 1 }],
     },
     now - 1000,
     now - 1000,
@@ -328,13 +347,14 @@ it("captures only a valid fresh server sample and never trusts browser prices or
     () => ({ bazaar: [item], listings: [] }),
   );
   expect(captured).toMatchObject({
+    source: "bazaar-ask-v1",
     capturedPrice: 120,
     capturedAt: now - 1000,
   });
   portfolioNotificationRequest(identity, request("pause", 1), now + 1);
   const newer = {
     ...item,
-    bids: [{ pricePerUnit: 150, amount: 100, orders: 1 }],
+    asks: [{ pricePerUnit: 150, amount: 100, orders: 1 }],
   };
   const resumed = portfolioNotificationRequest(
     identity,
@@ -343,6 +363,25 @@ it("captures only a valid fresh server sample and never trusts browser prices or
     () => ({ bazaar: [newer], listings: [] }),
   );
   expect(resumed.capturedPrice).toBe(120);
+});
+it("preserves an existing bid alert on resume and evaluates its original side", () => {
+  const saved = portfolioNotificationRequest(identity, request(), now);
+  seed(path, { ...saved, source: "bazaar-bid-v1", baseline: "sample",
+    capturedPrice: 100, capturedAt: now - 3000 });
+  seed("users/alice/portfolioPreferences/main", { emailEnabled: true });
+  portfolioNotificationRequest(identity, request("pause", 1), now + 1);
+  workerSample(110, now - 2000); // bid 100, ask 110
+  const resumed = portfolioNotificationRequest(identity, request("resume", 2), now + 2);
+  expect(resumed).toMatchObject({ source: "bazaar-bid-v1", capturedPrice: 100 });
+  runPortfolioNotifications(now + 2);
+  workerSample(115, now - 1000); // only ask crossed 10%; bid is 105
+  runPortfolioNotifications(now + 3);
+  expect((globalThis as any).MailApp.sendEmail).not.toHaveBeenCalled();
+  workerSample(125, now); // bid now crosses 10%
+  runPortfolioNotifications(now + 4);
+  expect((globalThis as any).MailApp.sendEmail).toHaveBeenCalledTimes(1);
+  const edited = portfolioNotificationRequest(identity, request("save", 3), now + 5);
+  expect(edited.source).toBe("bazaar-ask-v1");
 });
 it("rejects deleted parents, invalid schema, baseline changes without a new revision and exhausted allowance", () => {
   seed(`users/alice/portfolios/${pid}`, { ...p, deleted: true });

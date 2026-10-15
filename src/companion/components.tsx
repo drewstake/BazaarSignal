@@ -49,13 +49,12 @@ export function SkyIcon({
     />
   );
 }
+const compactFormatter = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
+const exactFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
 export const compact = (n: number | null | undefined) =>
   n == null || !Number.isFinite(n)
     ? "—"
-    : new Intl.NumberFormat("en-US", {
-        notation: "compact",
-        maximumFractionDigits: 1,
-      }).format(n);
+    : compactFormatter.format(n);
 export const whole = (n: number | null | undefined) =>
   n == null || !Number.isFinite(n)
     ? "—"
@@ -69,7 +68,7 @@ export const percent = (n: number | null | undefined) =>
 export const exact = (n: number | null | undefined) =>
   n == null || !Number.isFinite(n)
     ? "—"
-    : n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+    : exactFormatter.format(n);
 export const titleCase = (v: string) =>
   v
     .replaceAll("_", " ")

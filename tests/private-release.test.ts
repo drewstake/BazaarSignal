@@ -18,6 +18,28 @@ const plan = () => ({ project: 'bazaarsignal-510305', imageDigest: receipt.image
     logBytes: { used: 500000, hold: 16 * 1024 ** 2, headroom: 16 * 1024 ** 2, limit: 50 * 1024 ** 3 },
   } });
 describe('private release admission', () => {
+  it('admits the explicitly authorized paid pilot with a priced rollout while preserving stopped accounting',()=>{
+    const p:any={...plan(),operatingMode:'paid-budget',paidBudgetCodeOnly:true,pausedCodeOnly:true,keepCollectionPaused:true,
+      budgetUsd:5,applicationStopUsd:4.5,fixedReserveUsd:1,expiresAt:'2026-11-01T07:00:00.000Z',shutdownGrantExpiresAt:'2026-11-01T08:00:00.000Z'};
+    p.meters.cpuSeconds.used=200000;
+    expect(()=>verifyReleasePlan(p,receipt,now)).not.toThrow();
+    for(const patch of [{budgetUsd:6},{applicationStopUsd:5},{keepCollectionPaused:false},{paidBudgetCodeOnly:false}])expect(()=>verifyReleasePlan({...p,...patch},receipt,now)).toThrow();
+    p.meters.cpuSeconds.hold=100000;expect(()=>verifyReleasePlan(p,receipt,now)).toThrow('$0.50');
+  });
+  it('limits a measurement deployment to changed collector code while keeping the original period stopped', () => {
+    const p:any={...plan(),operatingMode:'free-tier',updateExistingLive:true,pausedCodeOnly:true,keepCollectionPaused:true,
+      measurementCodeOnly:true,measurementId:'measure-offline',services:['refreshmarket'],releaseId:'measurement-code'};
+    const ledger={id:p.id,startsAt:Date.parse(p.startsAt),expiresAt:Date.parse(p.expiresAt),stoppedAt:now,reason:'Owner stop',monthlyReserved:{cpuSeconds:8340}};
+    p.stoppedLedgerSha256=createHash('sha256').update(JSON.stringify(ledger)).digest('hex');
+    const service={name:'projects/bazaarsignal-510305/locations/us-central1/services/refreshmarket',etag:'unchanged',
+      template:{containers:[{env:[{name:'MARKET_OPERATING_MODE',value:'free-tier'},{name:'MARKET_LIVE_ID',value:p.id},{name:'MARKET_LIVE_END',value:p.expiresAt}]}]}};
+    expect(()=>verifyPausedUpdate(p,ledger,service)).not.toThrow();
+    const patch=releasePatch(service,'refreshmarket',p);
+    expect(patch.template.containers[0].env).toContainEqual({name:'MARKET_OPERATING_MODE',value:'measurement'});
+    expect(()=>verifyPausedUpdate(p,ledger,{...service,template:patch.template})).not.toThrow();
+    expect(()=>releasePatch({...service,name:service.name.replace('refreshmarket','marketapi')},'marketapi',p)).toThrow('collector-only');
+    expect(()=>verifyPausedUpdate({...p,services:['marketapi']},ledger,service)).toThrow();
+  });
   it('keeps all rollout reservations, including failures, and independently rejects exhausted compute', () => {
     const receipts = Array.from({ length: 13 }, (_, i) => ({ apply: true, at: new Date(now).toISOString(),
       ...(i === 12 ? { error: 'unknown outcome' } : { result: 'complete' }), reservations: { cpuSeconds: { hold: 10000 } } }));

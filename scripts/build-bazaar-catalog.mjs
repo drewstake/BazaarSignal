@@ -7,8 +7,18 @@ const source = JSON.parse(
     "utf8",
   ),
 );
+// Reviewed, fixed IDs only: do not let raw API placeholders return on rebuild.
+// This is offline metadata, never a runtime filter based on price/book availability.
+const exclusions = new Set(
+  JSON.parse(
+    readFileSync(
+      new URL("../docs/bazaar-search-exclusions.json", import.meta.url),
+      "utf8",
+    ),
+  ).ids,
+);
 const items = source.items
-  .filter((item) => item.sources.includes("bazaar"))
+  .filter((item) => item.sources.includes("bazaar") && !exclusions.has(item.id))
   .map((item) => [
     item.id,
     item.name.replace(/§./g, "").replace(/%%[^%]+%%/g, ""),

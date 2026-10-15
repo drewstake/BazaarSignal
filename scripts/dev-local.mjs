@@ -4,6 +4,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { resolve, delimiter } from "node:path";
 import { loadEnv } from "vite";
 import { recoverLocalExport } from "./local-export.mjs";
+import { localMarketEnvironment } from "./local-market-config.mjs";
 
 const require = createRequire(import.meta.url);
 const env = { ...process.env, ...loadEnv("development", process.cwd(), "") };
@@ -34,11 +35,10 @@ if (spawnSync("java", ["-version"], { env, windowsHide: true }).error) {
   delete env.Path;
 }
 Object.assign(env, {
+  ...localMarketEnvironment(process.argv.includes("--offline")),
   VITE_LOCAL_WORKSPACE: "true",
   VITE_USE_EMULATORS: "false",
-  VITE_MARKET_API_URL: "",
   VITE_APPS_SCRIPT_URL: "",
-  VITE_MARKET_UPDATES_PAUSED: "true",
   VITE_CONFIG_NATIVE_IGNORE_WARNING: "true",
   MARKET_SCHEDULER_DISABLED: "1",
 });
@@ -61,7 +61,7 @@ const args = [
   "node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5173 --strictPort",
 ];
 console.log(
-  "Local workspace: real Google sign-in, local-only saved portfolios, email and market collection disabled.",
+  "Local workspace: real Google sign-in, local-only saved portfolios; cached market reads enabled unless --offline. Email and local collection disabled.",
 );
 const child = spawn(process.execPath, args, {
   env,

@@ -37,7 +37,7 @@
   width: 100%;
   min-height: max(100dvh, 56vw);
   margin: 0 auto;
-  background: url("/assets/night-market/scene-only.png") center / cover
+  background: url("/assets/night-market/scene-only.webp") center / cover
     no-repeat;
 }
 .night-market .skip-link {
@@ -69,7 +69,7 @@
   display: block;
   width: 100%;
   height: 100%;
-  background: url("/assets/night-market/reference.png") -4.6875cqw -1.3021cqw /
+  background: url("/assets/night-market/reference.webp") -4.6875cqw -1.3021cqw /
     100cqw 66.6667cqw;
 }
 .nm-nav {
@@ -558,7 +558,7 @@
     display: block;
     position: absolute;
     inset: 0;
-    background: url("/assets/night-market/scene-only.png") right -70px / 850px
+    background: url("/assets/night-market/scene-only.webp") right -70px / 850px
       auto no-repeat;
     mask-image: linear-gradient(transparent, #000 8%, #000 86%, transparent);
   }

@@ -27,7 +27,7 @@ const price = (bid = 110, at = now - 1000) =>
     "BOOSTER_COOKIE",
     {
       sell_summary: [{ pricePerUnit: bid, amount: 100, orders: 1 }],
-      buy_summary: [{ pricePerUnit: 200, amount: 100, orders: 1 }],
+      buy_summary: [{ pricePerUnit: bid, amount: 100, orders: 1 }],
     },
     at,
     at,
@@ -105,6 +105,8 @@ describe("recorded portfolio value history", () => {
     ).toEqual([1100, 1320]);
   });
   it("keeps user and portfolio histories separate", () => {
+    expect(portfolioValueHistoryKey("a", "portfolio"))
+      .not.toBe("bazaarsignal-private-value-v1:a:portfolio");
     expect(portfolioValueHistoryKey("a", "portfolio")).not.toBe(
       portfolioValueHistoryKey("b", "portfolio"),
     );

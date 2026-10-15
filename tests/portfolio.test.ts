@@ -41,7 +41,7 @@ const bazaar = (bid = 110, stamp = now - 1000, amount = 100) => ({
     holding.itemId,
     {
       sell_summary: [{ pricePerUnit: bid, amount, orders: 1 }],
-      buy_summary: [{ pricePerUnit: 10000, amount: 100, orders: 1 }],
+      buy_summary: [{ pricePerUnit: bid, amount: 100, orders: 1 }],
     },
     stamp,
     stamp,
@@ -63,7 +63,7 @@ const notification: HoldingNotification = {
   down: 10,
   capturedAt: null,
   capturedPrice: null,
-  source: "bazaar-bid-v1",
+  source: "bazaar-ask-v1",
   createdAt: now,
   updatedAt: now,
   enabled: true,
@@ -125,7 +125,7 @@ describe("portfolio holdings and valuations", () => {
       false,
     );
   });
-  it("uses the highest sell bid, never the ask, and only full-depth compatible-tax liquidation", () => {
+  it("uses the lowest sell offer and only full-bid-depth compatible-tax liquidation", () => {
     const v = valueHolding(holding, [bazaar()], [], now);
     expect(v.referencePrice).toBe(110);
     expect(v.value).toBe(1100);
@@ -138,8 +138,18 @@ describe("portfolio holdings and valuations", () => {
         .liquidation,
     ).toBeNull();
     expect(
-      valueHolding(holding, [{ ...bazaar(), bids: [] }], [], now).value,
+      valueHolding(holding, [{ ...bazaar(), asks: [] }], [], now).value,
     ).toBeNull();
+    const differentSides = { ...bazaar(), asks: [
+      { pricePerUnit: 150, amount: 100, orders: 1 },
+      { pricePerUnit: 125, amount: 1, orders: 1 },
+    ] };
+    expect(valueHolding(holding, [differentSides], [], now)).toMatchObject({
+      referencePrice: 125, value: 1250, pnl: 250, returnPercent: 25,
+      source: "bazaar-ask-v1", liquidation: { value: 1086.25 },
+    });
+    expect(valueHolding(holding, [differentSides], [], now, false, "bid"))
+      .toMatchObject({ referencePrice: 110, source: "bazaar-bid-v1" });
   });
   it("keeps stale indicative estimates and excludes missing basis from aggregate returns", () => {
     const missing = {

@@ -15,6 +15,8 @@ import { MARKET_COLLECTION_SCHEDULE } from '../../shared/market-schedule';
 import type { Holding } from '../../shared/companion/portfolio';
 import type { TrialSession } from '../../collector/trial';
 import { pausedMarketResponse } from '../../collector/paused-response';
+import { createMeasurementRuntime, verifyMeasurementContainment } from '../../collector/measurement';
+import { createPaidRuntime } from '../../collector/paid-budget';
 
 // Source implementation only: the deployment guard still requires verified
 // preflight. Missing release deadlines or ledger always stop optional work.
@@ -30,6 +32,20 @@ const ownerUsage = usageHandler({
   dashboard: cachedDashboard(usageStore, () => measureDashboard({ store: usageStore, token })),
 });
 const live = process.env.MARKET_OPERATING_MODE === "free-tier";
+const paid = process.env.MARKET_OPERATING_MODE === 'paid-budget';
+const paidRuntime = createPaidRuntime({
+  expiresAt: Date.parse(process.env.MARKET_LIVE_END ?? ''),
+  store: session => trialGoogleStore({project,bucket:`${project}-market-cache`,token,inlineSmallSnapshots:true},session),
+  shutdown: () => stopTrialInfrastructure({project,token}),
+  report: data => console.info(JSON.stringify(data)),
+});
+const measurement = process.env.MARKET_OPERATING_MODE === 'measurement';
+const measurementRuntime = createMeasurementRuntime({
+  store: (session, onAttempt) => trialGoogleStore({ project, bucket: `${project}-market-cache`, token,
+    inlineSmallSnapshots: true, onAttempt }, session),
+  verifyContained: () => verifyMeasurementContainment(project, token),
+  report: receipt => console.info(JSON.stringify(receipt)),
+});
 const portfolioDemand=(session:TrialSession)=>readPortfolioDemand({
   reserveReads:async count=>{await session.extend({firestoreReads:count});session.take({firestoreReads:count});},
   page:async(cursor,limit)=>{
@@ -70,7 +86,7 @@ export const marketApi = onRequest(
     minInstances: 0,
     maxInstances: 1,
     concurrency: 2,
-    timeoutSeconds: live ? 15 : 30,
+    timeoutSeconds: live || paid ? 15 : 30,
     invoker: "private",
     serviceAccount: `market-reader@${project}.iam.gserviceaccount.com`,
   },
@@ -84,6 +100,7 @@ export const marketApi = onRequest(
     // The paused release cannot mutate its stopped ledger or invoke shutdown
     // controls just because an old client calls it. Owner reports use the
     // existing authenticated published-report route in Apps Script.
+    if (paid) { await paidRuntime.handle(req,res); return; }
     if (pausedMarketResponse(PORTFOLIO_COLLECTION_ENABLED, res)) return;
     // Route before market admission: dashboard reads can never collect, reserve market work or pause it.
     if (new URL(req.url, 'http://localhost').pathname.startsWith('/api/owner/')) {
@@ -103,11 +120,15 @@ export const refreshMarket = onSchedule(
     minInstances: 0,
     maxInstances: 1,
     concurrency: 1,
-    timeoutSeconds: live ? 90 : 180,
+    timeoutSeconds: live || paid || measurement ? 90 : 180,
     retryCount: 0,
     serviceAccount: `market-collector@${project}.iam.gserviceaccount.com`,
   },
   async event => {
+    // Explicit one-shot operator grant. Scheduled events cannot match this
+    // identity, and the ordinary collection gate/owner stop remain untouched.
+    if (measurement) { await measurementRuntime.collect(event.jobName ?? ''); return; }
+    if (paid) { await paidRuntime.collect(`${event.jobName}:${event.scheduleTime}`); return; }
     // Gate before all private scans, allowance I/O and upstream collection.
     if(!PORTFOLIO_COLLECTION_ENABLED){console.info('Portfolio collection remains paused.');return;}
     await runtime.collect(`${event.jobName}:${event.scheduleTime}`);

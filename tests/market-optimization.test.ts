@@ -393,6 +393,73 @@ it("same Bazaar generation skips normalization; metadata changes still normalize
   expect(normalize).toHaveBeenCalledTimes(2);
 });
 
+it("Bazaar replies use one fresh control read and retain current errors with a warm immutable payload", async () => {
+  const now = Date.now(),
+    f = offlineGoogle(() => now);
+  const control = new Coordinator(
+    trialGoogleStore(f.config),
+    defaultPolicy,
+  ).empty();
+  control.jobs.bazaar = {
+    ...emptyJob(),
+    observedAt: now,
+    upstreamAt: now,
+    snapshotVersion: "one",
+  };
+  f.seed("control", JSON.stringify(control));
+  f.snapshot(
+    "bazaar",
+    JSON.stringify({
+      version: "one",
+      observedAt: now,
+      upstreamAt: now,
+      data: { items: [{ id: "TEST" }] },
+    }),
+  );
+  const network = vi.fn(() => {
+    throw new Error("Browsing must not collect");
+  });
+  const collector = new MarketCollector(
+    trialGoogleStore(f.config),
+    defaultPolicy,
+    network,
+  );
+  const first = await collector.bazaar();
+  expect(first.items).toEqual([{ id: "TEST" }]);
+  expect(f.counts.firestoreReads).toBe(2); // One control, one payload pointer.
+  expect(f.counts.storageClassB).toBe(1);
+  control.jobs.bazaar.error = "Upstream unavailable";
+  control.jobs.bazaar.failures = 1;
+  f.seed("control", JSON.stringify(control));
+  const second = await collector.bazaar();
+  expect(second.items).toBe(first.items);
+  expect(second.error).toBe("Upstream unavailable");
+  expect(second.status.failures).toBe(1);
+  expect(f.counts.firestoreReads).toBe(3); // Warm payload still reads fresh control.
+  expect(f.counts.storageClassB).toBe(1);
+  expect(f.counts.firestoreWrites ?? 0).toBe(0);
+  expect(network).not.toHaveBeenCalled();
+});
+it('selected portfolio replies retain current collection errors without extra control reads or upstream work', async () => {
+  const now = Date.now(), f = offlineGoogle(() => now);
+  const control = new Coordinator(trialGoogleStore(f.config), defaultPolicy).empty();
+  control.jobs.bazaar = { ...emptyJob(), observedAt: now, upstreamAt: now, snapshotVersion: 'one' };
+  f.seed('control', JSON.stringify(control));
+  f.snapshot('bazaar', JSON.stringify({ version: 'one', observedAt: now, upstreamAt: now, data: { items: [{ id: 'TEST' }] } }));
+  const network = vi.fn(() => { throw new Error('No browsing collection'); });
+  const collector = new MarketCollector(trialGoogleStore(f.config), defaultPolicy, network);
+  const replies = await Promise.all(Array.from({ length: 20 }, () => collector.portfolioPrices(['bz_TEST'])));
+  expect(replies[0].bazaar).toEqual([{ id: 'TEST' }]);
+  expect(f.counts.firestoreReads).toBe(2);
+  control.jobs.bazaar.error = 'Upstream unavailable';
+  f.seed('control', JSON.stringify(control));
+  expect((await collector.portfolioPrices(['bz_TEST'])).error).toBe('Upstream unavailable');
+  expect(f.counts.firestoreReads).toBe(3);
+  expect(f.counts.storageClassB).toBe(1);
+  expect(f.counts.firestoreWrites ?? 0).toBe(0);
+  expect(network).not.toHaveBeenCalled();
+});
+
 it("unchanged metadata verification reuses its payload across collector instances", async () => {
   const now = Date.now(),
     f = offlineGoogle(),

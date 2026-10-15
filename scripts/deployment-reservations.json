@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "id": "october-2026-documented-rollouts",
+  "project": "bazaarsignal-510305",
+  "billingAccount": "billingAccounts/012803-EA91BE-8DCD32",
+  "periodStart": "2026-10-01T07:00:00.000Z",
+  "periodEnd": "2026-11-01T07:00:00.000Z",
+  "recordedThrough": "2026-10-04T22:02:00.000Z",
+  "documentedAttempts": 13,
+  "source": "docs/FREE-TIER-PREPARATION.md, October 4 22:02 UTC assessment",
+  "kind": "aggregate recovery floor; original receipts unavailable",
+  "holds": {
+    "cpuSeconds": 130000,
+    "memoryGiBSeconds": 130000,
+    "artifactBytes": 1187621148,
+    "logBytes": 218103808
+  }
+}

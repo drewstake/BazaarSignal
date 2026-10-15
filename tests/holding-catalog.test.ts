@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import rows from "../src/companion/bazaar-catalog.json";
+import exclusions from "../docs/bazaar-search-exclusions.json";
+import inventory from "../docs/artwork/catalog-inventory.json";
 import {
   holdingCatalogItem,
   searchHoldingItems,
@@ -24,5 +27,31 @@ describe("Bazaar holding search", () => {
     expect(searchHoldingItems("   ")).toEqual([]);
     expect(searchHoldingItems("NotAnActualSkyblockItemXYZ")).toEqual([]);
     expect(holdingCatalogItem("NotAnActualSkyblockItemXYZ")).toBeUndefined();
+  });
+  it("excludes reviewed unused IDs without dropping other saved Bazaar entries", () => {
+    const omitted = new Set(exclusions.ids);
+    const expected = inventory.items
+      .filter((item) => item.sources.includes("bazaar") && !omitted.has(item.id))
+      .map((item) => item.id);
+    expect(rows.map(([id]) => id)).toEqual(expected);
+    for (const id of omitted) {
+      expect(holdingCatalogItem(id)).toBeUndefined();
+      expect(searchHoldingItems(id).some((item) => item.id === id)).toBe(false);
+    }
+    expect(searchHoldingItems("Bazaar Cookie")).toEqual([]);
+    expect(searchHoldingItems("cookie").map((item) => item.id)).toContain("BOOSTER_COOKIE");
+  });
+  it("keeps supported replacements and virtual items, including empty-book items with trading history", () => {
+    for (const id of [
+      "BOOSTER_COOKIE",
+      "AMALGAMATED_CRIMSONITE_NEW",
+      "ENCHANTED_HAY_BALE",
+      "ENCHANTED_CARROT_STICK",
+      "ENCHANTMENT_ULTIMATE_JERRY_1",
+      "ENCHANTMENT_ARCANE_6",
+      "ESSENCE_WITHER",
+      "SHARD_COD",
+      "FACTION_RABBIT_HAYBALE",
+    ]) expect(searchHoldingItems(id)[0]?.id).toBe(id);
   });
 });

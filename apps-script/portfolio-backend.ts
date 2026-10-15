@@ -31,6 +31,7 @@ import {
   readDoc,
 } from "./store";
 import { sharedMarket } from "./companion";
+import { paidPilotActive } from '../shared/paid-pilot';
 declare const PropertiesService: any, ScriptApp: any, MailApp: any;
 
 export const decodeFields = (fields: Record<string, any>): any =>
@@ -137,7 +138,7 @@ export interface PriceEvidence {
   fixture?: boolean;
 }
 const evidence = (assets: string[] = []): PriceEvidence => {
-  if (!PORTFOLIO_EVALUATION_ENABLED)
+  if (!PORTFOLIO_EVALUATION_ENABLED && !(typeof PropertiesService !== 'undefined' && paidPilotActive(PropertiesService.getScriptProperties().getProperty('MARKET_OPERATING_MODE'))))
     throw new Error(
       "Market data: Portfolio evaluation is paused; a fresh sample cannot be captured.",
     );
@@ -242,12 +243,17 @@ export function portfolioNotificationRequest(
     checkAdmission(control.state, admission, now);
     control.state.admissions++;
   }
-  const source = removing ? current?.source ?? "bazaar-bid-v1" : "bazaar-bid-v1";
+  // Explicit edits use the current portfolio basis. Pause/resume preserves the
+  // source and any captured baseline of an existing notification.
+  const source = request.operation === "save"
+    ? "bazaar-ask-v1"
+    : current?.source ?? "bazaar-ask-v1";
   let capturedPrice = current?.capturedPrice ?? null,
     capturedAt = current?.capturedAt ?? null;
   if (enabled && input.baseline === "sample") {
     const prices = readPrices([h.data.id]),
-      value = valueHolding(h.data, prices.bazaar, prices.listings, now);
+      value = valueHolding(h.data, prices.bazaar, prices.listings, now, false,
+        source === "bazaar-bid-v1" ? "bid" : "ask");
     if (!eligibleSample(value, now, prices.fixture))
       throw new Error(
         "Wait for a fresh valid price sample to enable this baseline.",
@@ -335,7 +341,8 @@ export function queueCrossings(
   // Each event includes both delivery and workflow records; leave ample space
   // below Firestore's document limit even with maximum-length names and IDs.
   if (h.kind !== "bazaar" || ledger.state.mail.length >= 250) return;
-  const value = valueHolding(h, prices.bazaar, prices.listings, now);
+  const value = valueHolding(h, prices.bazaar, prices.listings, now, false,
+    n.source === "bazaar-bid-v1" ? "bid" : "ask");
   const result = evaluateNotification(
     n,
     h,
@@ -473,6 +480,9 @@ export function runPortfolioNotifications(
   } catch {
     /* Missing data must prime the next valid observation. */
   }
+  // A paid service stop must also stop queued portfolio sends. Keep the queue
+  // untouched until an operator restores pricing; do not deliver stale events.
+  if (assets.length && !prices && paidPilotActive(props.getProperty('MARKET_OPERATING_MODE'))) return {paused:true};
   let processed = 0;
   for (const uid of users) {
     if (Date.now() - started > 40000) break;
@@ -483,9 +493,16 @@ export function runPortfolioNotifications(
         prefs = read(`users/${uid}/portfolioPreferences/main`),
         emailEnabled = prefs.data?.emailEnabled === true;
       const preconditions: any[] = [];
+      // Reuse each parent only within this evaluation pass. The irreversible
+      // delivery path below still rechecks every cancellation boundary freshly.
+      const portfolios = new Map<string, ReturnType<typeof read>>();
       for (const n of notifications) {
-        const p = read(`users/${uid}/portfolios/${n.portfolioId}`),
-          h = read(holdingPath(uid, n.portfolioId, n.holdingId));
+        let p = portfolios.get(n.portfolioId);
+        if (!p) {
+          p = read(`users/${uid}/portfolios/${n.portfolioId}`);
+          portfolios.set(n.portfolioId, p);
+        }
+        const h = read(holdingPath(uid, n.portfolioId, n.holdingId));
         if (p.document) preconditions.push(verify(p.document));
         if (h.document) preconditions.push(verify(h.document));
         if (
@@ -577,7 +594,7 @@ export function runPortfolioNotifications(
             throw new Error("Delivery no longer eligible.");
           const recipient = verifiedRecipient(uid);
           if (!recipient) throw new Error("Verified identity unavailable.");
-          if(!EMAIL_DELIVERY_ENABLED)throw new Error('Email delivery remains paused');
+          if(!EMAIL_DELIVERY_ENABLED && !paidPilotActive(props.getProperty('MARKET_OPERATING_MODE')))throw new Error('Email delivery remains paused');
           MailApp.sendEmail({
             to: recipient,
             ...portfolioMailText(mail, alert.workflow.itemName),
@@ -595,13 +612,17 @@ export function runPortfolioNotifications(
           )
           .map((m) => m.alertId),
       );
+      const mailCount = ledger.value.state.mail.length;
+      const alertCount = ledger.value.state.alerts.length;
       ledger.value.state.mail = ledger.value.state.mail.filter((m) =>
         keep.has(m.alertId),
       );
       ledger.value.state.alerts = ledger.value.state.alerts.filter((a) =>
         keep.has(a.workflow.id),
       );
-      save();
+      // deliver() durably saves each state transition itself. Only pruning
+      // changes anything here; an unchanged final write consumes quota twice.
+      if (ledger.value.state.mail.length !== mailCount || ledger.value.state.alerts.length !== alertCount) save();
       processed++;
     } catch {
       /* Isolate account failures; existing CAS versions make retries safe. */

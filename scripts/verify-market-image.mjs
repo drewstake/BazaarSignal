@@ -48,13 +48,13 @@ if (sha(await readFile(join(cwd, 'lib', 'index.cjs'))) !== receipt.sourceSha256 
   throw new Error('Extracted code or dependency lock differs from the measured build');
 const guard = join(extraction, 'deny-network.cjs');
 await writeFile(guard, "const deny=()=>{throw new Error('Outbound network forbidden during image smoke test')}; require('node:net').Socket.prototype.connect=deny; globalThis.fetch=deny;\n");
-for (const target of ['marketApi', 'refreshMarket']) {
+for (const [target, mode] of [['marketApi','free-tier'], ['refreshMarket','free-tier'], ['refreshMarket','measurement'], ['marketApi','paid-budget'], ['refreshMarket','paid-budget']]) {
   await new Promise((done, fail) => {
     const child = spawn(process.execPath, ['--require', guard, 'node_modules/@google-cloud/functions-framework/build/src/main.js'], {
       cwd, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'],
       env: { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot,
         NODE_ENV: 'test', PORT: '0', FUNCTION_TARGET: target, FUNCTION_SIGNATURE_TYPE: 'http',
-        GCLOUD_PROJECT: 'bazaarsignal-510305', MARKET_OPERATING_MODE: 'free-tier' },
+        GCLOUD_PROJECT: 'bazaarsignal-510305', MARKET_OPERATING_MODE: mode },
     });
     let output = '', ready = false;
     const timeout = setTimeout(() => { child.kill(); fail(new Error(`${target} startup timed out: ${output}`)); }, 15000);
@@ -78,6 +78,6 @@ for (const target of ['marketApi', 'refreshMarket']) {
 receipt.localRuntimeSmokeVerified = true;
 receipt.localRuntimeSmokePlatform = `${process.platform}/${process.arch} Node ${process.version}`;
 receipt.localRuntimeSmokeVerifiedAt = new Date().toISOString();
-receipt.localRuntimeSmoke = { handlers: ['marketApi', 'refreshMarket'], operatingMode: 'free-tier', outboundConnections: 'blocked', handlerRequests: 0 };
+receipt.localRuntimeSmoke = { handlers: ['marketApi', 'refreshMarket'], operatingModes: ['free-tier','measurement','paid-budget'], outboundConnections: 'blocked', handlerRequests: 0 };
 await writeFile(receiptPath, JSON.stringify(receipt, null, 2));
 console.log(JSON.stringify(receipt, null, 2));

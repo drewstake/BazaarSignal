@@ -1,0 +1,35 @@
+[
+  {
+    "source": "public/assets/night-market/scene-only.png",
+    "export": "public/assets/night-market/scene-only.webp",
+    "dimensions": [
+      1536,
+      1024
+    ],
+    "sourceBytes": 1852526,
+    "exportBytes": 1335144,
+    "identicalDecodedPixels": true
+  },
+  {
+    "source": "public/assets/night-market/reference.png",
+    "export": "public/assets/night-market/reference.webp",
+    "dimensions": [
+      1536,
+      1024
+    ],
+    "sourceBytes": 1803581,
+    "exportBytes": 1310198,
+    "identicalDecodedPixels": true
+  },
+  {
+    "source": "public/assets/night-market/workspace-courtyard.png",
+    "export": "public/assets/night-market/workspace-courtyard.webp",
+    "dimensions": [
+      1536,
+      1024
+    ],
+    "sourceBytes": 2081427,
+    "exportBytes": 1480218,
+    "identicalDecodedPixels": true
+  }
+]

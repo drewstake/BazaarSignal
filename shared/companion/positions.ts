@@ -16,6 +16,7 @@ export interface Position {
   revision: number;
 }
 export type CostMode = "average" | "total";
+export type BazaarValuationBasis = "ask" | "bid";
 const decimal = /^(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d+)?$/;
 export function parseCoinAmount(input: string): number | null {
   const match = input.trim().match(/^(.*?)([kmb])?$/i);
@@ -139,6 +140,7 @@ export function valuePosition(
   item: BazaarItem | undefined,
   now = Date.now(),
   lastKnown = false,
+  basis: BazaarValuationBasis = "ask",
 ) {
   const unavailable = {
     referencePrice: null,
@@ -148,7 +150,9 @@ export function valuePosition(
     sampledAt: null,
     freshness: "unavailable",
     liquidation: null,
-    liquidationReason: "No usable instant-sell bid sample.",
+    liquidationReason: basis === "ask"
+      ? "No usable sell-offer sample."
+      : "No usable instant-sell bid sample.",
   } as const;
   if (
     !validHolding(position.quantity, position.costBasis) ||
@@ -157,20 +161,30 @@ export function valuePosition(
     !validBazaarSample(item, now)
   )
     return unavailable;
-  // Normalized bids are sell_summary: highest bids first, never asks/instant-buy.
-  let bids: ReturnType<typeof parseLevels>;
+  // Portfolio marks use the lowest sell offer (normalized asks / buy_summary).
+  // Bid marks are retained only for notifications saved with that explicit basis.
+  let referenceLevels: ReturnType<typeof parseLevels>;
   try {
-    bids = parseLevels(item.bids).sort((a, b) => b.pricePerUnit - a.pricePerUnit);
+    referenceLevels = parseLevels(basis === "ask" ? item.asks : item.bids)
+      .sort((a, b) => basis === "ask"
+        ? a.pricePerUnit - b.pricePerUnit
+        : b.pricePerUnit - a.pricePerUnit);
   } catch {
     return unavailable;
   }
-  const top = executeDepth(bids.slice(0, 1), 1);
+  const top = executeDepth(referenceLevels.slice(0, 1), 1);
   if (!top) return unavailable;
   const value = position.quantity * top.unit;
   if (!Number.isFinite(value) || value > Number.MAX_SAFE_INTEGER)
     return unavailable;
   const pnl = value - position.costBasis;
-  const sale = executeDepth(bids, position.quantity);
+  // Immediate liquidation still consumes actual buy bids, independently of the
+  // sell-offer mark. Missing bids must not suppress a valid asking price.
+  let sale: ReturnType<typeof executeDepth> = null;
+  try {
+    const bids = parseLevels(item.bids).sort((a, b) => b.pricePerUnit - a.pricePerUnit);
+    sale = executeDepth(bids, position.quantity);
+  } catch { /* No usable instant-sell depth. */ }
   const feeReady = verifiedSnapshotFees(item.feeContext, item.observedAt, now);
   const taxPercent = feeReady
     ? DEFAULT_BAZAAR_TAX * item.feeContext!.multiplier!

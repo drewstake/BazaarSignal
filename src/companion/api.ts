@@ -8,6 +8,8 @@ export const fixtureMode =
   import.meta.env.DEV &&
   new URLSearchParams(location.search).get("fixtures") === "1";
 const base = (import.meta.env.VITE_MARKET_API_URL ?? "").replace(/\/$/, "");
+export const marketUrl = (path: string) =>
+  new URL(`${base}/api/companion/${path}`, location.origin).href;
 export interface CacheStatus {
   upstreamAt: number;
   observedAt: number;
@@ -32,7 +34,7 @@ export async function marketRequest<T>(
       "The shared market collector is not connected. Market data updates automatically once the shared service is configured.",
     );
   return cachedMarketRequest<T>(
-    new URL(`${base}/api/companion/${path}`, location.origin).href,
+    marketUrl(path),
     signal,
   );
 }

@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { createLocalUsageReport } from "./local-usage";
+import { readLocalAdmin } from './local-admin';
 import { emptyState, publicState } from "../apps-script/core";
 import { DOCUMENT } from "../apps-script/store";
 import {
@@ -185,6 +186,7 @@ export function localWorkspaceHandler(
     verify?: (token: unknown) => Promise<Identity>;
     storage?: typeof localFirestore;
     report?: () => Promise<any>;
+    adminReport?: (history:boolean) => Promise<any>;
   } = {},
 ) {
   const verify =
@@ -247,6 +249,10 @@ export function localWorkspaceHandler(
           ...verifiedUsageSnapshot(report),
           stale: !!report.stale || Date.now() >= report.nextMeasurementAt,
         });
+      }
+      if (request.action === 'admin-report' || request.action === 'admin-history') {
+        if(!authorizedOwner(identity.claims,Date.now()))return send(403,{ok:false,error:'Admin: owner access required.'});
+        return send(200,{ok:true,data:await (options.adminReport??readLocalAdmin)(request.action==='admin-history')});
       }
       if (request.action === "portfolio-notification")
         return send(200, { ok: true, data: await mutate(identity, request) });

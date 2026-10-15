@@ -2,6 +2,9 @@ import type { Plugin } from "vite";
 import { createCollector, marketHandler } from "../collector/http";
 import { localWorkspaceHandler } from "./local-workspace";
 import { loadEnv } from "vite";
+import { MarketCollector } from "../collector/engine";
+import { SqliteCache } from "../collector/cache-store";
+import { sharedMarketHandler } from "./shared-market";
 export function companionPlugin(): Plugin {
   return {
     name: "bazaar-companion",
@@ -19,7 +22,15 @@ export function companionPlugin(): Plugin {
           localWorkspaceHandler(env.VITE_FIREBASE_API_KEY),
         );
       }
-      const collector = await createCollector();
+      if (env.LOCAL_SHARED_MARKET === "true") {
+        server.middlewares.use(sharedMarketHandler());
+        return; // No collector or market store is opened in shared mode.
+      }
+      // The explicit preview must use disk, even if a remote store is configured.
+      // Public routes only read saved snapshots; no tick/start is called here.
+      const collector = env.VITE_LOCAL_MARKET_PREVIEW === "true"
+        ? new MarketCollector(new SqliteCache(env.MARKET_CACHE_FILE ?? ".local/current-market.sqlite"))
+        : await createCollector();
       // Portfolio release remains paused, including local development. Starting
       // collection needs a separately reviewed and authorized release.
       server.middlewares.use(marketHandler(collector));

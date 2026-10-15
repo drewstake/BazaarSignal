@@ -183,30 +183,36 @@ describe("position valuations", () => {
   it("matches the 287-cookie acceptance fixture and taxes full visible proceeds", () => {
     const value = valuePosition(position, item(), now);
     expect(value).toMatchObject({
-      referencePrice: 13000000,
-      value: 3731000000,
-      pnl: 229600000,
+      referencePrice: 14000000,
+      value: 4018000000,
+      pnl: 516600000,
       freshness: "fresh",
     });
-    expect(value.returnPercent).toBeCloseTo((229600000 / 3501400000) * 100);
+    expect(value.returnPercent).toBeCloseTo((516600000 / 3501400000) * 100);
     expect(value.liquidation).toMatchObject({
       value: 3684362500,
       pnl: 182962500,
       taxPercent: 1.25,
     });
   });
-  it("uses highest bids and walks sell depth rather than asks", () => {
+  it("marks at the lowest sell offer while immediate liquidation walks highest bids", () => {
     const data = item();
+    data.asks = [
+      { pricePerUnit: 15000000, amount: 500, orders: 1 },
+      { pricePerUnit: 14000000, amount: 1, orders: 1 },
+    ];
     data.bids = [
       { pricePerUnit: 12000000, amount: 200, orders: 1 },
       { pricePerUnit: 13000000, amount: 100, orders: 1 },
     ];
     const result = valuePosition(position, data, now);
-    expect(result.referencePrice).toBe(13000000);
+    expect(result.referencePrice).toBe(14000000);
+    expect(result.value).toBe(287 * 14000000);
     expect(result.liquidation?.gross).toBe(100 * 13000000 + 187 * 12000000);
   });
   it("shows signed losses and applies the sample fee multiplier", () => {
     const data = item(10000000);
+    data.asks[0].pricePerUnit = 10000000;
     data.feeContext.multiplier = 4;
     const result = valuePosition(position, data, now);
     expect(result.pnl).toBe(-631400000);
@@ -229,18 +235,18 @@ describe("position valuations", () => {
     ])
       expect(valuePosition(position, data, now).value).toBeNull();
   });
-  it("never substitutes asks, zero, malformed depth, or another item", () => {
+  it("never substitutes bids, zero, malformed asks, or another item for a sell offer", () => {
     for (const data of [
       undefined,
-      { ...item(), bids: [] },
-      { ...item(), bids: undefined as never },
-      { ...item(), bids: [null] as never },
+      { ...item(), asks: [] },
+      { ...item(), asks: undefined as never },
+      { ...item(), asks: [null] as never },
       { ...item(), id: "OTHER" },
       ...[0, Infinity].map((pricePerUnit) => ({
         ...item(),
-        bids: [{ amount: 500, orders: 1, pricePerUnit }],
+        asks: [{ amount: 500, orders: 1, pricePerUnit }],
       })),
-      { ...item(), bids: [{ amount: -1, orders: 1, pricePerUnit: 13000000 }] },
+      { ...item(), asks: [{ amount: -1, orders: 1, pricePerUnit: 13000000 }] },
     ]) {
       expect(valuePosition(position, data, now)).toMatchObject({
         referencePrice: null,
@@ -252,7 +258,7 @@ describe("position valuations", () => {
   });
   it("withholds full liquidation for insufficient depth and unverified fee evidence", () => {
     expect(valuePosition(position, item(13000000, 286), now)).toMatchObject({
-      value: 3731000000,
+      value: 4018000000,
       liquidation: null,
       liquidationReason: expect.stringContaining("depth"),
     });
@@ -268,7 +274,7 @@ describe("position valuations", () => {
       expect(
         valuePosition(position, { ...item(), feeContext: fee }, now),
       ).toMatchObject({
-        value: 3731000000,
+        value: 4018000000,
         liquidation: null,
         liquidationReason: expect.stringContaining("fee evidence"),
       });
@@ -280,24 +286,25 @@ describe("position valuations", () => {
       quantity: 1,
       costBasis: 100,
     };
-    const secondMarket = { ...item(200), id: "DIAMOND" };
+    const secondMarket = { ...item(200), id: "DIAMOND",
+      asks: [{ pricePerUnit: 200, amount: 500, orders: 1 }] };
     const result = positionPortfolio(
       [position, second],
       [item(), secondMarket],
       now,
     );
     expect(result.returnPercent).toBeCloseTo(
-      ((229600000 + 100) / (3501400000 + 100)) * 100,
+      ((516600000 + 100) / (3501400000 + 100)) * 100,
     );
     const partial = positionPortfolio([position, second], [item()], now);
     expect(partial).toMatchObject({
       missing: 1,
       costBasis: 3501400100,
       valuedBasis: 3501400000,
-      value: 3731000000,
-      pnl: 229600000,
+      value: 4018000000,
+      pnl: 516600000,
     });
-    expect(partial.returnPercent).toBeCloseTo((229600000 / 3501400000) * 100);
+    expect(partial.returnPercent).toBeCloseTo((516600000 / 3501400000) * 100);
     expect(positionPortfolio([position], [], now)).toMatchObject({
       value: null,
       pnl: null,
@@ -307,5 +314,13 @@ describe("position valuations", () => {
     expect(positionPortfolio([position], [item()], now + 86400000).stale).toBe(
       true,
     );
+  });
+  it("keeps a sell-offer mark without bids, and can reproduce an explicitly saved bid basis", () => {
+    for (const bids of [[], undefined, [null]]) {
+      expect(valuePosition(position, { ...item(), bids: bids as never }, now))
+        .toMatchObject({ referencePrice: 14000000, value: 4018000000, liquidation: null });
+    }
+    expect(valuePosition(position, item(), now, false, "bid"))
+      .toMatchObject({ referencePrice: 13000000, value: 3731000000 });
   });
 });

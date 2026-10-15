@@ -8,7 +8,13 @@ type Catalog = Record<
 >;
 import { isFresh } from "../shared/market";
 import type { CacheStore } from "./cache-store";
-import { Coordinator, Deferred, emptyJob, type JobState } from "./coordinator";
+import {
+  Coordinator,
+  Deferred,
+  emptyJob,
+  type Control,
+  type JobState,
+} from "./coordinator";
 import { backoff, defaultPolicy, type MarketPolicy } from "./policy";
 import { TrialStopped } from "./trial";
 import { SnapshotReadCache } from "./snapshot-read-cache";
@@ -39,6 +45,7 @@ export class MarketCollector {
   private running = false;
   // Derived read caches only. Coordination, budgets and source snapshots remain durable/shared.
   private decoding = new Map<string, Promise<Snapshot<any> | null>>();
+  private portfolioReading?: ReturnType<MarketCollector['loadPortfolioSnapshot']>;
   constructor(
     public store: CacheStore,
     public policy: MarketPolicy = defaultPolicy,
@@ -63,9 +70,11 @@ export class MarketCollector {
       this.decoding.delete(key);
     }
   }
-  private async readSnapshot<T>(key: string): Promise<Snapshot<T> | null> {
-    const state = await this.coordinator.state(),
-      job = state.jobs[key];
+  private async readSnapshot<T>(
+    key: string,
+    state?: Control,
+  ): Promise<Snapshot<T> | null> {
+    const job = (state ?? (await this.coordinator.state())).jobs[key];
     // This identity and publication share an atomic transaction. Successful
     // unchanged checks intentionally leave the immutable identity unchanged.
     const tag = JSON.stringify([job?.observedAt, job?.snapshotVersion]);
@@ -120,6 +129,7 @@ export class MarketCollector {
         upstreamAt = started,
         metadataVersion = "",
         contentVersion: string | undefined;
+      let priorBazaar: Snapshot<BazaarData> | null | undefined;
       if (key === "catalog") {
         const raw = await fetchJson("resources/skyblock/items");
         if (!Array.isArray(raw.items))
@@ -148,10 +158,15 @@ export class MarketCollector {
           .update(JSON.stringify(profile))
           .digest("hex");
       } else {
-        const catalogSnapshot = await this.read<Catalog>("catalog");
-        const electionSnapshot = await this.read<FeeContext>("election");
+        // These immutable snapshots share one fresh control read. Every lease,
+        // request charge and publication still performs its own fenced CAS.
+        const metadata = await this.coordinator.state();
+        const [catalogSnapshot, electionSnapshot] = await Promise.all([
+          this.readSnapshot<Catalog>("catalog", metadata),
+          this.readSnapshot<FeeContext>("election", metadata),
+        ]);
         const catalog = catalogSnapshot?.data ?? {};
-        const electionJob = (await this.coordinator.state()).jobs.election;
+        const electionJob = metadata.jobs.election;
         const fees = electionSnapshot
           ? {
               ...electionSnapshot.data,
@@ -168,7 +183,8 @@ export class MarketCollector {
             Array.isArray(raw.products)
           )
             throw new Error("Bazaar data stale or malformed");
-          const priorSnapshot = await this.read<BazaarData>(key);
+          const priorSnapshot = (priorBazaar =
+            await this.readSnapshot<BazaarData>(key, metadata));
           if (
             priorSnapshot?.version === `${raw.lastUpdated}${metadataVersion}`
           ) {
@@ -228,7 +244,9 @@ export class MarketCollector {
       const previous =
         old.snapshotVersion && old.snapshotVersion !== snapshot.version
           ? { version: old.snapshotVersion, observedAt: old.observedAt }
-          : await this.read<unknown>(key);
+          : priorBazaar !== undefined
+            ? priorBazaar
+            : await this.read<unknown>(key);
       const unchanged = previous?.version === snapshot.version;
       await this.coordinator.change((c) => {
         this.coordinator.assert(c);
@@ -305,8 +323,10 @@ export class MarketCollector {
     clearTimeout(this.timer);
   }
   async status(key = "bazaar") {
-    const c = await this.coordinator.state(),
-      j = c.jobs[key] ?? emptyJob();
+    return this.statusFromControl(key, await this.coordinator.state());
+  }
+  private statusFromControl(key: string, c: Control) {
+    const j = c.jobs[key] ?? emptyJob();
     const { snapshotVersion: _snapshotVersion, ...publicJob } = j;
     return {
       ...publicJob,
@@ -327,12 +347,13 @@ export class MarketCollector {
     };
   }
   async bazaar() {
-    const snapshot = await this.read<BazaarData>("bazaar");
+    const control = await this.coordinator.state();
+    const snapshot = await this.readSnapshot<BazaarData>("bazaar", control);
     if (!snapshot)
       throw new Error(
         "Bazaar cache is warming. Automatic updates will resume when the collector is available.",
       );
-    const status = await this.status("bazaar");
+    const status = this.statusFromControl("bazaar", control);
     return {
       items: snapshot.data.items,
       version: snapshot.version,
@@ -346,16 +367,25 @@ export class MarketCollector {
       throw new Error("Market data unavailable; waiting for the shared cache.");
     return { ...s.data.raw, names: s.data.names };
   }
+  private async loadPortfolioSnapshot() {
+    const control = await this.coordinator.state();
+    return { snapshot: await this.readSnapshot<BazaarData>('bazaar', control), error: control.jobs.bazaar?.error ?? null };
+  }
+  private async portfolioSnapshot() {
+    const work = this.portfolioReading ??= this.loadPortfolioSnapshot();
+    try { return await work; }
+    finally { if (this.portfolioReading === work) this.portfolioReading = undefined; }
+  }
   async portfolioPrices(assets: string[] = []) {
     const keys = new Set(assets);
-    const bazaar = assets.some((id) => id.startsWith("bz_"))
-      ? await this.read<BazaarData>("bazaar")
-      : null;
+    const market = assets.some(id => id.startsWith('bz_')) ? await this.portfolioSnapshot() : null;
+    const bazaar = market?.snapshot ?? null;
     // Empty legacy fields keep older clients compatible without reading old auction snapshots.
     return {
       bazaar: bazaar?.data.items.filter((i) => keys.has(`bz_${i.id}`)) ?? [],
       listings: [],
       fixture: false,
+      error: market?.error ?? null,
       versions: { bazaar: bazaar?.version ?? null },
       sources: {
         bazaar: bazaar

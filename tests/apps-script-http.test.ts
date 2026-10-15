@@ -58,6 +58,25 @@ function seedLegacy(uid=ADMIN_UID,recipient=email) {
   docs.set(`alertLinks/${hash}`,{fields:{uid:{stringValue:uid},alertId:{stringValue:input.requestId}}});
 }
 describe('portfolio-release HTTP boundaries and legacy preservation',()=>{
+  it('does not expose clock dispatch or force refresh through HTTP, even to the owner',()=>{
+    asUser('owner','drewstake3@gmail.com');
+    for(const action of ['scheduledAdminDailyTick','admin-refresh','admin-collect']) {
+      expect(doPost(req({action,idToken:token(),force:true,now:Date.parse('2026-10-14T12:10:15Z')})).ok).toBe(false);
+    }
+    expect(writes).toBe(0);expect(sends).toBe(0);
+  });
+  it('denies Admin API and history to anonymous, forged-owner, wrong-project and unverified requests before report reads',()=>{
+    const fetcher=vi.spyOn((globalThis as any).UrlFetchApp,'fetch');
+    for(const action of ['admin-report','admin-history']) {
+      expect(doPost(req({action,email:'drewstake3@gmail.com',uid:ADMIN_UID})).ok).toBe(false);
+      asUser('other','other@example.test');
+      expect(doPost(req({action,idToken:token(),email:'drewstake3@gmail.com',uid:ADMIN_UID})).error).toContain('owner access');
+      asUser('owner','drewstake3@gmail.com');claims.aud='wrong-project';
+      expect(doPost(req({action,idToken:token()})).ok).toBe(false);claims.aud='bazaarsignal';claims.email_verified=false;
+      expect(doPost(req({action,idToken:token()})).ok).toBe(false);claims.email_verified=true;
+    }
+    expect(fetcher.mock.calls.some(([url])=>String(url).includes('/reports/'))).toBe(false);expect(writes).toBe(0);expect(sends).toBe(0);
+  });
   it('serves usage only to the verified reporting owner, independent of the legacy storage owner ID and market pause',()=>{
     const report={generatedAt:1000,nextMeasurementAt:1801000,rows:[],spending:{state:'unavailable',total:null},collection:{state:'Paused'}};
     docs.set('config/access',{fields:{ownerUid:{stringValue:ADMIN_UID}}});

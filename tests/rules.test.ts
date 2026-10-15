@@ -85,11 +85,19 @@ describe("Firestore owner boundary", () => {
   });
   it("allows verified owner to read market and own workflows", async () => {
     const db = env
-      .authenticatedContext("owner", { email_verified: true })
+      .authenticatedContext("owner", { email_verified: true, email:'drewstake3@gmail.com', firebase:{sign_in_provider:'google.com'} })
       .firestore();
     await assertSucceeds(getDoc(doc(db, "market/status")));
     await assertSucceeds(getDocs(collection(db, "owners/owner/workflows")));
     await assertSucceeds(getDoc(doc(db, "owners/owner/reports/usage")));
+    await assertSucceeds(getDoc(doc(db, "owners/owner/reports/admin")));
+  });
+  it('requires the verified reporting owner Google identity even for direct report reads',async()=>{
+    for(const claims of [{email_verified:true,email:'legacy@example.test',firebase:{sign_in_provider:'google.com'}},{email_verified:true,email:'drewstake3@gmail.com',firebase:{sign_in_provider:'password'}}]){
+      const db=env.authenticatedContext('owner',claims).firestore();
+      await assertFails(getDoc(doc(db,'owners/owner/reports/admin')));
+      await assertFails(setDoc(doc(db,'owners/owner/reports/admin'),{json:'forged'}));
+    }
   });
   it("denies other users, anonymous and unverified users", async () => {
     for (const db of [
@@ -116,6 +124,7 @@ describe("Firestore owner boundary", () => {
       "backend/state",
       "owners/owner/status/main",
       "owners/owner/reports/usage",
+      "owners/owner/reports/admin",
     ])
       await assertFails(setDoc(doc(db, path), { ownerUid: "owner" }));
     await assertFails(getDoc(doc(db, "owners/other/workflows/private")));

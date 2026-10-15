@@ -23,7 +23,9 @@ export const emptyValueHistory = (): PortfolioValueHistory => ({
   points: [],
 });
 export const portfolioValueHistoryKey = (uid: string, portfolioId: string) =>
-  `bazaarsignal-private-value-v1:${encodeURIComponent(uid)}:${encodeURIComponent(portfolioId)}`;
+  // Keep the former bid-based series intact, without charting the basis change
+  // as a market gain or rewriting old observations at today's asking price.
+  `bazaarsignal-private-value-ask-v1:${encodeURIComponent(uid)}:${encodeURIComponent(portfolioId)}`;
 
 /** A snapshot is a complete observed valuation, never an invented backfill or
  * a partial total that would look like the portfolio lost its missing assets. */

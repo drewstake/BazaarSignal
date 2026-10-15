@@ -7,9 +7,12 @@ import type { UserRecord } from './store';
 import { sharedMarket } from './companion';
 import { PORTFOLIO_EVALUATION_ENABLED } from '../shared/companion/portfolio-policy';
 import { BACKGROUND_JOBS_ENABLED, EMAIL_DELIVERY_ENABLED } from '../shared/automation-policy';
+import { paidPilotActive, paidPilotAlertWindow } from '../shared/paid-pilot';
 import { MARKET_HOUR, MARKET_REFRESH_MS, marketAlertWindow } from '../shared/market-schedule';
 import { portfolioNotificationRequest, runPortfolioNotifications } from './portfolio-backend';
 import { readOwnerUsageReport } from './usage-report';
+import { readOwnerAdmin, readAdminHistory, scheduledAdminDailyTick } from './admin-report';
+import { adminClockWindow } from '../shared/admin';
 declare const PropertiesService:any, ScriptApp:any, Session:any, UrlFetchApp:any,
   Utilities:any, LockService:any, ContentService:any, CacheService:any, MailApp:any;
 const PROJECT='bazaarsignal', SENDER='bazaarsignal@gmail.com';
@@ -110,7 +113,7 @@ export function doPost(e:any) {
     const request=JSON.parse(e.postData.contents),p=settings();
     const origins=[p.APP_URL,...(p.ALLOWED_ORIGINS || '').split(',').map((x:string)=>x.trim()).filter(Boolean)];
     if(request.version!==1 || !origins.includes(request.origin))throw new Error('Website origin is not configured.');
-    if(!['account','create','update','disable','portfolio-notification','legacy-pause','usage-report'].includes(request.action))throw new Error('Unsupported operation.');
+    if(!['account','create','update','disable','portfolio-notification','legacy-pause','usage-report','admin-report','admin-history'].includes(request.action))throw new Error('Unsupported operation.');
     if(request.action==='disable') {
       if(request.confirm!==true || !/^[a-f0-9]{64}$/.test(request.token || ''))throw new Error('Confirm using the button in your alert link.');
       return output({ok:true,data:locked(()=>{
@@ -122,6 +125,8 @@ export function doPost(e:any) {
       })});
     }
     const identity=verifyIdentity(request.idToken,p.FIREBASE_API_KEY);
+    if(request.action==='admin-report')return output({ok:true,data:readOwnerAdmin(identity)});
+    if(request.action==='admin-history')return output({ok:true,data:readAdminHistory(identity)});
     if(request.action==='usage-report')return output({ok:true,data:readOwnerUsageReport(identity)});
     if(request.action==='portfolio-notification')return output({ok:true,data:locked(()=>portfolioNotificationRequest(identity,request))});
     if(request.action==='legacy-pause')return output({ok:true,data:locked(()=>{const record=loadUser(identity.uid),alert=record.state.alerts.find(a=>a.workflow.id===request.id&&!a.test);if(!alert)throw new Error('Invalid alert.');disableAlert(record.state,alert.tokenHash,Date.now());persistUser(record);return {disabled:true};})});
@@ -144,7 +149,7 @@ export function doPost(e:any) {
       return {id:input.requestId,emailStatus:state.mail.find(m=>m.alertId===input.requestId && m.kind==='confirmation')?.status??'cancelled'};
     })});  } catch(e) {
     const message=e instanceof Error?e.message:'';
-    const safe=/^(Sign in|Use a verified|Use an upward|Usage report:|Notification |Backend setup|Deploy and authorize|Website origin|Unsupported operation|Invalid |This alert |Target price |Confirm using|Another operation|Request ID|You can have|You can create|Free alert capacity|The 100|Wait for|Item unavailable|Market data|No valid market|Alert storage|Stored alerts)/.test(message);
+    const safe=/^(Sign in|Use a verified|Use an upward|Admin[: ]|Usage report:|Notification |Backend setup|Deploy and authorize|Website origin|Unsupported operation|Invalid |This alert |Target price |Confirm using|Another operation|Request ID|You can have|You can create|Free alert capacity|The 100|Wait for|Item unavailable|Market data|No valid market|Alert storage|Stored alerts)/.test(message);
     return output({ok:false,error:safe?message:'Service temporarily unavailable. Retry shortly.'});
   }
 }
@@ -213,6 +218,52 @@ export function installAlignedTrigger() {
     for(const t of [...aligned.slice(1),...triggers.filter((t:any)=>t.getHandlerFunction()==='scheduledPoll')])ScriptApp.deleteTrigger(t);
     return {installed:true,clockMinutes:1,marketChecksPerHour:PORTFOLIO_EVALUATION_ENABLED?MARKET_HOUR/MARKET_REFRESH_MS:0,queuedMailMinutes:5};
   });
+}
+/** Dedicated paid-pilot clock; old paused triggers cannot activate this path. */
+export function scheduledPaidMinuteTick() {
+  // Reuse the existing clock. This path is never exposed through doPost.
+  if(adminClockWindow(Date.now())) {
+    try { settings(); return scheduledAdminDailyTick(); }
+    catch { return {ok:false,error:'Daily Admin report did not complete; next attempt is tomorrow.'}; }
+  }
+  if (!paidPilotAlertWindow(Date.now())) return {ok:true,skipped:true};
+  const properties=props();
+  if (!paidPilotActive(properties.getProperty('MARKET_OPERATING_MODE')) || properties.getProperty('MARKET_UPDATES_PAUSED')!=='false') return {ok:true,paused:true};
+  try {
+    settings();
+    return locked(()=>{
+      const slot=String(Math.floor(Date.now()/MARKET_HOUR));
+      if(properties.getProperty('PAID_LAST_MAIL_SLOT')===slot)return {ok:true,skipped:true};
+      const control=loadControl(),c=control.state,started=Date.now();
+      if(started-c.runtimeWindow>=86400000){c.runtimeWindow=started;c.runtimeMs=0;}
+      if(c.runtimeMs>=70*60000)return {ok:false,paused:true};
+      // Reserve once before any message; preserve holds after a crash.
+      properties.setProperty('PAID_LAST_MAIL_SLOT',slot);
+      c.paidLastAttempt=started;c.paidError='The latest email check has not completed.';
+      c.runtimeMs+=47000;saveControl(control);
+      const result=runPortfolioNotifications(started,true);
+      c.runtimeMs+=Date.now()-started+2000-47000;
+      c.monitor.enabled=true;c.monitor.lastAttempt=started;c.monitor.quota=MailApp.getRemainingDailyQuota();
+      if(!('paused' in result && result.paused)){c.paidLastSuccess=Date.now();c.paidError=null;}
+      else c.paidError='Email checks paused because market evidence is unavailable.';
+      saveControl(control);return {ok:true,...result};
+    },100);
+  } catch {return {ok:false,error:'Paid notification worker did not complete.'};}
+}
+/** Explicit editor action after the paid API is verified; never sends mail. */
+export function configurePaidPilot() {
+  settings();
+  if(!paidPilotActive('paid-budget'))throw new Error('Paid pilot expired');
+  const properties=props();
+  properties.setProperties({MARKET_OPERATING_MODE:'paid-budget',MARKET_UPDATES_PAUSED:'false',
+    MARKET_TRIAL_START:properties.getProperty('PAID_PILOT_START')||new Date().toISOString(),
+    MARKET_TRIAL_END:'2026-11-01T07:00:00.000Z'});
+  properties.setProperty('PAID_PILOT_START',properties.getProperty('MARKET_TRIAL_START'));
+  const triggers=ScriptApp.getProjectTriggers();
+  if(!triggers.some((t:any)=>t.getHandlerFunction()==='scheduledPaidMinuteTick'))
+    ScriptApp.newTrigger('scheduledPaidMinuteTick').timeBased().everyMinutes(1).create();
+  for(const t of triggers.filter((t:any)=>['scheduledPoll','scheduledMinuteTick'].includes(t.getHandlerFunction())))ScriptApp.deleteTrigger(t);
+  return {configured:true,checks:'Hourly at :02',expiresAt:'2026-11-01T07:00:00.000Z',sender:SENDER};
 }
 export function installTrigger() {
   if(!BACKGROUND_JOBS_ENABLED)throw new Error('Background services remain paused');

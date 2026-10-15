@@ -1,17 +1,19 @@
 import { fetchJson } from "./store";
 import { MARKET_REFRESH_MS, marketAlertWindow } from '../shared/market-schedule';
 import { PORTFOLIO_COLLECTION_ENABLED } from '../shared/companion/portfolio-policy';
+import { paidPilotActive } from '../shared/paid-pilot';
 declare const PropertiesService: any, CacheService: any, LockService: any;
 
 /** Cache-only bridge. No public request, alert mutation or email job fetches Hypixel. */
 export function sharedMarket(path: string, enabled = PORTFOLIO_COLLECTION_ENABLED) {
-  if (!enabled) throw new Error("Market data: Updates paused to protect the free allowance.");
+  const paid = paidPilotActive(PropertiesService.getScriptProperties().getProperty('MARKET_OPERATING_MODE'));
+  if (!enabled && !paid) throw new Error("Market data: Updates paused for the app budget.");
   // Fail closed by default. The preserved email worker can still deliver queued
   // mail and edit existing targets without issuing a billable market request.
   const properties = PropertiesService.getScriptProperties();
   const start = Date.parse(properties.getProperty("MARKET_TRIAL_START") ?? "");
   const end = Date.parse(properties.getProperty("MARKET_TRIAL_END") ?? "");
-  const live = properties.getProperty("MARKET_OPERATING_MODE") === "free-tier";
+  const live = paid || properties.getProperty("MARKET_OPERATING_MODE") === "free-tier";
   if (properties.getProperty("MARKET_UPDATES_PAUSED") !== "false" ||
       !Number.isFinite(start) || !Number.isFinite(end) || end <= start || end - start > (live ? 32 * 86400_000 : 15 * 60_000) ||
       Date.now() < start || Date.now() >= end)

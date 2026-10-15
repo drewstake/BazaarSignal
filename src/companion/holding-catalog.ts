@@ -37,11 +37,13 @@ export function searchHoldingItems(query: string, limit = 20) {
     .map((row) => ({
       ...row,
       rank:
-        row.id === normalized || row.name === normalized
-          ? 0
-          : row.name.startsWith(normalized)
-            ? 1
-            : 2,
+        row.item.id.toLowerCase() === query.trim().toLowerCase()
+          ? -1
+          : row.id === normalized || row.name === normalized
+            ? 0
+            : row.name.startsWith(normalized)
+              ? 1
+              : 2,
     }))
     .sort((a, b) => a.rank - b.rank || a.item.name.localeCompare(b.item.name))
     .slice(0, limit)

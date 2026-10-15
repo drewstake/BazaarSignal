@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { ItemArt } from "./components";
 import { searchHoldingItems, type HoldingCatalogItem } from "./holding-catalog";
@@ -6,16 +6,26 @@ import "./holding-search.css";
 
 export default function HoldingSearch({
   onSelect,
+  compact = false,
+  openOnFocus = true,
 }: {
   onSelect: (item: HoldingCatalogItem | null) => void;
+  compact?: boolean;
+  openOnFocus?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const input = useRef<HTMLInputElement>(null);
   const id = useId();
-  const results = searchHoldingItems(query);
+  const results = useMemo(() => searchHoldingItems(query), [query]);
   const expanded = open && !!query.trim();
+  useEffect(() => {
+    if (expanded && active >= 0)
+      document
+        .getElementById(`${id}-option-${active}`)
+        ?.scrollIntoView({ block: "nearest" });
+  }, [expanded, active, id]);
   function choose(item: HoldingCatalogItem) {
     setQuery(item.name);
     setOpen(false);
@@ -24,9 +34,6 @@ export default function HoldingSearch({
   }
   function move(index: number) {
     setActive(index);
-    document
-      .getElementById(`${id}-option-${index}`)
-      ?.scrollIntoView({ block: "nearest" });
   }
   return (
     <div
@@ -35,7 +42,9 @@ export default function HoldingSearch({
         if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
       }}
     >
-      <label htmlFor={id}>Search</label>
+      <label htmlFor={id} className={compact ? "nm-sr-only" : undefined}>
+        {compact ? "Search Bazaar items" : "Search"}
+      </label>
       <div className="holding-search-input">
         <Search size={19} aria-hidden="true" />
         <input
@@ -54,8 +63,14 @@ export default function HoldingSearch({
               : undefined
           }
           value={query}
-          placeholder="Search Bazaar items by name or ID…"
-          onFocus={() => setOpen(true)}
+          placeholder={
+            compact
+              ? "Search Bazaar items…"
+              : "Search Bazaar items by name or ID…"
+          }
+          onFocus={() => {
+            if (openOnFocus) setOpen(true);
+          }}
           onChange={(event) => {
             setQuery(event.target.value);
             setOpen(true);
@@ -63,14 +78,15 @@ export default function HoldingSearch({
             onSelect(null);
           }}
           onKeyDown={(event) => {
+            if (event.nativeEvent.isComposing) return;
             if (event.key === "ArrowDown" || event.key === "ArrowUp") {
               event.preventDefault();
               setOpen(true);
               if (results.length)
                 move(
                   event.key === "ArrowDown"
-                    ? (active + 1) % results.length
-                    : (active <= 0 ? results.length : active) - 1,
+                    ? (open ? active + 1 : 0) % results.length
+                    : (!open || active <= 0 ? results.length : active) - 1,
                 );
             } else if (event.key === "Enter") {
               event.preventDefault();
@@ -118,8 +134,12 @@ export default function HoldingSearch({
           )}
         </div>
       </div>
-      <p className="muted search-hint" id={`${id}-hint`}>
-        Search by item name or ID. Select a result to continue.
+      <p
+        className={compact ? "nm-sr-only" : "muted search-hint"}
+        id={`${id}-hint`}
+      >
+        Search by item name or ID. Use arrow keys to navigate, Enter to select,
+        and Escape to close.
       </p>
     </div>
   );

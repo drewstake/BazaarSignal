@@ -1,5 +1,6 @@
 import { Settings } from "lucide-react";
 import { SkyIcon } from "./components";
+import BazaarSearch from "./BazaarSearch";
 import {
   NightMarketFeatureCard,
   NightMarketPortfolioPreview,
@@ -57,6 +58,7 @@ export default function NightMarketLanding({
           >
             <span className="nm-brand-art" aria-hidden="true" />
           </a>
+          <BazaarSearch />
           <nav className="nm-nav" aria-label="Main navigation">
             <a
               href="#view=portfolios"
@@ -66,18 +68,11 @@ export default function NightMarketLanding({
               Portfolio
             </a>
             <a
-              href="#view=notifications"
-              aria-current={view === "notifications" ? "page" : undefined}
-            >
-              <SkyIcon name="alert-bell" size={34} />
-              Notifications
-            </a>
-            <a
-              href="#view=account"
-              aria-current={view === "account" ? "page" : undefined}
+              href="#view=settings"
+              aria-current={view === "settings" ? "page" : undefined}
             >
               <Settings size={25} aria-hidden="true" />
-              Account
+              Settings
             </a>
           </nav>
         </header>

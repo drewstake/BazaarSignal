@@ -64,7 +64,7 @@ export default function NightMarketNotifications({
         </div>
         <a
           className="notification-overview-item notification-settings"
-          href="#view=account"
+          href="#view=settings&section=account"
         >
           <div className="notification-overview-icon">
             <Mail size={23} aria-hidden="true" />

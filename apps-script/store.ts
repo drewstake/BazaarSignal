@@ -56,6 +56,7 @@ export function linkWrite(tokenHash:string,uid:string,alertId:string) {
   return {update:{name:`${DOCUMENT}/alertLinks/${tokenHash}`,fields:{uid:{stringValue:uid},alertId:{stringValue:alertId}}},currentDocument:{exists:false}};
 }
 export interface Control {
+  paidLastSuccess?:number;paidLastAttempt?:number;paidError?:string|null;
   monitor:State['monitor'];cursor:string;runtimeWindow:number;runtimeMs:number;
   admissionWindow:number;admissions:number;
 }

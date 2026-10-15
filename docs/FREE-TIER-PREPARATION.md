@@ -1,8 +1,124 @@
 # Free-tier infrastructure preparation — October 4, 2026
 
-Subsequent release: the user authorized committing and deploying all pending work. The [night-market release](NIGHT-MARKET-RELEASE.md) published Hosting, private Firestore rules/indexes and Apps Script version 14, including the disabled worker/email source gates described below. Market-service deployment remains blocked by the capacity guard, and Scheduler was verified `PAUSED` after rollout. The assessment below records the preparation state before that release.
+## Initial bounded collection completed — October 13, 2026, 12:30 a.m. Eastern
+
+**The private measurement run completed one Bazaar collection (2,201 products, three upstream requests) and stopped. Scheduler remains `PAUSED`; the API and collector remain private.** No code was redeployed. The successful grant `measure-1791865811570` finished at 04:30:45.086 UTC; a later cloud inspection verified terminal grants, released lease and unchanged control. Auctions, email, evaluation and unrelated background work remain disabled.
+
+Cloud Shell authentication resolved the earlier 401. The first authenticated attempt failed before upstream I/O because the shared policy retained two retries. A tested atomic configuration transition set zero retries while preserving the unchanged stopped ledger and all counters/history; a separately budgeted grant then completed, and the original retry setting was restored. The operator now checks policy compatibility before arming a grant. Failed-attempt holds were not refunded.
+
+Observed collection work: 5.156 seconds, 18 Firestore reads, 14 writes, three public upstream requests and one legacy Storage read. Separate handler accounting used two reads/two writes. Provider revision totals currently report approximately 11.19 CPU/GiB-seconds, including startup and failed work; reporting is provisional, not settled billing. All deployment holds and measurement reservations remain, with ledger totals of 10,140 CPU/GiB-seconds, 4,696 daily reads and 1,904 daily writes. Period identity/expiration and owner-stop history are unchanged.
+
+Another bounded run fits the numeric projection with fresh checks and newly enforced 1 MiB diagnostic response caps; prior larger diagnostic holds remain. No further run or ongoing scheduling was started. **442 tests passed**, plus 53 focused tests after final operator changes, and relevant typechecks passed. Full measurements, errors and remaining reservations are saved in `.local/private-measurement-success-receipt.json` and [the measurement record](PRIVATE-MEASUREMENT-RUN.md). Earlier sections below are historical.
+
+## Bounded measurement evidence resolved; authentication blocked — October 13, 2026 UTC
+
+The existing billing/cloud access supplied the required scope evidence. With conservative reporting-tail and retention bounds, preserved deployment/accounting holds and the owner's exclusive-use confirmation, **both measurement capacity checks passed**. The validator retains unknown historical usage where a documented zero-increment path applies, and the public Hypixel mode enforces one call per documented endpoint with no retries while retaining all nine request holds.
+
+Only the changed collector was deployed: `refreshmarket-00017-g9f`, image `sha256:299a81863ad55164ac1d84c8b68ec2d327972866a8e3bfdd116bfee9e184595e`, 12,963,962 uploaded bytes, zero Cloud Build. The API stayed on `marketapi-00019-gl8`. **The single private invocation returned HTTP 401 before a handler claim; no Bazaar collection or upstream request ran.** The Firebase login's user ID token was not accepted by Cloud Run, and no gcloud session is installed/configured locally. No IAM/OAuth or billing permissions were changed.
+
+The grant was closed at 03:58:08.484 UTC using an exact-value CAS. An earlier closure write was throttled; readback plus backoff preceded the one separately recorded successful CAS. All counters, the original owner stop, period identity/expiry, prior deployment holds and new reservations remain. Final reads confirm `PAUSED` Scheduler and two private services. The ledger now reserves 8,940 CPU/GiB-seconds, 2,896 daily reads and 1,152 daily writes; no failed-attempt holds were refunded.
+
+Private receipt: `.local/private-measurement-resolution-receipt.json`. See [the current measurement record](PRIVATE-MEASUREMENT-RUN.md) for actual deployment observations, delayed provider metrics, budgets and the exact remaining action: supply a Cloud Run-compatible ID token from an already-authorized owner Google Cloud CLI/Cloud Shell session as a private local file. A further bounded run fits the numeric budget without redeployment, subject to fresh checks and that token. 438 tests passed; 49 focused tests passed after final operator updates. Earlier sections below are historical.
+
+## Private bounded measurement preparation — October 12, 2026, 10:28 p.m. Eastern
+
+The requested one-shot measurement mode is implemented and passes 434 unit tests, typechecks and network-blocked local image startup checks. It preserves the owner stop, every existing counter, allowance identity/expiry and prior history while admitting at most one explicitly granted Bazaar cycle with a fixed deadline. The collector-only release path leaves the API unchanged and private; Scheduler remains paused. No browser activity or visible demand is fabricated.
+
+**The actual measurement preflight remains blocked; no code was deployed and no collection was invoked.** Five bounded cloud evidence inspections made 85 requests and confirmed the unchanged ledger hash and private/paused state. Fresh read/write and compute samples narrowed some gaps, but complete shared allowance/tail bounds, deletes/transfer/integrated-retention evidence, all-ingress bounds and numeric upstream entitlement remain unestablished. Missing usage was not converted to zero. All existing deployment holds and the new diagnostic holds remain retained.
+
+See [the measurement run record](PRIVATE-MEASUREMENT-RUN.md) for the exact proposed budget, evidence limitations, smallest next actions and execution procedure. Private artifacts: `.local/private-measurement-run-receipt.json`, `.local/private-measurement-plan-reviewed.json`, `.local/measure-1791858378666-inspect.json`, and `.local/measurement-state-after.json`. The new local image is verified but unuploaded. Another bounded run is not certified, and no repeat restart approval is needed.
+
+Earlier release: the user authorized committing and deploying all pending work. The [night-market release](NIGHT-MARKET-RELEASE.md) published Hosting, private Firestore rules/indexes and Apps Script version 14, including the disabled worker/email source gates described below. The optimized market-service code was subsequently deployed on October 12, as recorded below. Scheduler remains `PAUSED`.
 
 **Supported production configuration: paused.** The owner subsequently authorized finishing preparation and unpausing collection when safe, then explicitly requested commit, push and deployment of the optimizations. No repeat approval is needed for those scopes. This does not waive verified headroom or the restrictions on billing and production permissions. Reporting publications and Hosting releases are documented below; market collection remains stopped.
+
+## Optimized backend deployed; activation validation — October 12, 2026, 10:01 p.m. Eastern
+
+**The optimized image is now deployed to both existing services. Activation did not pass the fresh validation.** The user authorized deployment and activation within the free tier. The release completed at 02:00:36 UTC October 13; ready revisions are `marketapi-00019-gl8` and `refreshmarket-00016-wzm`, both serving `sha256:dd601e4c2f453b6fcd105adecd73aa19fda52c7fcd5031edfefdbf8f3f22ce2f`. The application-only upload was 12,959,693 bytes and required no Cloud Build. Both source collection gates and the scheduler remain off; no collector invocation was requested.
+
+Fresh Cloud Asset searches returned permission errors. The direct fallback successfully enumerated all **46 supported Artifact Registry locations** in the currently billed project and found one repository. Global Run inventories found only the two expected services and no jobs. Both services have zero minimum instances and request-based CPU billing. Current account membership is unchanged; the two former projects have billing disabled and their Registry APIs are disabled. Those disabled APIs are not historical-zero evidence: historical shared consumption is covered by the all-project billing export and its retained settlement uncertainty. Current repository inventory plus the provisional historical byte-month settlement supports this paused code rollout. [Repository location listing](https://docs.cloud.google.com/artifact-registry/docs/reference/rest/v1/projects.locations/list), [global Run inventory](https://docs.cloud.google.com/run/docs/reference/rest/v1/namespaces.services/list).
+
+The reviewed deployment plan includes all existing market/deployment reservations, this rollout's full holds, settlement uncertainty, additional remaining-work headroom and the unchanged 25% provider margin:
+
+| Deployment dimension | Reserved/projected total including headroom | Protected ceiling |
+|---|---:|---:|
+| CPU | 40,023.8 vCPU-seconds | 135,000 |
+| Memory | 40,023.8 GiB-seconds | 270,000 |
+| Artifact storage | 290,718,852 byte-month equivalents | 402,653,184 |
+| Logs | 262,039,603 bytes | 40,265,318,400 |
+
+These are conservative reservations, **not measured deployment costs**. The existing shutdown-only grants were verified through November 1 at 08:00 UTC; they were not extended. The rollout receipt permanently adds another 10,000 CPU/GiB-second hold, 83,475,577 artifact-byte-month hold and 16,777,216 log-byte hold. Do not run a second deployment merely to repeat validation.
+
+The post-deployment inspection at **02:01:03 UTC** completed 15 bounded reads without errors. Scheduler is `PAUSED`, the API is private, and the complete stopped ledger hash remains `b4346cd44a5d2a91786c27908669a8523f3eabfe9aa3695adaeb5af27798e948`. Monthly and daily counters, allowance identity and expiry are unchanged. Current Registry metadata now reports 12,959,693 bytes; that gauge cannot refund historical or new byte-month holds.
+
+**Activation blockers:** the ledger has no operating-capacity plan; daily Firestore operations remain unreported, account-wide Apps Script use remains unavailable, and verified upstream entitlement plus a bound on incoming/rejected traffic have not been established. The fresh 01:57:22 UTC usage query retains the original sample dates: its Run compute/request data still ends October 4. A fresh query is not fresh usage. The strict planner returns `paused` with no admitted cadence. Browser delivery also fails because Cloud Run invocation remains private; a Firebase browser token alone does not grant Run invocation. Enabling source gates or clearing the owner stop before resolving these blockers would not meet the selected free-tier requirement. No production permissions, billing settings or application ledger were changed.
+
+Receipts: `.local/optimized-oct12-release.json`, `.local/private-release-free-20261001-optimized-oct12-apply.json`, `.local/deployment-inventory-20261012.json`, `.local/activation-readiness-20261012-postdeploy.json`, `.local/activation-validation-20261012.json`, and `.local/usage-dashboard-20261012-predeploy.json`. `scripts/read-deployment-inventory.cjs` provides the bounded direct inventory fallback. `scripts/validate-activation-readiness.ts` runs the actual capacity/access validators against captured fresh state without cloud writes or counter changes. The earlier settlement remains in force.
+
+Validation: both deployed revisions reached ready on the exact reviewed image; **59 focused tests passed**, root TypeScript checking passed and `git diff --check` passed. The earlier complete suite passed 403 tests before deployment.
+
+## Deployment reservation settlement — October 12, 2026, 9:47 p.m. Eastern
+
+The owner explicitly authorized reconciliation. **The old deployment-reservation arithmetic no longer exceeds the protected ceilings**, after a provisional, evidence-backed settlement. This supersedes the earlier rule that every deployment estimate remains a full-period hold, only for the covered deployment batch. The runtime market ledger, its 8,340 CPU/GiB-second reservations, owner stop, deadlines and disabled gates are unchanged. Neither the optimized image nor any other cloud code was deployed during reconciliation.
+
+The read-only reconstruction found **13 distinct private-release image digests and 22 service updates**, each matched to a unique ready revision and terminal service event. These match the documented aggregate of thirteen deployment reservations; the original local receipts themselves were not recovered. The history query returned 99 Run audit events and complete lists of 18 API and 15 collector revisions. The latest covered service update became ready on October 4 at 09:43:12 UTC. No Artifact Registry deletion audit entries were available.
+
+The account-wide Google Billing CSV exported October 12 used all three projects, all services, all SKUs and all locations. It reports **1,683.7 CPU-seconds**, **1,683.7 GiB-seconds**, and **0.02 GiB-month** of Artifact Registry storage. These are rounded, provisional usage figures, not a finalized invoice. The CSV's unrounded total is $0.000001 from an existing Artifact Registry transfer row; the console rounds this to $0.00. No zero-cost claim is inferred from the displayed bill.
+
+The settlement uses 1,683.8 for each compute meter and retains a separate **10,000-second uncertainty buffer** for each, in addition to the next rollout's 10,000-second hold and the existing 25% provider margin. It requires terminal deployment evidence at least 48 hours old. This is an application risk policy, **not a Google guarantee that reporting is final after 48 hours**. Google documents that reporting can take more than 24 hours: [Billing report availability](https://docs.cloud.google.com/billing/docs/how-to/reports).
+
+Artifact storage is reconciled in **byte-months**, not current bytes. The current repository file list is complete and empty; its sparse historical size series is not integrated and missing samples are not treated as zero. The reported 0.02 GiB-month is rounded upward to 0.03 GiB-month (32,212,255 byte-months). The storage uncertainty calculation uses the larger of the original aggregate hold and the observed 1,588,252,852-byte peak throughout the uncovered reporting interval plus another 48 hours, and adds 1 MiB for metadata retention. This retains **158,253,804 byte-months** of uncertainty. Future uploads retain their entire new full-period holds. [Artifact storage units](https://cloud.google.com/artifact-registry/pricing).
+
+| Deployment resource, including next rollout | Revised projected use | Protected ceiling |
+|---|---:|---:|
+| CPU | 30,023.8 vCPU-seconds | 135,000 |
+| Memory | 30,023.8 GiB-seconds | 270,000 |
+| Artifact storage | 273,941,636 byte-months (~0.255 GiB-month) | 402,653,184 (~0.375 GiB-month) |
+| Logs, retaining every old log reservation | 245,262,387 bytes | 40,265,318,400 |
+
+`scripts/deployment-reservations.json` preserves the documented floor even when `.local` receipts are absent. `scripts/deployment-accounting.mjs` reconstructs every settlement from hash-checked source files, rejects duplicate credits, wrong periods/scopes, changed evidence and unclassified compute SKUs, and keeps newer/ambiguous attempts additive. Recovered old receipts do not count twice; a larger recovered total rejects the settlement. The release helper separately enforces unchanged market reservations. A later observation uses the larger observed amount instead of adding the same covered use twice. Missing settlement files restore the documented floor; missing or changed files referenced by a settlement block its use.
+
+The append-only saved record is `.local/deployment-settlement-rollouts-27701f7e19b7fc804ec2026e.json`, referencing `.local/deployment-history-20261012.json`, `.local/billing-skus-20261012.csv`, `.local/billing-scope-20261012.json`, and `.local/reconciliation-storage-20261012.json`. Keep these private files together when moving checkouts. The source baseline remains in Git; the private billing evidence is ignored. The concrete assessment is `.local/paused-release-assessment-1791856048879.json`. It remains **`deployable: false`**: numeric headroom alone does not supply fresh deployment scope, remaining-work bounds, or the missing operating-capacity plan.
+
+Reproduce the offline reconciliation with:
+
+```sh
+node scripts/reconcile-deployments.mjs .local/deployment-history-20261012.json .local/billing-skus-20261012.csv .local/billing-scope-20261012.json .local/reconciliation-storage-20261012.json
+```
+
+Append `--write` to save the immutable record; repeating exactly the same evidence is idempotent. New evidence does not overwrite or credit an existing settlement a second time. `scripts/read-deployment-history.cjs <period-start-ISO> .local/<new-file>.json` and `scripts/read-reconciliation-storage.cjs <period-start-ISO> .local/<new-file>.json` collect bounded read-only evidence. The billing scope sidecar must record the actual visible report filters and reporting window when exporting the CSV; it must never be re-timestamped to make an old export appear fresh.
+
+Validation: **403 unit tests passed**, including ten reconciliation tests covering missing receipts, unknown attempts, duplicate settlements, changed/missing evidence, account scope, terminal revisions, rounded units, storage retention, period isolation and preserved market counters. The production scheduler and ledger remain paused and unchanged.
+
+## Free-tier restart review — October 12, 2026 (Eastern)
+
+Historical pre-settlement assessment; the deployment reservation figures below are superseded by the reconciliation above.
+
+The owner requested optimization before restarting to collect fresh usage data, and explicitly selected **stay within the free tier**. Collection remains paused. This review made no cloud deployment, scheduler change, ledger reset or permission change.
+
+The collector now shares one fresh coordination read across immutable metadata reads and reuses the previously read Bazaar generation. A Bazaar response uses the same fresh control state for its payload identity and status. Mutable control is never cached between responses; request accounting, publication preconditions, lease checks and conservative admission reservations remain intact.
+
+A local pass at **2026-10-13 01:28:04 UTC** successfully fetched catalog, election and Bazaar using three public-source requests, producing **2,201 products**. The Bazaar refresh took 121 ms locally. These are local source measurements, not deployed Cloud Run usage or a cloud CPU estimate. No rate-limit entitlement was inferred from the absent rate-limit headers.
+
+An offline replay of that saved source against `HEAD` and the optimized engine produced the identical final snapshot SHA-256 (`a2c30b5c86a4e970d89d4b71b66a6ff7281177e1d6e5e5790f78b24dc5d46412`):
+
+| Operation | Firestore reads before | After |
+|---|---:|---:|
+| Cold catalog/election/Bazaar collection | 27 | 22 |
+| Cold Bazaar response | 3 | 2 |
+| 20 warm Bazaar responses | 40 | 20 |
+| Next Bazaar generation | 11 | 8 |
+| Unchanged Bazaar generation | 12 | 8 |
+
+These are modeled document operations in the offline Google transport, excluding live allowance admission/finish overhead. Writes and source-request counts were unchanged. The inline snapshot path used zero object-storage uploads. The unchanged-generation fixture was made due only in its isolated offline store; no live schedule or counters were altered. Raw replay results are `.local/benchmark-reads-before.json` and `.local/benchmark-reads-after.json`; the public sample is `.local/current-market.sqlite`.
+
+Validation: **393 unit tests passed**; collector and market-function typechecks/build passed. The local application image passed both handler startup smoke checks with outbound connections blocked. It contains a 12,958,841-byte compressed application layer and retains an 83,475,577-byte conservative artifact hold. Image digest: `sha256:dd601e4c2f453b6fcd105adecd73aa19fda52c7fcd5031edfefdbf8f3f22ce2f`. It is **not uploaded or deployed**.
+
+The read-only cloud inspection at **01:27:16 UTC** confirmed Scheduler `PAUSED`, a private API, the existing owner stop, **no capacity plan**, and the unchanged October allowance counters (8,340 CPU/GiB-seconds reserved). Project Monitoring returned about 1,658.92 CPU-seconds, but its latest reported Run sample was October 4; refreshing the dashboard does not make that sample current. Inspection receipt: `.local/activation-readiness-20261012.json`.
+
+The previous thirteen rollout receipts are absent from this checkout. Their documented **130,000 CPU-second** and **1,187,621,148 artifact-byte** holds must not be treated as zero. Together with 8,340 market CPU-seconds and the next 10,000-second rollout, the documented CPU holds alone total **148,340**, exceeding the protected **135,000** ceiling. These are conservative reservations, not billed use. Artifact Registry returned an empty Docker-image list and no repository `sizeBytes`; neither proves historical byte-month usage or authorizes releasing old holds.
+
+Restart still requires reconciliation of those retained deployment reservations and complete current capacity evidence within the existing free-tier controls, followed by the optimized deployment and activation. The lower read counts and small billed totals do not supply that missing evidence. No further owner approval is needed merely to restart within the already authorized free-tier scope.
 
 ## Cache optimization and rollout assessment — October 4, 22:02 UTC
 

@@ -20,6 +20,8 @@ const client = vi.hoisted(() => ({
 }));
 vi.mock("../src/data", () => ({
   auth: client.auth,
+}));
+vi.mock("../src/firestore", () => ({
   get db() {
     return client.db;
   },

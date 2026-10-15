@@ -5,8 +5,10 @@ service cloud.firestore {
       return request.auth != null && request.auth.token.email_verified == true
         && request.auth.uid == get(/databases/$(database)/documents/config/access).data.ownerUid;
     }
-    match /owners/{uid}/{document=**} {
-      allow read: if owner() && request.auth.uid == uid;
+    match /owners/{uid}/{collection}/{document=**} {
+      allow read: if owner() && request.auth.uid == uid
+        && (collection != 'reports' || (request.auth.token.email == 'drewstake3@gmail.com'
+          && request.auth.token.firebase.sign_in_provider == 'google.com'));
       allow write: if false;
     }
     // Only the sanitized status projection is client-readable. Private ledgers,

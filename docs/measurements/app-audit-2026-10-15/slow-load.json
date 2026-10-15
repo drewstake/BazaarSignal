@@ -1,0 +1,431 @@
+{
+  "method": "Alternating builds, Chromium, 4x CPU, 6 Mbps download, 60 ms latency, fresh browser context, HTTP cache disabled, external URLs blocked. Measures load event plus usable search, then completion of both large landing images; local static server sends uncompressed JS/CSS. No cloud requests.",
+  "summary": [
+    {
+      "label": "before",
+      "samples": 5,
+      "medianLoadMs": 2045.6173,
+      "medianArtworkLoadedMs": 7059.8647,
+      "resourceBytes": 4781870
+    },
+    {
+      "label": "after",
+      "samples": 5,
+      "medianLoadMs": 1271.839799999998,
+      "medianArtworkLoadedMs": 4872.421100000003,
+      "resourceBytes": 3203577
+    }
+  ],
+  "runs": [
+    {
+      "label": "before",
+      "loadedMs": 2101.6673,
+      "artworkLoadedMs": 7100.0572999999995,
+      "resources": [
+        {
+          "url": "/assets/app-CI9JyQJH.js",
+          "bytes": 942144
+        },
+        {
+          "url": "/assets/app-CT-H8ywE.css",
+          "bytes": 80528
+        },
+        {
+          "url": "/assets/sky-island-v1/web/ui-watchlist-chest-64.png",
+          "bytes": 5485
+        },
+        {
+          "url": "/assets/items/booster_cookie.webp",
+          "bytes": 12940
+        },
+        {
+          "url": "/assets/items/enchanted_diamond_block.webp",
+          "bytes": 18216
+        },
+        {
+          "url": "/assets/items/summoning_eye.webp",
+          "bytes": 17054
+        },
+        {
+          "url": "/assets/night-market/scene-only.png",
+          "bytes": 1852526
+        },
+        {
+          "url": "/assets/night-market/reference.png",
+          "bytes": 1803581
+        },
+        {
+          "url": "/assets/night-market/pixelify-sans-700.ttf",
+          "bytes": 49396
+        }
+      ]
+    },
+    {
+      "label": "after",
+      "loadedMs": 1295.5724999999993,
+      "artworkLoadedMs": 4899.275699999999,
+      "resources": [
+        {
+          "url": "/assets/app-C_6agQsw.js",
+          "bytes": 444662
+        },
+        {
+          "url": "/assets/app-C8nuU-DM.css",
+          "bytes": 59878
+        },
+        {
+          "url": "/assets/sky-island-v1/web/ui-watchlist-chest-64.png",
+          "bytes": 5485
+        },
+        {
+          "url": "/assets/items/booster_cookie.webp",
+          "bytes": 12940
+        },
+        {
+          "url": "/assets/items/enchanted_diamond_block.webp",
+          "bytes": 18216
+        },
+        {
+          "url": "/assets/items/summoning_eye.webp",
+          "bytes": 17054
+        },
+        {
+          "url": "/assets/night-market/scene-only.webp",
+          "bytes": 1335144
+        },
+        {
+          "url": "/assets/night-market/reference.webp",
+          "bytes": 1310198
+        }
+      ]
+    },
+    {
+      "label": "before",
+      "loadedMs": 2045.6173,
+      "artworkLoadedMs": 7059.8647,
+      "resources": [
+        {
+          "url": "/assets/app-CI9JyQJH.js",
+          "bytes": 942144
+        },
+        {
+          "url": "/assets/app-CT-H8ywE.css",
+          "bytes": 80528
+        },
+        {
+          "url": "/assets/sky-island-v1/web/ui-watchlist-chest-64.png",
+          "bytes": 5485
+        },
+        {
+          "url": "/assets/items/booster_cookie.webp",
+          "bytes": 12940
+        },
+        {
+          "url": "/assets/items/enchanted_diamond_block.webp",
+          "bytes": 18216
+        },
+        {
+          "url": "/assets/items/summoning_eye.webp",
+          "bytes": 17054
+        },
+        {
+          "url": "/assets/night-market/scene-only.png",
+          "bytes": 1852526
+        },
+        {
+          "url": "/assets/night-market/reference.png",
+          "bytes": 1803581
+        },
+        {
+          "url": "/assets/night-market/pixelify-sans-700.ttf",
+          "bytes": 49396
+        }
+      ]
+    },
+    {
+      "label": "after",
+      "loadedMs": 1267.561600000001,
+      "artworkLoadedMs": 4866.623100000001,
+      "resources": [
+        {
+          "url": "/assets/app-C_6agQsw.js",
+          "bytes": 444662
+        },
+        {
+          "url": "/assets/app-C8nuU-DM.css",
+          "bytes": 59878
+        },
+        {
+          "url": "/assets/sky-island-v1/web/ui-watchlist-chest-64.png",
+          "bytes": 5485
+        },
+        {
+          "url": "/assets/items/booster_cookie.webp",
+          "bytes": 12940
+        },
+        {
+          "url": "/assets/items/enchanted_diamond_block.webp",
+          "bytes": 18216
+        },
+        {
+          "url": "/assets/items/summoning_eye.webp",
+          "bytes": 17054
+        },
+        {
+          "url": "/assets/night-market/scene-only.webp",
+          "bytes": 1335144
+        },
+        {
+          "url": "/assets/night-market/reference.webp",
+          "bytes": 1310198
+        }
+      ]
+    },
+    {
+      "label": "before",
+      "loadedMs": 2067.3976999999977,
+      "artworkLoadedMs": 7098.7312999999995,
+      "resources": [
+        {
+          "url": "/assets/app-CI9JyQJH.js",
+          "bytes": 942144
+        },
+        {
+          "url": "/assets/app-CT-H8ywE.css",
+          "bytes": 80528
+        },
+        {
+          "url": "/assets/sky-island-v1/web/ui-watchlist-chest-64.png",
+          "bytes": 5485
+        },
+        {
+          "url": "/assets/items/booster_cookie.webp",
+          "bytes": 12940
+        },
+        {
+          "url": "/assets/items/enchanted_diamond_block.webp",
+          "bytes": 18216
+        },
+        {
+          "url": "/assets/items/summoning_eye.webp",
+          "bytes": 17054
+        },
+        {
+          "url": "/assets/night-market/scene-only.png",
+          "bytes": 1852526
+        },
+        {
+          "url": "/assets/night-market/reference.png",
+          "bytes": 1803581
+        },
+        {
+          "url": "/assets/night-market/pixelify-sans-700.ttf",
+          "bytes": 49396
+        }
+      ]
+    },
+    {
+      "label": "after",
+      "loadedMs": 1271.839799999998,
+      "artworkLoadedMs": 4872.421100000003,
+      "resources": [
+        {
+          "url": "/assets/app-C_6agQsw.js",
+          "bytes": 444662
+        },
+        {
+          "url": "/assets/app-C8nuU-DM.css",
+          "bytes": 59878
+        },
+        {
+          "url": "/assets/sky-island-v1/web/ui-watchlist-chest-64.png",
+          "bytes": 5485
+        },
+        {
+          "url": "/assets/items/booster_cookie.webp",
+          "bytes": 12940
+        },
+        {
+          "url": "/assets/items/enchanted_diamond_block.webp",
+          "bytes": 18216
+        },
+        {
+          "url": "/assets/items/summoning_eye.webp",
+          "bytes": 17054
+        },
+        {
+          "url": "/assets/night-market/scene-only.webp",
+          "bytes": 1335144
+        },
+        {
+          "url": "/assets/night-market/reference.webp",
+          "bytes": 1310198
+        }
+      ]
+    },
+    {
+      "label": "before",
+      "loadedMs": 2027.328800000003,
+      "artworkLoadedMs": 7037.4625000000015,
+      "resources": [
+        {
+          "url": "/assets/app-CI9JyQJH.js",
+          "bytes": 942144
+        },
+        {
+          "url": "/assets/app-CT-H8ywE.css",
+          "bytes": 80528
+        },
+        {
+          "url": "/assets/sky-island-v1/web/ui-watchlist-chest-64.png",
+          "bytes": 5485
+        },
+        {
+          "url": "/assets/items/booster_cookie.webp",
+          "bytes": 12940
+        },
+        {
+          "url": "/assets/items/enchanted_diamond_block.webp",
+          "bytes": 18216
+        },
+        {
+          "url": "/assets/items/summoning_eye.webp",
+          "bytes": 17054
+        },
+        {
+          "url": "/assets/night-market/scene-only.png",
+          "bytes": 1852526
+        },
+        {
+          "url": "/assets/night-market/reference.png",
+          "bytes": 1803581
+        },
+        {
+          "url": "/assets/night-market/pixelify-sans-700.ttf",
+          "bytes": 49396
+        }
+      ]
+    },
+    {
+      "label": "after",
+      "loadedMs": 1271.608500000002,
+      "artworkLoadedMs": 4865.109500000006,
+      "resources": [
+        {
+          "url": "/assets/app-C_6agQsw.js",
+          "bytes": 444662
+        },
+        {
+          "url": "/assets/app-C8nuU-DM.css",
+          "bytes": 59878
+        },
+        {
+          "url": "/assets/sky-island-v1/web/ui-watchlist-chest-64.png",
+          "bytes": 5485
+        },
+        {
+          "url": "/assets/items/booster_cookie.webp",
+          "bytes": 12940
+        },
+        {
+          "url": "/assets/items/enchanted_diamond_block.webp",
+          "bytes": 18216
+        },
+        {
+          "url": "/assets/items/summoning_eye.webp",
+          "bytes": 17054
+        },
+        {
+          "url": "/assets/night-market/scene-only.webp",
+          "bytes": 1335144
+        },
+        {
+          "url": "/assets/night-market/reference.webp",
+          "bytes": 1310198
+        }
+      ]
+    },
+    {
+      "label": "before",
+      "loadedMs": 2021.7051000000065,
+      "artworkLoadedMs": 7036.5144,
+      "resources": [
+        {
+          "url": "/assets/app-CI9JyQJH.js",
+          "bytes": 942144
+        },
+        {
+          "url": "/assets/app-CT-H8ywE.css",
+          "bytes": 80528
+        },
+        {
+          "url": "/assets/sky-island-v1/web/ui-watchlist-chest-64.png",
+          "bytes": 5485
+        },
+        {
+          "url": "/assets/items/booster_cookie.webp",
+          "bytes": 12940
+        },
+        {
+          "url": "/assets/items/enchanted_diamond_block.webp",
+          "bytes": 18216
+        },
+        {
+          "url": "/assets/items/summoning_eye.webp",
+          "bytes": 17054
+        },
+        {
+          "url": "/assets/night-market/scene-only.png",
+          "bytes": 1852526
+        },
+        {
+          "url": "/assets/night-market/reference.png",
+          "bytes": 1803581
+        },
+        {
+          "url": "/assets/night-market/pixelify-sans-700.ttf",
+          "bytes": 49396
+        }
+      ]
+    },
+    {
+      "label": "after",
+      "loadedMs": 1279.5181999999986,
+      "artworkLoadedMs": 4883.052500000005,
+      "resources": [
+        {
+          "url": "/assets/app-C_6agQsw.js",
+          "bytes": 444662
+        },
+        {
+          "url": "/assets/app-C8nuU-DM.css",
+          "bytes": 59878
+        },
+        {
+          "url": "/assets/sky-island-v1/web/ui-watchlist-chest-64.png",
+          "bytes": 5485
+        },
+        {
+          "url": "/assets/items/booster_cookie.webp",
+          "bytes": 12940
+        },
+        {
+          "url": "/assets/items/enchanted_diamond_block.webp",
+          "bytes": 18216
+        },
+        {
+          "url": "/assets/items/summoning_eye.webp",
+          "bytes": 17054
+        },
+        {
+          "url": "/assets/night-market/scene-only.webp",
+          "bytes": 1335144
+        },
+        {
+          "url": "/assets/night-market/reference.webp",
+          "bytes": 1310198
+        }
+      ]
+    }
+  ]
+}

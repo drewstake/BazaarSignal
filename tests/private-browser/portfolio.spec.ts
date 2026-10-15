@@ -1,6 +1,8 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import { normalizeBazaar } from "../../shared/companion/bazaar";
-const signIn = async (page: Page, id: string) => {
+import catalog from '../../src/companion/bazaar-catalog.json' with { type: 'json' };
+test.use({ timezoneId: "Asia/Tokyo" });
+const signIn = async (page: Page, id: string, waitForHeader = true) => {
   await page.evaluate(async (id) => {
     const { auth } = await import("/src/data.ts");
     const { GoogleAuthProvider, signInWithCredential } =
@@ -21,7 +23,7 @@ const signIn = async (page: Page, id: string) => {
       ),
     );
   }, id);
-  await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
+  if (waitForHeader) await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
 };
 const create = async (page: Page, name: string) => {
   await page
@@ -109,6 +111,110 @@ test.beforeEach(async ({ page }) => {
     }),
   );
   await page.goto("/#view=portfolios");
+});
+
+test("header search reuses portfolio data and preserves holdings and navigation", async ({ page }, info) => {
+  const marketRequests: string[] = [];
+  page.on('request', request => { if (request.url().includes('/api/companion/')) marketRequests.push(request.url()); });
+  await seedPrices(page);
+  await signIn(page, `header-search-${info.project.name}-${Date.now()}`);
+  await create(page, 'Search portfolio');
+  await add(page);
+  const holding = page.getByRole('rowgroup', { name: 'Booster Cookie holding' });
+  await expect(holding.getByRole('cell', { name: '287', exact: true })).toBeVisible();
+  const search = page.getByRole('combobox', { name: 'Search Bazaar items' });
+  const brand = await page.locator('.market-brand').boundingBox();
+  const searchBox = await search.boundingBox();
+  if (info.project.name === 'desktop') expect(searchBox!.x).toBeGreaterThanOrEqual(brand!.x + brand!.width);
+  else expect(searchBox!.y).toBeGreaterThanOrEqual(brand!.y + brand!.height);
+  await search.fill('BOOSTER_COOKIE'); await search.press('ArrowDown'); await search.press('Enter');
+  const panel = page.getByRole('region', { name: 'Booster Cookie' });
+  await expect(panel).toContainText('14,000,000 coins');
+  await expect(panel).toContainText('1,000 items · 2 orders · 1 level');
+  await expect(panel).toContainText('Updates paused');
+  await noOverflow(page);
+  await page.screenshot({ path: `.local/bazaar-search-workspace-${info.project.name}.png`, fullPage: true });
+  await expect(page).toHaveURL(/#view=item&item=BOOSTER_COOKIE$/);
+  await page.getByRole('link', { name: 'Back to Portfolio', exact: true }).click();
+  await expect(panel).toHaveCount(0);
+  await expandHolding(holding);
+  await holding.getByRole('button', { name: 'Edit', exact: true }).click();
+  const edit = page.getByRole('form', { name: 'Edit holding' });
+  await expect(edit.getByLabel('Quantity owned', { exact: true })).toHaveValue('287');
+  await edit.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Settings' }).click();
+  await expect(page).toHaveURL(/view=settings/);
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Portfolio' }).click();
+  await expect(holding.getByRole('cell', { name: '287', exact: true })).toBeVisible();
+  expect(marketRequests).toEqual([]);
+});
+
+test("refresh restores a saved session before choosing the landing page", async ({
+  page,
+}, info) => {
+  await signIn(page, `restore-${info.project.name}-${Date.now()}`);
+  await create(page, "Restored portfolio");
+  await page.addInitScript(() => {
+    (window as any).landingFlashed = false;
+    new MutationObserver((changes) => {
+      for (const change of changes) for (const node of change.addedNodes) {
+        if (node instanceof Element &&
+          (node.matches(".night-market") || node.querySelector(".night-market")))
+          (window as any).landingFlashed = true;
+      }
+    }).observe(document, { childList: true, subtree: true });
+  });
+  // Hold the real persisted-session lookup so the pending state is observable.
+  let release!: () => void;
+  const lookup = new Promise<void>((resolve) => { release = resolve; });
+  const lookupUrl = "**/identitytoolkit.googleapis.com/v1/accounts:lookup*";
+  await page.route(lookupUrl, async (route) => {
+    await lookup;
+    await route.continue();
+  });
+  try {
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("status")).toHaveText("Loading BazaarSignal…");
+    await expect(page.getByRole("button", { name: "Sign in with Google" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Sign out" })).toHaveCount(0);
+    await noOverflow(page);
+    expect(await page.evaluate(() => (window as any).landingFlashed)).toBe(false);
+    release();
+    await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Restored portfolio", exact: true })).toBeVisible();
+    expect(await page.evaluate(() => (window as any).landingFlashed)).toBe(false);
+  } finally {
+    release();
+    await page.unroute(lookupUrl);
+  }
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page.getByRole("button", { name: "Sign in with Google" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Sign in with Google" })).toBeVisible();
+  await expect(page.getByText("Loading BazaarSignal…", { exact: true })).toHaveCount(0);
+});
+
+test('signing in on a direct item link defers private code and reads until Portfolio is opened', async ({ page }, info) => {
+  await seedPrices(page);
+  const privateRequests: string[] = [];
+  page.on('request', request => {
+    if (/\/src\/(?:companion\/Workspace\.tsx|firestore\.ts)|google\.firestore\.v1/.test(request.url())) privateRequests.push(request.url());
+  });
+  await page.goto('/#view=item&item=BOOSTER_COOKIE');
+  await expect(page.getByRole('region', { name: 'Booster Cookie' })).toContainText('14,000,000 coins');
+  await signIn(page, `direct-item-${info.project.name}-${Date.now()}`);
+  await expect(page.getByRole('region', { name: 'Booster Cookie' })).toBeVisible();
+  expect(privateRequests).toEqual([]);
+  await page.getByRole('link', { name: 'Back to Portfolio', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Create portfolio', exact: true })).toBeVisible();
+  expect(privateRequests.some(url => url.includes('/src/firestore.ts'))).toBe(true);
+});
+
+test('a failed workspace module leaves a clear reload action', async ({ page }, info) => {
+  await page.route('**/src/companion/Workspace.tsx*', route => route.abort());
+  await signIn(page, `chunk-error-${info.project.name}-${Date.now()}`, false);
+  await expect(page.getByRole('alert')).toContainText('This view could not load.');
+  await expect(page.getByRole('button', { name: 'Reload BazaarSignal' })).toBeVisible();
 });
 
 test("holding quantity can be calculated from coins spent and saved through purchases and edits", async ({
@@ -219,7 +325,7 @@ test("notification controls persist, respect revisions and stay retired after ho
       portfolioId: request.portfolioId,
       holdingId: request.holdingId,
       holdingName: "Booster Cookie",
-      source: "bazaar-bid-v1",
+      source: "bazaar-ask-v1",
       capturedPrice: null,
       capturedAt: null,
       enabled: ["save", "resume"].includes(request.operation),
@@ -261,7 +367,7 @@ test("notification controls persist, respect revisions and stay retired after ho
   await form.getByRole("button", { name: "Save and enable" }).click();
   await expect(form).toHaveCount(0);
   await expect(card).toContainText("Enabled · ↑ 10% ↓ 5%");
-  await page.getByRole("link", { name: "Notifications", exact: true }).click();
+  await page.getByRole("link", { name: "Settings", exact: true }).click();
   await page.getByRole("button", { name: "Pause", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Resume", exact: true }),
@@ -277,7 +383,7 @@ test("notification controls persist, respect revisions and stay retired after ho
   await form.getByLabel("Upward threshold (%)").fill("15");
   await form.getByRole("button", { name: "Save and enable" }).click();
   await expect(card).toContainText("↑ 15%");
-  await page.getByRole("link", { name: "Notifications", exact: true }).click();
+  await page.getByRole("link", { name: "Settings", exact: true }).click();
   await page.getByRole("button", { name: "Delete notification" }).click();
   await expect(
     page.getByText("No holding notifications yet.", { exact: false }),
@@ -358,9 +464,10 @@ test("portfolio CRUD, cost calculation, purchases, unavailable prices, identity 
   ).toHaveAttribute("aria-expanded", "false");
   await expect(card.getByRole("button", { name: "Add purchase" })).toBeHidden();
   await expect(card).toContainText("3,501,400,000");
-  await expect(card).toContainText("3,731,000,000");
-  await expect(card).toContainText("+6.6%");
-  await expect(card).toContainText("stale");
+  await expect(card).toContainText("4,018,000,000");
+  await expect(card).toContainText("+14.8%");
+  await expect(card).not.toContainText("stale");
+  expect(await card.innerText()).not.toMatch(/stale|last-known/i);
   await expandHolding(card);
   await card.getByRole("button", { name: "Add purchase" }).click();
   const purchase = page.getByRole("form", { name: "Add purchase" });
@@ -455,7 +562,7 @@ test("Bazaar holdings share one portfolio and notification baseline form stays u
     fullPage: true,
   });
   await notification.getByRole("button", { name: "Cancel" }).click();
-  await page.getByRole("link", { name: "Account", exact: true }).click();
+  await page.getByRole("link", { name: "Settings", exact: true }).click();
   const check = page.getByLabel("Allow email for my holding notifications");
   await expect(check).not.toBeChecked();
   await check.check();
@@ -465,7 +572,7 @@ test("Bazaar holdings share one portfolio and notification baseline form stays u
   ).toBeVisible();
   await page.reload();
   await expect(check).toBeChecked();
-  await page.getByRole("link", { name: "Notifications", exact: true }).click();
+  await page.getByRole("link", { name: "Settings", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Legacy price alerts" }),
   ).toHaveCount(0);
@@ -615,10 +722,14 @@ test("portfolio value chart records real totals, survives reloads and excludes p
   await expect(chart).toContainText("Add holdings to start your value chart.");
   await add(page);
   await expect(chart.getByRole("img", { name: /Portfolio value: 1 recorded snapshots/ })).toBeVisible();
-  await expect(chart).toContainText("3,731,000,000 coins");
-  await expect(chart).toContainText("Last-known prices");
+  await expect(chart).toContainText("4,018,000,000 coins");
+  await expect(chart).toContainText("Estimated value");
+  await expect(chart).not.toContainText("Last-known");
+  await expect(chart.locator(".value-chart-times")).toContainText("EST");
   const holding = page.getByRole("rowgroup", { name: "Booster Cookie holding" });
   await expandHolding(holding);
+  await holding.getByText("Valuation details", { exact: true }).click();
+  await expect(holding.locator(".sample-time time")).toHaveText(/ EST$/);
   await holding.getByRole("button", { name: "Add purchase" }).click();
   const purchase = page.getByRole("form", { name: "Add purchase" });
   await purchase.getByLabel("Additional quantity").fill("13");
@@ -626,15 +737,17 @@ test("portfolio value chart records real totals, survives reloads and excludes p
   await purchase.getByLabel(/ · coins$/).fill("130m");
   await purchase.getByRole("button", { name: "Save purchase" }).click();
   await expect(chart.getByRole("img", { name: /Portfolio value: 2 recorded snapshots/ })).toBeVisible();
-  await expect(chart).toContainText("3,900,000,000 coins");
+  await expect(chart).toContainText("4,200,000,000 coins");
   await page.reload();
   await expect(chart.getByRole("img", { name: /Portfolio value: 2 recorded snapshots/ })).toBeVisible();
   const explorer = chart.getByRole("slider", { name: "Explore portfolio value history" });
   await explorer.focus();
   await explorer.press("Home");
-  await expect(chart).toContainText("3,731,000,000 coins");
+  await expect(chart).toContainText("4,018,000,000 coins");
+  await expect(explorer).toHaveAttribute("aria-valuetext", / EST:/);
+  await expect(chart.locator(".value-chart-readout")).toContainText("EST");
   await explorer.press("End");
-  await expect(chart).toContainText("3,900,000,000 coins");
+  await expect(chart).toContainText("4,200,000,000 coins");
   for (const period of ["1W", "1M", "All", "1D"]) {
     const button = chart.getByRole("button", { name: period, exact: true });
     await button.click();
@@ -650,5 +763,37 @@ test("portfolio value chart records real totals, survives reloads and excludes p
   await page.getByRole("button", { name: "Sign out" }).click();
   await signIn(page, `different-chart-${info.project.name}-${Date.now()}`);
   await expect(chart).toHaveCount(0);
-  await expect(page.getByText("3,900,000,000 coins")).toHaveCount(0);
+  await expect(page.getByText("4,200,000,000 coins")).toHaveCount(0);
+});
+
+test('a 101-holding portfolio renders every record and reuses a full saved snapshot without market reads', async ({ page }, info) => {
+  await signIn(page, `large-portfolio-${info.project.name}-${Date.now()}`);
+  await create(page, 'Large portfolio');
+  const uid = await page.evaluate(async () => (await import('/src/data.ts')).auth.currentUser.uid);
+  const pid = new URLSearchParams(new URL(page.url()).hash.slice(1)).get('portfolio')!;
+  const stamp = Date.now() - 1000;
+  const items = catalog.slice(0, 101);
+  const response = await page.request.post('http://127.0.0.1:8081/v1/projects/demo-bazaar-watch/databases/(default)/documents:commit', {
+    headers: { Authorization: 'Bearer owner' },
+    data: { writes: items.map(([itemId, name]) => ({ update: {
+      name: `projects/demo-bazaar-watch/databases/(default)/documents/users/${uid}/portfolios/${pid}/holdings/bz_${itemId}`,
+      fields: Object.fromEntries(Object.entries({ id: `bz_${itemId}`, itemId, name, kind: 'bazaar', configuration: '', stackSize: 1,
+        quantity: 1, costBasis: 100, createdAt: stamp, updatedAt: stamp, revision: 1, deleted: false }).map(([key, value]) =>
+        [key, typeof value === 'string' ? { stringValue: value } : typeof value === 'boolean' ? { booleanValue: value } : { integerValue: String(value) }])),
+    } })) },
+  });
+  expect(response.ok()).toBe(true);
+  const prices = items.map(([id]) => normalizeBazaar(id, { buy_summary: [{ pricePerUnit: 120, amount: 1000, orders: 2 }],
+    sell_summary: [{ pricePerUnit: 110, amount: 1000, orders: 2 }] }, stamp, stamp));
+  await page.evaluate(async prices => {
+    const cache = await caches.open('bazaarsignal-public-market-v1');
+    await cache.put(location.origin + '/api/companion/bazaar', Response.json({ at: Date.now(), body: { items: prices, error: null } }));
+  }, prices);
+  const requests: string[] = [];
+  page.on('request', request => { if (request.url().includes('/api/companion/')) requests.push(request.url()); });
+  await page.reload();
+  await expect(page.locator('.holdings-table tbody')).toHaveCount(101);
+  await expect(page.getByRole('region', { name: 'Portfolio value', exact: true })).toContainText('12,120 coins');
+  await noOverflow(page);
+  expect(requests).toEqual([]);
 });

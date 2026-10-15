@@ -6,7 +6,8 @@ import {
   runTransaction,
   increment,
 } from "firebase/firestore";
-import { auth, db } from "../data";
+import { auth } from "../data";
+import { db } from "../firestore";
 import { addPurchase, validPosition } from "../../shared/companion/positions";
 import {
   assetId,
@@ -79,14 +80,16 @@ async function copyPositions(uid: string) {
           ),
           parent = doc(database, "users", uid, "portfolios", "default"),
           target = doc(parent, "holdings", `bz_${p.itemId}`);
-        const [done, portfolio, existing, source] = await Promise.all([
-          tx.get(marker),
+        const done = await tx.get(marker);
+        check();
+        if (done.exists()) return;
+        const [portfolio, existing, source] = await Promise.all([
           tx.get(parent),
           tx.get(target),
           tx.get(row.ref),
         ]);
         check();
-        if (done.exists() || (portfolio.exists() && portfolio.data().deleted))
+        if (portfolio.exists() && portfolio.data().deleted)
           return;
         if (!source.exists()) return;
         const current = source.data();

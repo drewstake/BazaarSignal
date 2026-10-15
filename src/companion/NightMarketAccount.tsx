@@ -75,7 +75,7 @@ export default function NightMarketAccount({
               ? "Alerts you choose. Checks are paused."
               : "Only for alerts you choose."}
           </p>
-          <a href="#view=notifications">
+          <a href="#view=settings&section=notifications">
             Manage alerts <ArrowUpRight size={14} aria-hidden="true" />
           </a>
         </div>

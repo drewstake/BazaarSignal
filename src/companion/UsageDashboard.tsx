@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { User } from "firebase/auth";
 import { auth } from "../data";
+import { formatEstDateTime } from "../time";
 import { readPublishedUsage } from "./usage-report";
 import { localWorkspace } from "../local-workspace";
 import type {
@@ -37,15 +38,7 @@ function amount(value: number | null, unit: string) {
   return `${value.toLocaleString(undefined, { maximumFractionDigits: 1 })} ${unit}`;
 }
 const date = (value: number | null) =>
-  value
-    ? new Date(value).toLocaleString(undefined, {
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-        timeZoneName: "short",
-      })
-    : "Unknown";
+  value ? formatEstDateTime(value) : "Unknown";
 const tone = (status: string) =>
   status === "Over allowance"
     ? "over"
@@ -563,6 +556,15 @@ export default function UsageDashboard({ user }: { user: User | null }) {
           </span>
         </div>
       </div>
+      {import.meta.env.VITE_MARKET_OPERATING_MODE === "paid-budget" && (
+        <p className="notice">
+          October paid trial: $5 monthly target, with hourly price and email
+          checks. Market work stops at $4.50 in estimated reservations,
+          including $1 reserved for overhead, or November 1. This is not a cap
+          on Google's final bill. The previous free-tier report below does not
+          describe the paid trial's current spending or status.
+        </p>
+      )}
       {error && (
         <p className="notice warning" role="alert">
           {error}
@@ -633,7 +635,11 @@ export default function UsageDashboard({ user }: { user: User | null }) {
                   : "usage-warning"
               }
             >
-              <span>Market collection</span>
+              <span>
+                {import.meta.env.VITE_MARKET_OPERATING_MODE === "paid-budget"
+                  ? "Previous free-tier collection"
+                  : "Market collection"}
+              </span>
               <strong>
                 {stale ? "Current state unknown" : data.collection.state}
               </strong>

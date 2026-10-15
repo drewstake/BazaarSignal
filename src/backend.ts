@@ -11,6 +11,8 @@ export interface BackendRequest {
     | "disable"
     | "portfolio-notification"
     | "legacy-pause"
+    | "admin-report"
+    | "admin-history"
     | "usage-report";
   [key: string]: unknown;
 }

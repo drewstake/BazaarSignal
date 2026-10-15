@@ -1,3 +1,14 @@
+.auth-loading {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #031020;
+  color: #c1d2e9;
+  color-scheme: dark;
+  font: 400 16px/1.5 Arial, sans-serif;
+}
+
 /* Signed-in night market: new courtyard artwork, live workspace components. */
 .portfolio-app.night-workspace {
   --ink: #eaf2ff;
@@ -32,7 +43,7 @@
   pointer-events: none;
   background:
     linear-gradient(180deg, #03102425, #03102455 65%, #03102485),
-    url("/assets/night-market/workspace-courtyard.png") center / cover no-repeat;
+    url("/assets/night-market/workspace-courtyard.webp") center / cover no-repeat;
 }
 .night-workspace .market-header {
   padding: 0 32px;
