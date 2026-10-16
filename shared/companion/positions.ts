@@ -18,13 +18,15 @@ export interface Position {
 export type CostMode = "average" | "total";
 export type BazaarValuationBasis = "ask" | "bid";
 const decimal = /^(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d+)?$/;
-export function parseCoinAmount(input: string): number | null {
+export function parseCoinAmount(input: string, allowZero = false): number | null {
   const match = input.trim().match(/^(.*?)([kmb])?$/i);
   if (!match || !decimal.test(match[1])) return null;
   const value =
     Number(match[1].replaceAll(",", "")) *
     ({ k: 1e3, m: 1e6, b: 1e9 }[match[2]?.toLowerCase() ?? ""] ?? 1);
-  return Number.isFinite(value) && value > 0 && value <= MAX_POSITION_COST
+  return Number.isFinite(value) &&
+    (value > 0 || (allowZero && value === 0)) &&
+    value <= MAX_POSITION_COST
     ? value
     : null;
 }

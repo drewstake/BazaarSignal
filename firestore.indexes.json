@@ -18,6 +18,7 @@
     }
   ],
   "fieldOverrides": [
+    { "collectionGroup": "marketCache", "fieldPath": "value", "indexes": [] },
     { "collectionGroup": "holdings", "fieldPath": "configuration", "indexes": [] },
     { "collectionGroup": "portfolioDelivery", "fieldPath": "json", "indexes": [] },
     { "collectionGroup": "market", "fieldPath": "items", "indexes": [] },

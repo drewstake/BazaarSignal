@@ -7,10 +7,12 @@ import "./holding-search.css";
 export default function HoldingSearch({
   onSelect,
   compact = false,
+  label,
   openOnFocus = true,
 }: {
   onSelect: (item: HoldingCatalogItem | null) => void;
   compact?: boolean;
+  label?: string;
   openOnFocus?: boolean;
 }) {
   const [query, setQuery] = useState("");
@@ -43,7 +45,7 @@ export default function HoldingSearch({
       }}
     >
       <label htmlFor={id} className={compact ? "nm-sr-only" : undefined}>
-        {compact ? "Search Bazaar items" : "Search"}
+        {label ?? (compact ? "Search Bazaar items" : "Search")}
       </label>
       <div className="holding-search-input">
         <Search size={19} aria-hidden="true" />

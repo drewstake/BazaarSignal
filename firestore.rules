@@ -35,7 +35,9 @@ service cloud.firestore {
       allow read: if ownUser(uid);
       allow create, update: if ownUser(uid)
         && portfolioId.matches('^[A-Za-z0-9_:-]{1,100}$')
-        && request.resource.data.keys().hasOnly(['id','name','createdAt','updatedAt','revision','deleted'])
+        && request.resource.data.keys().hasOnly(['id','name','createdAt','updatedAt','revision','deleted','buyingPower'])
+        && (!('buyingPower' in request.resource.data) || (request.resource.data.buyingPower is number
+          && request.resource.data.buyingPower >= 0 && request.resource.data.buyingPower <= 1000000000000000))
         && request.resource.data.id == portfolioId && stamp(request.resource.data)
         && request.resource.data.name is string && request.resource.data.name.matches('.*[^ ].*')
         && request.resource.data.name.size() <= 80 && request.resource.data.deleted is bool

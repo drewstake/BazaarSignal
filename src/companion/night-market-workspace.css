@@ -315,6 +315,59 @@
 .night-workspace .confirm h2 {
   color: #ffc3a6;
 }
+.night-workspace .workspace-dialog {
+  position: fixed;
+  inset: 0;
+  width: min(520px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  box-sizing: border-box;
+  margin: auto;
+  padding: 24px;
+  overflow: auto;
+  color: var(--ink);
+  box-shadow: 0 24px 80px #0009;
+}
+.night-workspace .workspace-dialog::backdrop {
+  background: #010914b8;
+  backdrop-filter: blur(4px);
+}
+.night-workspace .workspace-dialog h2 {
+  margin-top: 0;
+  overflow-wrap: anywhere;
+}
+.night-workspace .workspace-dialog .actions {
+  margin-top: 24px;
+  justify-content: flex-end;
+}
+.night-workspace .workspace-dialog > .editor {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.night-workspace .workspace-dialog .holding-ticket-row {
+  grid-template-columns: minmax(0, 1fr);
+}
+.night-workspace .workspace-dialog .holding-ticket-row > * {
+  grid-column: 1;
+  grid-row: auto;
+}
+.night-workspace .workspace-dialog .form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.night-workspace .workspace-dialog .notification-target {
+  margin: 6px 0 0;
+  color: var(--green);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.night-workspace .notification-editor .form-grid label {
+  margin-bottom: 0;
+}
 .night-workspace .editor {
   border-color: #52bba2;
   background: #0d2434;
@@ -422,23 +475,70 @@
 .night-workspace .holding-row > td {
   background: #0b1e30;
 }
-.night-workspace .holding-row:hover > th,
-.night-workspace .holding-row:hover > td,
-.night-workspace .holding-row.expanded > th,
-.night-workspace .holding-row.expanded > td {
+.night-workspace .holdings-table tbody:hover .holding-row > th,
+.night-workspace .holdings-table tbody:hover .holding-row > td {
   background: #123344;
 }
 .night-workspace .holdings-table .holding-detail-row > td {
   background: #081827;
 }
-.night-workspace main button.holding-toggle {
-  background: transparent;
+.night-workspace .holding-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  min-height: 44px;
   color: var(--ink);
-  border: 0;
+}
+.night-workspace .holding-item .item-art {
+  width: 24px;
+  height: 24px;
+}
+.night-workspace .holding-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+.night-workspace main .holding-actions button {
+  width: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink-soft);
   box-shadow: none;
 }
-.night-workspace main button.holding-toggle:hover:not(:disabled) {
-  background: #16404b;
+.night-workspace main .holding-actions button:hover:not(:disabled) {
+  background: #163b4d;
+  border-color: #3b5d72;
+}
+.night-workspace main .holding-actions .notification-enabled {
+  color: var(--green);
+}
+.night-workspace main .holding-actions .holding-delete:hover:not(:disabled) {
+  color: #ffc3a6;
+  background: #391f29;
+  border-color: #935951;
+}
+@media (pointer: coarse) {
+  .night-workspace main .holding-actions button {
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+.night-workspace .holding-expanded {
+  padding: 8px 12px 12px;
+}
+.night-workspace .holding-bottom {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.night-workspace .holding-row > th,
+.night-workspace .holding-row > td {
+  border-bottom: 0;
 }
 .night-workspace .holding-search-dropdown {
   background: #0b2032;
@@ -613,5 +713,139 @@
   }
   .night-workspace .holding-expanded {
     max-width: calc(100vw - 50px);
+  }
+}
+
+/* Compact holding ticket and editable available-coin balance. */
+.night-workspace .holding-edit-mode {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+.night-workspace main .holding-edit-mode button {
+  flex: 1;
+  min-height: 40px;
+  padding: 8px 12px;
+  background: #071b2b;
+  box-shadow: none;
+}
+.night-workspace main .holding-edit-mode button[aria-pressed="true"] {
+  color: var(--green);
+  background: #10342b;
+  border-color: #397966;
+}
+.night-workspace .holding-editor {
+  max-width: none;
+  padding: 14px 18px;
+  container: holding-ticket / inline-size;
+}
+.holding-ticket-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.4fr) minmax(240px, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+.holding-ticket-row > .holding-search,
+.holding-ticket-row > .asset-title {
+  margin: 0;
+  min-width: 0;
+}
+.holding-ticket-row > .asset-title {
+  align-self: center;
+}
+.holding-ticket-row .holding-search-input input {
+  min-height: 44px;
+}
+.holding-editor .form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.holding-editor label {
+  margin-bottom: 0;
+  font-size: 13px;
+  gap: 6px;
+}
+.holding-ticket-row > .actions {
+  grid-column: 3;
+  grid-row: 1;
+  flex-wrap: nowrap;
+  margin: 0;
+}
+.holding-ticket-row > .actions button {
+  min-height: 44px;
+  white-space: nowrap;
+}
+.holding-editor .holding-estimate {
+  font-size: 13px;
+  margin: 10px 0 0;
+}
+.holding-editor .holding-estimate p {
+  margin: 4px 0 0;
+  font-size: 12px;
+}
+@container holding-ticket (max-width: 820px) {
+  .holding-ticket-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+  .holding-ticket-row > .holding-search,
+  .holding-ticket-row > .asset-title,
+  .holding-ticket-row > .form-grid {
+    grid-column: 1 / -1;
+  }
+  .holding-ticket-row > .actions {
+    grid-column: 2;
+    grid-row: auto;
+  }
+}
+@container holding-ticket (max-width: 400px) {
+  .holding-ticket-row > .actions {
+    grid-column: 1 / -1;
+  }
+}
+.night-workspace .portfolio-balances {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.night-workspace .buying-power-value {
+  width: 100%;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  justify-content: space-between;
+  font: inherit;
+  text-align: left;
+}
+.buying-power-value span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.night-workspace .buying-power form {
+  font-size: 13px;
+  text-align: left;
+}
+.buying-power form .actions {
+  margin-top: 8px;
+  gap: 6px;
+}
+.buying-power form small {
+  display: block;
+  margin-top: 6px;
+}
+@media (max-width: 1000px) and (min-width: 701px) {
+  .night-workspace .portfolio-balances {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .night-workspace .portfolio-balances {
+    grid-template-columns: 1fr;
+  }
+  .night-workspace .buying-power-value {
+    justify-content: flex-end;
+  }
+  .night-workspace .buying-power:has(form) {
+    grid-template-columns: 1fr;
   }
 }

@@ -86,6 +86,22 @@ it("creates, renames, tombstones portfolios and rejects stale edits or resurrect
     }),
   );
 });
+it("persists private buying power, preserves it on rename and rejects stale or invalid balances", async () => {
+  const initial = await savePortfolio(uid, "Coins");
+  const funded = await savePortfolio(uid, initial.name, initial, false, 250e6);
+  expect((await loadPortfolios(uid))[0].buyingPower).toBe(250e6);
+  await expect(savePortfolio(uid, initial.name, initial, false, 1)).rejects.toThrow("changed");
+  const renamed = await savePortfolio(uid, "Renamed", funded);
+  expect(renamed.buyingPower).toBe(250e6);
+  const ref = doc(client.db, "users", uid, "portfolios", initial.id);
+  for (const buyingPower of [-1, 1e15 + 1, "250m", null])
+    await assertFails(setDoc(ref, { ...renamed, revision: renamed.revision + 1, buyingPower }));
+  const other = env.authenticatedContext("other", google).firestore();
+  await assertFails(getDoc(doc(other, ref.path)));
+  await assertFails(setDoc(doc(other, ref.path), { ...renamed, revision: renamed.revision + 1, buyingPower: 0 }));
+  await savePortfolio(uid, renamed.name, renamed, false, 0);
+  expect((await loadPortfolios(uid))[0].buyingPower).toBe(0);
+});
 it("migrates positions atomically and retrying never duplicates or recreates deleted holdings", async () => {
   const p = position();
   await setDoc(doc(client.db, "users", uid, "positions", p.itemId), p);

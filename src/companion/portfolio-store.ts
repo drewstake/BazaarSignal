@@ -14,6 +14,7 @@ import {
   legacyHolding,
   validId,
   validPortfolio,
+  validBuyingPower,
   validPortfolioHolding,
   type Portfolio,
   type Holding,
@@ -154,7 +155,10 @@ export async function savePortfolio(
   name: string,
   expected?: Portfolio,
   deleted = false,
+  buyingPower = expected?.buyingPower,
 ) {
+  if (buyingPower !== undefined && !validBuyingPower(buyingPower))
+    throw new Error("Enter available coins from 0 to 1,000,000,000,000,000.");
   const { database, check } = portfolioSession(uid),
     id = expected?.id ?? crypto.randomUUID();
   const ref = doc(database, "users", uid, "portfolios", pathId(id));
@@ -179,6 +183,7 @@ export async function savePortfolio(
         updatedAt: Math.max(now, expected?.updatedAt ?? 0),
         revision: (expected?.revision ?? 0) + 1,
         deleted,
+        ...(buyingPower !== undefined ? { buyingPower } : {}),
       };
     if (!validPortfolio(p))
       throw new Error("Use a portfolio name from 1 to 80 characters.");
@@ -187,6 +192,31 @@ export async function savePortfolio(
   });
   check();
   return result;
+}
+export async function loadHolding(
+  uid: string,
+  portfolioId: string,
+  holdingId: string,
+) {
+  const { database, check } = portfolioSession(uid);
+  const result = await getDoc(
+    doc(
+      database,
+      "users",
+      uid,
+      "portfolios",
+      pathId(portfolioId),
+      "holdings",
+      pathId(holdingId),
+    ),
+  );
+  check();
+  if (!result.exists() || result.data().deleted)
+    throw new Error("This holding is no longer available.");
+  const holding = result.data();
+  if (!validPortfolioHolding(holding) || holding.id !== result.id)
+    throw new Error("Invalid saved holding.");
+  return holding;
 }
 export async function loadHoldings(uid: string, portfolioId: string) {
   const { database, check } = portfolioSession(uid);

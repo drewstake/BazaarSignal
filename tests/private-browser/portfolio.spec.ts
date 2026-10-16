@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Locator } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { normalizeBazaar } from "../../shared/companion/bazaar";
 import catalog from '../../src/companion/bazaar-catalog.json' with { type: 'json' };
 test.use({ timezoneId: "Asia/Tokyo" });
@@ -65,11 +65,6 @@ const noOverflow = async (page: Page) =>
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
-async function expandHolding(holding: Locator) {
-  const toggle = holding.getByRole("button", { name: /details for/ });
-  if ((await toggle.getAttribute("aria-expanded")) === "false")
-    await toggle.click();
-}
 async function seedPrices(page: Page) {
   const stamp = Date.now() - 10000,
     item = {
@@ -137,7 +132,6 @@ test("header search reuses portfolio data and preserves holdings and navigation"
   await expect(page).toHaveURL(/#view=item&item=BOOSTER_COOKIE$/);
   await page.getByRole('link', { name: 'Back to Portfolio', exact: true }).click();
   await expect(panel).toHaveCount(0);
-  await expandHolding(holding);
   await holding.getByRole('button', { name: 'Edit', exact: true }).click();
   const edit = page.getByRole('form', { name: 'Edit holding' });
   await expect(edit.getByLabel('Quantity owned', { exact: true })).toHaveValue('287');
@@ -217,79 +211,6 @@ test('a failed workspace module leaves a clear reload action', async ({ page }, 
   await expect(page.getByRole('button', { name: 'Reload BazaarSignal' })).toBeVisible();
 });
 
-test("holding quantity can be calculated from coins spent and saved through purchases and edits", async ({
-  page,
-}, info) => {
-  await signIn(page, `calculated-${info.project.name}-${Date.now()}`);
-  await create(page, "Calculated quantities");
-  await page.getByRole("button", { name: "Add holding", exact: true }).click();
-  const form = page.getByRole("form", { name: "Add holding" });
-  await form
-    .getByRole("combobox", { name: "Search", exact: true })
-    .fill("BOOSTER_COOKIE");
-  await form
-    .getByRole("option", { name: "Booster Cookie (BOOSTER_COOKIE)" })
-    .click();
-  await form.getByLabel("Quantity entry").selectOption("calculated");
-  await expect(form.getByLabel("Quantity owned", { exact: true })).toHaveCount(
-    0,
-  );
-  await form.getByLabel("Average purchase price · coins").fill("12.2M");
-  await form.getByLabel("Total coins spent · coins").fill("3.5014b");
-  await expect(form).toContainText("Calculated quantity: 287");
-  await form.getByLabel("Quantity entry").selectOption("manual");
-  await expect(form.getByLabel("Quantity owned", { exact: true })).toHaveValue(
-    "287",
-  );
-  await expect(form.getByLabel("Average purchase price · coins")).toHaveValue(
-    "12200000",
-  );
-  await form.getByLabel("Quantity entry").selectOption("calculated");
-  await form.getByRole("button", { name: "Save holding", exact: true }).click();
-  await expect(form).toHaveCount(0);
-  const card = page.getByRole("rowgroup", { name: "Booster Cookie holding" });
-  await page.reload();
-  await expect(card).toContainText("287 items");
-  await expect(card).toContainText("3,501,400,000");
-  await expandHolding(card);
-  await card.getByRole("button", { name: "Add purchase" }).click();
-  const purchase = page.getByRole("form", { name: "Add purchase" });
-  await purchase.getByLabel("Quantity entry").selectOption("calculated");
-  await purchase.getByLabel("Average purchase price · coins").fill("10m");
-  await purchase.getByLabel("Total coins spent · coins").fill("130m");
-  await expect(purchase).toContainText("Calculated quantity: 13");
-  await expect(purchase).toContainText("Combined quantity: 300");
-  await purchase.getByRole("button", { name: "Save purchase" }).click();
-  await expect(purchase).toHaveCount(0);
-  await expandHolding(card);
-  await card.getByRole("button", { name: "Edit", exact: true }).click();
-  const edit = page.getByRole("form", { name: "Edit holding" });
-  await edit.getByLabel("Quantity entry").selectOption("calculated");
-  await expect(edit).toContainText("Calculated quantity: 300");
-  await edit.getByLabel("Average purchase price · coins").fill("10m");
-  await edit.getByLabel("Total coins spent · coins").fill("9m");
-  await edit.getByRole("button", { name: "Save holding" }).click();
-  await expect(edit.getByRole("alert")).toContainText(
-    "Calculated quantity must be",
-  );
-  await edit.getByLabel("Total coins spent · coins").fill("35m");
-  await expect(edit).toContainText("Calculated quantity: 4");
-  await expect(edit).toContainText("Rounded to the nearest whole quantity");
-  await expect(edit).toContainText(
-    "recorded average purchase price: 8,750,000 coins",
-  );
-  await noOverflow(page);
-  await page.screenshot({
-    path: `.local/holding-calculated-${info.project.name}.png`,
-    fullPage: true,
-  });
-  await edit.getByRole("button", { name: "Save holding" }).click();
-  await expect(edit).toHaveCount(0);
-  await page.reload();
-  await expect(card).toContainText("4 items");
-  await expect(card).toContainText("35,000,000");
-});
-
 test("notification controls persist, respect revisions and stay retired after holding deletion", async ({
   page,
 }, info) => {
@@ -356,18 +277,33 @@ test("notification controls persist, respect revisions and stay retired after ho
     await route.fulfill({ json: { ok: true, data: next } });
   });
   await signIn(page, `notify-${info.project.name}-${Date.now()}`);
+  await seedPrices(page);
   await create(page, "Notifications test");
   await add(page);
   const card = page.getByRole("rowgroup", { name: "Booster Cookie holding" });
   const form = page.getByRole("form", { name: "Holding notification" });
-  await expandHolding(card);
   await card.getByRole("button", { name: "Set notification" }).click();
-  await form.getByLabel("Upward threshold (%)").fill("10");
-  await form.getByLabel("Downward threshold (%)").fill("5");
+  await form.getByLabel("Price rises by (%)").fill("30");
+  await expect(form.locator("#notification-up-target")).toHaveText("Sell price: 15,860,000 coins");
+  await form.getByLabel("Price falls by (%)").fill("5");
+  await expect(form.locator("#notification-down-target")).toHaveText("Sell price: 11,590,000 coins");
+  await form.getByLabel("Compare with").selectOption("sample");
+  await expect(form.locator("#notification-up-target")).toHaveText("Est. sell price: 18,200,000 coins");
+  await expect(form.locator("#notification-down-target")).toHaveText("Est. sell price: 13,300,000 coins");
+  await form.getByLabel("Price rises by (%)").fill("invalid");
+  await expect(form.locator("#notification-up-target")).toHaveCount(0);
+  await form.getByLabel("Price rises by (%)").fill("");
+  await expect(form.locator("#notification-up-target")).toHaveCount(0);
+  await form.getByLabel("Compare with").selectOption("acquisition");
+  await form.getByLabel("Price rises by (%)").fill("10");
+  await form.getByLabel("Price falls by (%)").fill("5");
   await form.getByRole("button", { name: "Save and enable" }).click();
   await expect(form).toHaveCount(0);
   await expect(card).toContainText("Enabled · ↑ 10% ↓ 5%");
   await page.getByRole("link", { name: "Settings", exact: true }).click();
+  await page.getByRole("article", { name: "Booster Cookie notification" }).scrollIntoViewIfNeeded();
+  await noOverflow(page);
+  await page.screenshot({ path: `.local/settings-alert-row-${info.project.name}.png` });
   await page.getByRole("button", { name: "Pause", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Resume", exact: true }),
@@ -377,11 +313,30 @@ test("notification controls persist, respect revisions and stay retired after ho
   await expect(
     page.getByRole("button", { name: "Pause", exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Open holding" }).click();
-  await expandHolding(card);
-  await card.getByRole("button", { name: "Edit notification" }).click();
-  await form.getByLabel("Upward threshold (%)").fill("15");
+  const settingsEdit = page.getByRole("button", { name: "Edit notification", exact: true });
+  await settingsEdit.click();
+  await expect(page).toHaveURL(/#view=settings$/);
+  await expect(form.getByLabel("Price rises by (%)")).toHaveValue("10");
+  await expect(form.getByLabel("Price falls by (%)")).toHaveValue("5");
+  await expect(form.locator("#notification-up-target")).toHaveText("Sell price: 13,420,000 coins");
+  await form.getByLabel("Price rises by (%)").fill("30");
+  await form.getByRole("button", { name: "Cancel" }).click();
+  await expect(form).toHaveCount(0);
+  await expect(settingsEdit).toBeFocused();
+  await settingsEdit.click();
+  await expect(form.getByLabel("Price rises by (%)")).toHaveValue("10");
+  await form.getByLabel("Price rises by (%)").fill("15");
+  await page.screenshot({ path: `.local/settings-edit-alert-${info.project.name}.png` });
   await form.getByRole("button", { name: "Save and enable" }).click();
+  await expect(form).toHaveCount(0);
+  await expect(page).toHaveURL(/#view=settings$/);
+  await expect(page.getByRole("article", { name: "Booster Cookie notification" })).toContainText("+15%");
+  await page.reload();
+  await settingsEdit.click();
+  await expect(form.getByLabel("Price rises by (%)")).toHaveValue("15");
+  await page.keyboard.press("Escape");
+  await expect(form).toHaveCount(0);
+  await page.getByRole("link", { name: "Portfolio", exact: true }).click();
   await expect(card).toContainText("↑ 15%");
   await page.getByRole("link", { name: "Settings", exact: true }).click();
   await page.getByRole("button", { name: "Delete notification" }).click();
@@ -389,17 +344,14 @@ test("notification controls persist, respect revisions and stay retired after ho
     page.getByText("No holding notifications yet.", { exact: false }),
   ).toBeVisible();
   await page.getByRole("link", { name: "Portfolio", exact: true }).click();
-  await expandHolding(card);
   await card.getByRole("button", { name: "Set notification" }).click();
-  await form.getByLabel("Upward threshold (%)").fill("20");
+  await form.getByLabel("Price rises by (%)").fill("20");
   await form.getByRole("button", { name: "Save and enable" }).click();
   await expect(form).toHaveCount(0);
-  await expandHolding(card);
   await card.getByRole("button", { name: "Delete", exact: true }).click();
   await page.getByRole("button", { name: "Confirm delete" }).click();
   await expect(card).toHaveCount(0);
   await add(page);
-  await expandHolding(card);
   await expect(
     card.getByRole("button", { name: "Set notification" }),
   ).toBeVisible();
@@ -461,25 +413,44 @@ test("portfolio CRUD, cost calculation, purchases, unavailable prices, identity 
   const card = page.getByRole("rowgroup", { name: "Booster Cookie holding" });
   await expect(
     card.getByRole("button", { name: "Show details for Booster Cookie" }),
-  ).toHaveAttribute("aria-expanded", "false");
-  await expect(card.getByRole("button", { name: "Add purchase" })).toBeHidden();
+  ).toHaveCount(0);
+  await expect(card.getByRole("button", { name: "Add purchase" })).toHaveCount(0);
+  await expect(card.getByRole("button", { name: "Edit", exact: true })).toBeVisible();
+  await expect(card.getByRole("button", { name: "Set notification" })).toBeVisible();
+  await expect(card.getByRole("button", { name: "Delete", exact: true })).toBeVisible();
   await expect(card).toContainText("3,501,400,000");
   await expect(card).toContainText("4,018,000,000");
   await expect(card).toContainText("+14.8%");
   await expect(card).not.toContainText("stale");
   expect(await card.innerText()).not.toMatch(/stale|last-known/i);
-  await expandHolding(card);
-  await card.getByRole("button", { name: "Add purchase" }).click();
+  await card.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByRole("dialog", { name: "Edit holding" }).getByRole("button", { name: "Add purchase", exact: true }).click();
   const purchase = page.getByRole("form", { name: "Add purchase" });
+  await expect(purchase.getByLabel("Additional quantity")).toHaveValue("");
+  await purchase.getByRole("button", { name: "Edit totals", exact: true }).click();
+  const totalsEditor = page.getByRole("form", { name: "Edit holding" });
+  await expect(totalsEditor.getByLabel("Quantity owned", { exact: true })).toHaveValue("287");
+  await totalsEditor.getByRole("button", { name: "Add purchase", exact: true }).click();
   await purchase.getByLabel("Additional quantity").fill("13");
-  await purchase.getByLabel("Cost entry").selectOption("total");
-  await purchase.getByLabel(/ · coins$/).fill("130m");
+  await purchase.getByLabel(/ · coins$/).fill("10m");
   await expect(purchase).toContainText("12,104,666.67");
+  await page.screenshot({ path: `.local/portfolio-purchase-modal-${info.project.name}.png` });
   await purchase.getByRole("button", { name: "Save purchase" }).click();
   await expect(purchase).toHaveCount(0);
-  await expandHolding(card);
-  await card.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.setViewportSize({ width: page.viewportSize()!.width, height: 500 });
+  const editButton = card.getByRole("button", { name: "Edit", exact: true });
+  await editButton.scrollIntoViewIfNeeded();
+  const scrollBeforeEdit = await page.evaluate(() => window.scrollY);
+  await editButton.click();
   const edit = page.getByRole("form", { name: "Edit holding" });
+  await expect(page.getByRole("dialog", { name: "Edit holding" })).toBeInViewport({ ratio: 1 });
+  await expect(edit.getByLabel("Quantity owned", { exact: true })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(edit).toHaveCount(0);
+  await expect(editButton).toBeFocused();
+  expect(await page.evaluate(() => window.scrollY)).toBe(scrollBeforeEdit);
+  await editButton.click();
+  await page.screenshot({ path: `.local/portfolio-edit-modal-${info.project.name}.png` });
   await edit.getByLabel("Quantity owned").fill("300.5");
   await edit.getByRole("button", { name: "Save holding" }).click();
   await expect(edit.getByRole("alert")).toContainText("whole quantity");
@@ -514,8 +485,33 @@ test("portfolio CRUD, cost calculation, purchases, unavailable prices, identity 
   await signIn(page, id);
   await page.goto(url);
   await expect(card).toBeVisible();
-  await expandHolding(card);
-  await card.getByRole("button", { name: "Delete", exact: true }).click();
+  await page.setViewportSize({ width: page.viewportSize()!.width, height: 500 });
+  const deleteHolding = card.getByRole("button", { name: "Delete", exact: true });
+  await deleteHolding.scrollIntoViewIfNeeded();
+  // Playwright may scroll again while positioning the pointer for the click.
+  await deleteHolding.evaluate((button) => {
+    button.addEventListener("pointerdown", () => {
+      button.setAttribute("data-scroll-before-open", String(window.scrollY));
+    }, { once: true });
+  });
+  await deleteHolding.click();
+  const scrollBeforeDeletion = Number(await deleteHolding.getAttribute("data-scroll-before-open"));
+  expect(scrollBeforeDeletion).toBeGreaterThan(0);
+  const confirmation = page.getByRole("alertdialog");
+  await expect(confirmation).toBeInViewport({ ratio: 1 });
+  await expect(confirmation.getByRole("button", { name: "Cancel" })).toBeFocused();
+  await expect(confirmation.getByRole("button", { name: "Confirm delete" })).toBeInViewport();
+  await page.keyboard.press("Shift+Tab");
+  await expect(confirmation.getByRole("button", { name: "Confirm delete" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(confirmation).toHaveCount(0);
+  await expect(deleteHolding).toBeFocused();
+  expect(await page.evaluate(() => window.scrollY)).toBe(scrollBeforeDeletion);
+  await deleteHolding.click();
+  await confirmation.getByRole("button", { name: "Cancel" }).click();
+  await expect(confirmation).toHaveCount(0);
+  await expect(card).toBeVisible();
+  await deleteHolding.click();
   await page.getByRole("button", { name: "Confirm delete" }).click();
   await expect(card).toHaveCount(0);
   await page.getByRole("button", { name: "Delete portfolio" }).click();
@@ -546,22 +542,38 @@ test("Bazaar holdings share one portfolio and notification baseline form stays u
   const card = page.getByRole("rowgroup", { name: "Enchanted Diamond Block holding" });
   await expect(card).toContainText("1,200,000,000");
   await expect(card.locator('td[title="Value unavailable"]')).toBeVisible();
-  await expandHolding(card);
-  await card.getByText("Valuation details", { exact: true }).click();
-  await expect(card).toContainText("liquidation unavailable");
-  await expandHolding(card);
-  await card.getByRole("button", { name: "Set notification" }).click();
+  const notifyButton = card.getByRole("button", { name: "Set notification" });
+  await notifyButton.scrollIntoViewIfNeeded();
+  // Capture after Playwright positions the pointer, including horizontal scrolling.
+  await notifyButton.evaluate((button) => {
+    button.addEventListener("pointerdown", () => {
+      button.setAttribute("data-scroll-before-open", String(window.scrollY));
+    }, { once: true });
+  });
+  await notifyButton.click();
+  const scrollBeforeNotification = Number(await notifyButton.getAttribute("data-scroll-before-open"));
   const notification = page.getByRole("form", { name: "Holding notification" });
-  await notification.getByLabel("Upward threshold (%)").fill("10");
-  await notification.getByLabel("Downward threshold (%)").fill("5");
-  await notification.getByLabel("Baseline").selectOption("sample");
-  await expect(notification).toContainText("fresh sample is required");
+  await expect(page.getByRole("dialog", { name: /Notify me about/ })).toBeInViewport({ ratio: 1 });
+  await expect(notification.getByLabel("Compare with")).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(notification).toHaveCount(0);
+  await expect(notifyButton).toBeFocused();
+  expect(await page.evaluate(() => window.scrollY)).toBe(scrollBeforeNotification);
+  await notifyButton.click();
+  await notification.getByRole("button", { name: "Save and enable" }).click();
+  await expect(notification.getByRole("alert")).toBeVisible();
+  await notification.getByLabel("Price rises by (%)").fill("10");
+  await notification.getByLabel("Price falls by (%)").fill("5");
+  await notification.getByLabel("Compare with").selectOption("sample");
+  await expect(notification).toContainText("Locks in a fresh market price");
+  await expect(notification.locator("#notification-up-target")).toHaveText("Sell price unavailable");
   await noOverflow(page);
   await page.screenshot({
     path: `.local/portfolio-notification-${info.project.name}.png`,
-    fullPage: true,
+    fullPage: false,
   });
   await notification.getByRole("button", { name: "Cancel" }).click();
+  await expect(notifyButton).toBeFocused();
   await page.getByRole("link", { name: "Settings", exact: true }).click();
   const check = page.getByLabel("Allow email for my holding notifications");
   await expect(check).not.toBeChecked();
@@ -674,7 +686,7 @@ test("Bazaar search rejects auction and unlisted items and never saves a stale s
   await search.press('ArrowDown');await search.press('Enter');
   await form.getByRole('button', { name: 'Save holding', exact: true }).click();
   await expect(form).toHaveCount(0);
-  await expect(page.getByRole('rowgroup', {name:'Booster Cookie holding'})).toContainText('2 items');
+  await expect(page.getByRole('rowgroup', {name:'Booster Cookie holding'}).getByRole('cell', {name:'2', exact:true})).toBeVisible();
 });
 test("legacy positions migrate once on login and persist through reload", async ({
   page,
@@ -711,7 +723,7 @@ test("legacy positions migrate once on login and persist through reload", async 
   ).toBeVisible();
   await page.reload();
   await expect(card).toHaveCount(1);
-  await expect(card).toContainText("5 items");
+  await expect(card.getByRole("cell", { name: "5", exact: true })).toBeVisible();
 });
 
 test("portfolio value chart records real totals, survives reloads and excludes partial valuations", async ({ page }, info) => {
@@ -727,14 +739,11 @@ test("portfolio value chart records real totals, survives reloads and excludes p
   await expect(chart).not.toContainText("Last-known");
   await expect(chart.locator(".value-chart-times")).toContainText("EST");
   const holding = page.getByRole("rowgroup", { name: "Booster Cookie holding" });
-  await expandHolding(holding);
-  await holding.getByText("Valuation details", { exact: true }).click();
-  await expect(holding.locator(".sample-time time")).toHaveText(/ EST$/);
-  await holding.getByRole("button", { name: "Add purchase" }).click();
+  await holding.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByRole("dialog", { name: "Edit holding" }).getByRole("button", { name: "Add purchase", exact: true }).click();
   const purchase = page.getByRole("form", { name: "Add purchase" });
   await purchase.getByLabel("Additional quantity").fill("13");
-  await purchase.getByLabel("Cost entry").selectOption("total");
-  await purchase.getByLabel(/ · coins$/).fill("130m");
+  await purchase.getByLabel(/ · coins$/).fill("10m");
   await purchase.getByRole("button", { name: "Save purchase" }).click();
   await expect(chart.getByRole("img", { name: /Portfolio value: 2 recorded snapshots/ })).toBeVisible();
   await expect(chart).toContainText("4,200,000,000 coins");
@@ -796,4 +805,37 @@ test('a 101-holding portfolio renders every record and reuses a full saved snaps
   await expect(page.getByRole('region', { name: 'Portfolio value', exact: true })).toContainText('12,120 coins');
   await noOverflow(page);
   expect(requests).toEqual([]);
+});
+
+
+test("buying power persists and the holding ticket stays compact", async ({ page }, info) => {
+  await signIn(page, `buying-power-${info.project.name}-${Date.now()}`);
+  await create(page, "Available coins");
+  await page.getByRole("button", { name: "Set buying power", exact: true }).click();
+  const balance = page.getByRole("form", { name: "Set buying power" });
+  await balance.getByLabel("Available coins").fill("-1");
+  await balance.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(balance.getByRole("alert")).toBeVisible();
+  await balance.getByLabel("Available coins").fill("250M");
+  await balance.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(balance).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Edit buying power" })).toContainText("250,000,000");
+  await page.getByRole("button", { name: "Add holding", exact: true }).click();
+  const ticket = page.getByRole("form", { name: "Add holding" });
+  await expect(ticket.locator("select")).toHaveCount(0);
+  await expect(ticket.locator("input:visible")).toHaveCount(3);
+  await expect(ticket.locator(".holding-estimate")).toHaveCount(0);
+  expect((await ticket.boundingBox())!.height).toBeLessThan(350);
+  await noOverflow(page);
+  await ticket.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `.local/compact-holding-${info.project.name}.png`, fullPage: true });
+  await ticket.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.getByRole("button", { name: "Edit buying power" }).click();
+  await balance.getByLabel("Available coins").fill("0");
+  await balance.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(balance).toHaveCount(0);
+  await add(page);
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Edit buying power" })).toHaveText(/0 coins/);
 });

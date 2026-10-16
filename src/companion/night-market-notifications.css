@@ -1,3 +1,8 @@
+.night-workspace .notifications-workspace,
+.night-workspace .night-notifications {
+  min-width: 0;
+  max-width: 100%;
+}
 .night-workspace .notifications-workspace .page-title {
   margin-bottom: 24px;
   border: 0;
@@ -140,55 +145,56 @@
 }
 .night-workspace .notification-card-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px;
 }
 .night-workspace .notification-card {
-  min-width: 0;
-  padding: 23px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-width: 850px;
+  padding: 10px 14px;
   border: 1px solid #375e70;
-  border-top: 2px solid #5dbdb1;
-  background: linear-gradient(135deg, #0d2637, #091a2b);
+  background: #0b2032;
   border-radius: 3px;
+  white-space: nowrap;
 }
 .night-workspace .notification-card-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 22px;
-}
-.night-workspace .notification-item-art {
-  display: grid;
-  place-items: center;
-  width: 48px;
-  height: 48px;
-  flex-shrink: 0;
-  border: 1px solid #36566a;
-  background: #102c3d;
-  border-radius: 3px;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
 }
 .night-workspace .notification-item-art .item-art {
-  width: 36px;
-  height: 36px;
+  width: 26px;
+  height: 26px;
   margin: 0;
 }
 .night-workspace .notification-item-name {
-  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   min-width: 0;
 }
 .night-workspace .notification-item-name p {
   color: #92abc2;
-  font-size: 12px;
-  margin: 0 0 4px;
-  overflow-wrap: anywhere;
+  font-size: 11px;
+  max-width: 90px;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .night-workspace .notification-item-name h3 {
   color: #f2f7fb;
   font:
-    600 17px/1.2 Arial,
+    600 13px/1.4 Arial,
     sans-serif;
   margin: 0;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .night-workspace .notification-state {
   display: inline-flex;
@@ -200,6 +206,7 @@
   border: 1px solid #39775f;
   border-radius: 3px;
   background: #15453355;
+  flex-shrink: 0;
 }
 .night-workspace .notification-state > span {
   width: 5px;
@@ -218,88 +225,64 @@
   background: #45292255;
 }
 .night-workspace .notification-thresholds {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 16px;
+  display: flex;
+  gap: 14px;
 }
-.night-workspace .notification-threshold {
-  padding: 15px;
-  background: #0e302f88;
-  border: 1px solid #2f5e51;
-  border-radius: 3px;
-}
+.night-workspace .notification-threshold,
 .night-workspace .notification-threshold > span {
   display: flex;
-  gap: 5px;
   align-items: center;
-  color: #99c2b3;
-  font-size: 12px;
+  gap: 4px;
 }
-.night-workspace .notification-threshold strong {
-  display: block;
-  font: 700 clamp(25px, 2.5vw, 34px)/1.2 var(--display);
+.night-workspace .notification-threshold {
   color: #81efba;
-  margin-top: 8px;
-  overflow-wrap: anywhere;
+  font-size: 13px;
 }
 .night-workspace .notification-threshold.downward {
-  background: #30273188;
-  border-color: #60434e;
-}
-.night-workspace .notification-threshold.downward > span {
-  color: #c8a6b0;
-}
-.night-workspace .notification-threshold.downward strong {
   color: #ffb6a3;
 }
 .night-workspace .notification-baseline {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 4px 12px;
+  gap: 6px;
   color: #8fa9c0;
   font-size: 12px;
-  padding-bottom: 20px;
 }
 .night-workspace .notification-baseline b {
   font-weight: 400;
   color: #c1d3e5;
-  overflow-wrap: anywhere;
-}
-.night-workspace .notification-stopped-note {
-  color: #ffb9a9;
-  font-size: 12px;
-  margin-bottom: 16px;
 }
 .night-workspace .notification-card-actions {
   display: flex;
-  gap: 8px;
-  padding-top: 17px;
-  border-top: 1px solid #2b4659;
+  gap: 4px;
 }
-.night-workspace .notification-card-actions button {
-  padding: 9px 11px;
-  font-size: 12px;
+.night-workspace main .notification-card-actions button {
+  width: 34px;
+  min-width: 34px;
+  min-height: 34px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  box-shadow: none;
+  color: #c1d3e5;
 }
-.night-workspace .notification-card-actions .notification-open {
-  margin-right: auto;
-  border-color: #397d6c;
-  color: #a8f7d2;
-  background: #163f3d;
-}
-.night-workspace .notification-card-actions .notification-delete {
-  color: #dfaaaa;
-  min-width: 42px;
-  background: #241f2a;
-  border-color: #57404c;
+.night-workspace main .notification-card-actions button:hover:not(:disabled) {
+  background: #163b4d;
+  border-color: #3b5d72;
 }
 .night-workspace
+  main
   .notification-card-actions
   .notification-delete:hover:not(:disabled) {
   color: #ffd5c9;
   background: #593333;
   border-color: #b77162;
+}
+@media (pointer: coarse) {
+  .night-workspace main .notification-card-actions button {
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
 }
 @media (max-width: 1000px) {
   .night-workspace .notification-overview-item {
@@ -312,9 +295,6 @@
   }
   .night-workspace .notification-overview-item strong {
     font-size: 23px;
-  }
-  .night-workspace .notification-card-grid {
-    grid-template-columns: 1fr;
   }
 }
 @media (max-width: 650px) {
@@ -350,34 +330,5 @@
   }
   .night-workspace .notification-empty h2 {
     font-size: 25px;
-  }
-  .night-workspace .notification-card {
-    padding: 17px;
-  }
-  .night-workspace .notification-card-header {
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-  .night-workspace .notification-item-name {
-    flex-basis: calc(100% - 58px);
-  }
-  .night-workspace .notification-state {
-    margin-left: 58px;
-  }
-  .night-workspace .notification-threshold {
-    padding: 12px;
-  }
-  .night-workspace .notification-thresholds {
-    gap: 8px;
-  }
-  .night-workspace .notification-card-actions {
-    flex-wrap: wrap;
-  }
-  .night-workspace .notification-card-actions .notification-open {
-    flex-basis: 100%;
-    margin: 0;
-  }
-  .night-workspace .notification-card-actions button:nth-child(2) {
-    flex: 1;
   }
 }

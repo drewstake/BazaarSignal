@@ -8,7 +8,8 @@ import { livePolicy } from './allowance-live';
 import { marketHandler } from './routes';
 import { SnapshotReadCache } from './snapshot-read-cache';
 import { type PaidBilling, type GoogleSpend, validPaidBilling, validGoogleSpend } from '../shared/paid-spending';
-import { errorDiagnostic, type DiagnosticReporter } from './diagnostics';
+import { errorDiagnostic, isFirestoreWriteThrottle, type DiagnosticReporter } from './diagnostics';
+import { LedgerWriteQueue } from './ledger-write-queue';
 
 export const PAID_INTERVAL_MS = 3_600_000;
 export const PAID_BUDGET_KEY = 'paid-budget-october';
@@ -59,16 +60,22 @@ export function validatePaid(s: PaidBudget | null, now: number, billingNow = now
     s.stoppedAt !== undefined) throw new TrialStopped(s?.reason ?? 'Paid budget is missing, stopped or expired');
 }
 export class PaidLedger {
-  constructor(private store: CacheStore, private clock = Date.now, private report?: DiagnosticReporter) {}
+  constructor(private store: CacheStore, private clock = Date.now, private report?: DiagnosticReporter,
+    private writes?: LedgerWriteQueue) {}
   private async change<T>(fn: (s: PaidBudget, now: number) => T, terminal = false) {
     for (let attempt = 0; attempt < 4; attempt++) {
+      const work = async () => {
       const raw = await this.store.read(PAID_BUDGET_KEY);
       const s: PaidBudget | null = raw ? JSON.parse(raw) : null;
       const now = this.store.time ? await this.store.time() : this.clock();
       if (!terminal) validatePaid(s, now, this.clock());
       if (!s) throw new TrialStopped('Paid budget missing');
       const result = fn(s, now);
-      if (raw === JSON.stringify(s) || await this.store.commit(PAID_BUDGET_KEY, raw, JSON.stringify(s))) return result;
+      const done = raw === JSON.stringify(s) || await this.store.commit(PAID_BUDGET_KEY, raw, JSON.stringify(s));
+      return { done, result };
+      };
+      const outcome = await (this.writes ? this.writes.run(work) : work());
+      if (outcome.done) return outcome.result;
     }
     throw new TrialStopped('Paid budget contention');
   }
@@ -155,15 +162,17 @@ export function createPaidRuntime(config: {
   expiresAt: number; store: (session?: TrialSession) => CacheStore;
   shutdown: () => Promise<void>; network?: typeof fetch; now?: () => number;
   report?: (data: Record<string, unknown>) => void;
+  ledgerWriteIntervalMs?: number;
   billingFeed?: (billing: PaidBilling, save: (costs: GoogleSpend[]) => Promise<void>, now: number) => Promise<void>;
 }) {
   const now = config.now ?? Date.now;
   // One bounded immutable-payload cache per warm runtime. Stores, sessions,
   // durable budget admission and control/freshness reads remain request-local.
   const snapshots = new SnapshotReadCache();
+  const writes = config.ledgerWriteIntervalMs ? new LedgerWriteQueue(config.ledgerWriteIntervalMs) : undefined;
   async function run(kind: 'collector' | 'browser', id: string, work: (session: TrialSession, collector: MarketCollector) => Promise<void>) {
     const deadline = now() + (kind === 'collector' ? 80000 : 14000);
-    const raw = config.store(), ledger = new PaidLedger(raw, now, config.report);
+    const raw = config.store(), ledger = new PaidLedger(raw, now, config.report, writes);
     let session: TrialSession | null = null;
     try {
       if (!Number.isFinite(config.expiresAt) || now() >= config.expiresAt) throw new TrialStopped('Paid release expired');
@@ -179,6 +188,12 @@ export function createPaidRuntime(config: {
       await session.finish();
       config.report?.({event:'paid_market',kind,at:now(),observed:session.observed});
     } catch (e) {
+      if (isFirestoreWriteThrottle(e)) {
+        // No retry storm, no uncharged work, and no permanent global shutdown
+        // for a rejected write. Any admitted request retains its full hold.
+        config.report?.({event:'paid_market_throttled',kind,at:now(),...errorDiagnostic(e)});
+        throw e;
+      }
       if (session) await session.finish().catch(() => {});
       const reason = e instanceof Error ? e.message : 'Paid collection failed';
       const stopped = await Promise.allSettled([ledger.stop(reason),config.shutdown()]);
@@ -215,11 +230,16 @@ export function createPaidRuntime(config: {
             response.writeHead(status).end(bytes);
           })(req,res);
         });
-      } catch {
+      } catch (error) {
         if (!res.headersSent) {
           res.setHeader('Access-Control-Allow-Origin','https://bazaarsignal.web.app');
           res.setHeader('Content-Type','application/json');
-          res.writeHead(503).end(JSON.stringify({error:'Price updates stopped for the monthly budget or a collection error.',usage:{mode:'paused',pollMs:0}}));
+          if (isFirestoreWriteThrottle(error)) {
+            const message = 'Price service is temporarily busy. Saved prices remain available; retry after one minute.';
+            res.setHeader('Retry-After','60');
+            res.writeHead(503).end(JSON.stringify({error:message,usage:{mode:'slow',pollMs:PAID_INTERVAL_MS,
+              retryAt:Math.min(now()+60_000,config.expiresAt),reason:message,trialId:'paid-202610',expiresAt:config.expiresAt}}));
+          } else res.writeHead(503).end(JSON.stringify({error:'Price updates stopped for the monthly budget or a collection error.',usage:{mode:'paused',pollMs:0}}));
         }
       }
     },

@@ -8,7 +8,7 @@ The [October 15 application audit](docs/APP-AUDIT-2026-10-15.md) records loading
 
 A private SkyBlock portfolio tracker for manually recorded Bazaar items. Create named portfolios, record acquisition costs and additional purchases, inspect estimated value and unrealized returns, and choose holding-based percentage notifications. Previously saved Auction House records remain preserved.
 
-The interface uses a night-market theme with lantern-lit scenery, mint accents and pixel headings. Portfolio value history records complete observed estimates on the current device, with day/week/month/all views and up to 90 days of retained snapshots. Purchases and holding edits affect the value chart; unavailable prices never create a false drop. Source times and freshness remain inside expandable valuation details; quotes are not described as live.
+The interface uses a night-market theme with lantern-lit scenery, mint accents and pixel headings. Portfolio value history records complete observed estimates on the current device, with day/week/month/all views and up to 90 days of retained snapshots. Purchases and holding edits affect the value chart; unavailable prices never create a false drop. Holding rows expose compact edit, notification and delete actions. Editors open in dialogs, notifications preview their target prices, and alerts can be edited directly in Settings. Each portfolio can also record available coins as buying power.
 
 The paid pilot preserves existing authentication and private records, with hourly Bazaar collection and opted-in email checks behind expiration and budget gates. The [earlier portfolio release evidence](docs/PORTFOLIO-RELEASE.md) and [zero-cost audit](docs/ZERO-COST-AUDIT.md) are historical records of the paused deployment.
 

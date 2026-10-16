@@ -4,6 +4,7 @@ import {
   ChevronRight,
   Mail,
   Pause,
+  Pencil,
   Play,
   Radio,
   Trash2,
@@ -21,7 +22,7 @@ type NotificationsProps = {
   fixture: boolean;
   loading: boolean;
   busy: boolean;
-  openHolding: (portfolioId: string) => void;
+  edit: (notification: HoldingNotification) => void;
   change: (
     notification: HoldingNotification,
     operation: "pause" | "resume" | "delete",
@@ -36,7 +37,7 @@ export default function NightMarketNotifications({
   fixture,
   loading,
   busy,
-  openHolding,
+  edit,
   change,
 }: NotificationsProps) {
   const alerts = notifications.filter((notification) => !notification.deleted);
@@ -121,7 +122,12 @@ export default function NightMarketNotifications({
                 Add an alert <ArrowUpRight size={15} aria-hidden="true" />
               </a>
             </div>
-            <div className="notification-card-grid">
+            <div
+              className="notification-card-grid"
+              role="region"
+              aria-label="Your alerts"
+              tabIndex={0}
+            >
               {alerts.map((notification) => {
                 const portfolio = portfolios.find(
                   (candidate) =>
@@ -151,10 +157,21 @@ export default function NightMarketNotifications({
                         />
                       </div>
                       <div className="notification-item-name">
-                        <p>{portfolio?.name ?? "Deleted portfolio"}</p>
-                        <h3>{notification.holdingName || "Holding"}</h3>
+                        <p title={portfolio?.name ?? "Deleted portfolio"}>
+                          {portfolio?.name ?? "Deleted portfolio"}
+                        </p>
+                        <h3 title={notification.holdingName || "Holding"}>
+                          {notification.holdingName || "Holding"}
+                        </h3>
                       </div>
-                      <span className={`notification-state ${state}`}>
+                      <span
+                        className={`notification-state ${state}`}
+                        title={
+                          !portfolio
+                            ? "Portfolio deleted. This alert has stopped."
+                            : undefined
+                        }
+                      >
                         <span aria-hidden="true" />
                         {state === "enabled"
                           ? "Enabled"
@@ -166,8 +183,8 @@ export default function NightMarketNotifications({
                     <div className="notification-thresholds">
                       <div className="notification-threshold upward">
                         <span>
-                          <ArrowUpRight size={17} aria-hidden="true" /> Price
-                          rises
+                          <ArrowUpRight size={17} aria-hidden="true" />
+                          <span className="nm-sr-only">Price rises</span>
                         </span>
                         <strong>
                           {notification.up === null
@@ -177,8 +194,8 @@ export default function NightMarketNotifications({
                       </div>
                       <div className="notification-threshold downward">
                         <span>
-                          <ArrowDownRight size={17} aria-hidden="true" /> Price
-                          falls
+                          <ArrowDownRight size={17} aria-hidden="true" />
+                          <span className="nm-sr-only">Price falls</span>
                         </span>
                         <strong>
                           {notification.down === null
@@ -188,28 +205,25 @@ export default function NightMarketNotifications({
                       </div>
                     </div>
                     <div className="notification-baseline">
-                      <span>Compared with</span>
+                      <span>vs.</span>
                       <b>
                         {notification.baseline === "acquisition"
-                          ? "Average acquisition price"
-                          : `Captured sample: ${exact(notification.capturedPrice)} coins`}
+                          ? "Avg. buy price"
+                          : `${exact(notification.capturedPrice)} coins when enabled`}
                       </b>
                     </div>
-                    {!portfolio && (
-                      <p className="notification-stopped-note">
-                        Portfolio deleted. This alert has stopped.
-                      </p>
-                    )}
                     <div className="notification-card-actions">
                       <button
-                        className="notification-open"
+                        aria-label="Edit notification"
+                        title="Edit notification"
                         disabled={busy || !portfolio}
-                        onClick={() => openHolding(notification.portfolioId)}
+                        onClick={() => edit(notification)}
                       >
-                        Open holding{" "}
-                        <ChevronRight size={15} aria-hidden="true" />
+                        <Pencil size={16} aria-hidden="true" />
                       </button>
                       <button
+                        aria-label={notification.enabled ? "Pause" : "Resume"}
+                        title={notification.enabled ? "Pause" : "Resume"}
                         disabled={busy || !portfolio}
                         onClick={() =>
                           change(
@@ -223,7 +237,6 @@ export default function NightMarketNotifications({
                         ) : (
                           <Play size={14} aria-hidden="true" />
                         )}
-                        {notification.enabled ? "Pause" : "Resume"}
                       </button>
                       <button
                         className="notification-delete"

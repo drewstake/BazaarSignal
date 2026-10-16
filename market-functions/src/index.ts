@@ -35,6 +35,7 @@ const ownerUsage = usageHandler({
 const live = process.env.MARKET_OPERATING_MODE === "free-tier";
 const paid = process.env.MARKET_OPERATING_MODE === 'paid-budget';
 const paidRuntime = createPaidRuntime({
+  ledgerWriteIntervalMs: 1000,
   billingFeed: googleBillingFeed(token),
   expiresAt: Date.parse(process.env.MARKET_LIVE_END ?? ''),
   store: session => trialGoogleStore({project,bucket:`${project}-market-cache`,token,inlineSmallSnapshots:true,

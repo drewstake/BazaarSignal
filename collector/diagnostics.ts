@@ -16,3 +16,11 @@ export function errorDiagnostic(error: unknown) {
 }
 
 export type DiagnosticReporter = (data: Record<string, unknown>) => void;
+
+/** Only an explicit rejected write is transient here. Quota, deadline,
+ * authentication and ambiguous failures retain their existing stop behavior. */
+export function isFirestoreWriteThrottle(error: unknown) {
+  const e = error as { code?: unknown; message?: unknown } | null;
+  return (e?.code === 429 || e?.code === 8) &&
+    typeof e.message === 'string' && /maximum bandwidth for writes/i.test(e.message);
+}

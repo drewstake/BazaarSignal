@@ -10,6 +10,7 @@ export interface Portfolio {
   updatedAt: number;
   revision: number;
   deleted: boolean;
+  buyingPower?: number;
 }
 // Legacy auction records remain readable/deletable, but cannot be priced or monitored.
 export interface Asset {
@@ -37,7 +38,9 @@ export function validPortfolio(value: unknown): value is Portfolio {
       "updatedAt",
       "revision",
       "deleted",
+      ...(Object.hasOwn(p, "buyingPower") ? ["buyingPower"] : []),
     ]) &&
+    (!Object.hasOwn(p, "buyingPower") || validBuyingPower(p.buyingPower)) &&
     validId(p.id) &&
     typeof p.name === "string" &&
     p.name.trim().length > 0 &&
@@ -50,6 +53,14 @@ export function validPortfolio(value: unknown): value is Portfolio {
     p.revision > 0 &&
     p.revision <= 1e9 &&
     typeof p.deleted === "boolean"
+  );
+}
+export function validBuyingPower(value: unknown): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isFinite(value) &&
+    value >= 0 &&
+    value <= 1e15
   );
 }
 function canonical(v: unknown): Json {

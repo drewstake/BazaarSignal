@@ -1,10 +1,9 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { SessionReads } from "./session-reads";
 import type { User } from "firebase/auth";
-import { Bell, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
+import { Bell, Pencil, Plus, Trash2 } from "lucide-react";
 import { auth } from "../data";
 import { localWorkspace } from "../local-workspace";
-import { SampleTime } from "../SampleTime";
 import { exact, percent, ItemArt, SkyIcon } from "./components";
 import { fixtureMode } from "./api";
 import { portfolioMarket, visiblePortfolioPresence } from "./portfolio-market";
@@ -34,7 +33,10 @@ import {
 } from "../../shared/companion/notifications";
 import type { BazaarItem } from "../../shared/companion/types";
 import HoldingEditor from "./HoldingEditor";
+import DeletionDialog from "./DeletionDialog";
+import BuyingPower from "./BuyingPower";
 import NotificationEditor from "./NotificationEditor";
+import SettingsNotificationEditor from "./SettingsNotificationEditor";
 import "./portfolio.css";
 import "./skyblock-theme.css";
 import "./night-market-workspace.css";
@@ -74,7 +76,7 @@ export default function Workspace({
     [marketError, setMarketError] = useState(""),
     [emailEnabled, setEmailEnabled] = useState(false);
   const [editor, setEditor] = useState<{
-      mode: "create" | "edit" | "purchase";
+      mode: "create" | "edit";
       holding?: Holding;
     } | null>(null),
     [notificationEditor, setNotificationEditor] = useState<Holding | null>(
@@ -84,16 +86,16 @@ export default function Workspace({
       "create" | "rename" | null
     >(null),
     [name, setName] = useState(""),
-    [removal, setRemoval] = useState<Holding | "portfolio" | null>(null),
-    [expandedHolding, setExpandedHolding] = useState<string | null>(null);
+    [removal, setRemoval] = useState<Holding | "portfolio" | null>(null);
   const now = useVisibleNow(
     5000,
     route.view === "portfolios" && !!holdings.length,
   );
+  const [settingsNotification, setSettingsNotification] = useState<HoldingNotification | null>(null);
+  useEffect(() => setSettingsNotification(null), [route.view, user]);
   const selected =
     portfolios.find((p) => p.id === route.portfolioId) ??
     (!route.portfolioId ? portfolios[0] : undefined);
-  useEffect(() => setExpandedHolding(null), [selected?.id, route.view]);
   useEffect(() => setNotice(""), [route.view]);
   useEffect(() => {
     if (
@@ -221,6 +223,7 @@ export default function Workspace({
       setReload((v) => v + 1);
       setEditor(null);
       setNotificationEditor(null);
+      setSettingsNotification(null);
       setPortfolioEditor(null);
       setRemoval(null);
       return true;
@@ -309,6 +312,32 @@ export default function Workspace({
           {notice}
         </p>
       )}
+      {route.view === "settings" && settingsNotification && (
+        <SettingsNotificationEditor
+          key={settingsNotification.id}
+          uid={user.uid}
+          notification={settingsNotification}
+          busy={busy}
+          emailEnabled={emailEnabled}
+          saveError={error}
+          cancel={() => setSettingsNotification(null)}
+          save={async (input) => {
+            await action(
+              () =>
+                changeNotification(
+                  user.uid,
+                  settingsNotification.portfolioId,
+                  settingsNotification.holdingId,
+                  "save",
+                  input,
+                  settingsNotification,
+                ),
+              "Alert saved.",
+              "notifications",
+            );
+          }}
+        />
+      )}
       {route.view === "portfolios" &&
         (paused || fixtureMode) &&
         (!localWorkspace || fixtureMode) && (
@@ -387,7 +416,10 @@ export default function Workspace({
               fixture={fixtureMode}
               loading={loading}
               busy={busy}
-              openHolding={(portfolioId) => navigate("portfolios", portfolioId)}
+              edit={(notification) => {
+                setError("");
+                setSettingsNotification(notification);
+              }}
               change={(notification, operation) =>
                 void action(
                   () =>
@@ -539,25 +571,29 @@ export default function Workspace({
                       </div>
                     </div>
                     {removal && (
-                      <section
-                        className="panel confirm"
-                        role="alertdialog"
-                        aria-label="Confirm deletion"
+                      <DeletionDialog
+                        busy={busy}
+                        cancel={() => setRemoval(null)}
                       >
-                        <h2>
+                        <h2 id="deletion-title">
                           Delete{" "}
                           {removal === "portfolio"
                             ? selected.name
                             : removal.name}
                           ?
                         </h2>
-                        <p>
+                        <p id="deletion-description">
                           {removal === "portfolio"
                             ? "The portfolio and its holdings will be removed from your active view. All its notifications stop."
                             : "This holding will be removed from your active view and its notifications stop."}{" "}
                           Existing legacy source records are preserved. An email
                           already in flight may still arrive.
                         </p>
+                        {error && (
+                          <p className="error" role="alert">
+                            {error}
+                          </p>
+                        )}
                         <div className="actions">
                           <button
                             className="danger"
@@ -581,36 +617,57 @@ export default function Workspace({
                               }, "Deleted. Related notifications are stopped.")
                             }
                           >
-                            Confirm delete
+                            {busy ? "Deleting…" : "Confirm delete"}
                           </button>
-                          <button onClick={() => setRemoval(null)}>
+                          <button
+                            data-deletion-cancel
+                            disabled={busy}
+                            onClick={() => setRemoval(null)}
+                          >
                             Cancel
                           </button>
                         </div>
-                      </section>
+                      </DeletionDialog>
                     )}
-                    {!!holdings.length && (
-                      <dl className="summary">
-                        <Metric label="Cost basis" value={totals.costBasis} />
-                        <Metric
-                          label="Estimated value"
-                          value={totals.value}
-                          note={
-                            totals.missing ? "Incomplete valuation" : undefined
-                          }
-                        />
-                        <Metric
-                          label="Unrealized P&L"
-                          value={totals.pnl}
-                          note={
-                            totals.returnPercent === null
-                              ? undefined
-                              : percent(totals.returnPercent)
-                          }
-                          profit
-                        />
-                      </dl>
-                    )}
+                    <dl className="summary portfolio-balances">
+                      <BuyingPower
+                        key={selected.id}
+                        value={selected.buyingPower}
+                        busy={busy || loading}
+                        save={(amount) =>
+                          action(
+                            () =>
+                              savePortfolio(
+                                user.uid,
+                                selected.name,
+                                selected,
+                                false,
+                                amount,
+                              ),
+                            "Buying power saved.",
+                            "portfolios",
+                          )
+                        }
+                      />
+                      <Metric label="Cost basis" value={totals.costBasis} />
+                      <Metric
+                        label="Estimated value"
+                        value={totals.value}
+                        note={
+                          totals.missing ? "Incomplete valuation" : undefined
+                        }
+                      />
+                      <Metric
+                        label="Unrealized P&L"
+                        value={totals.pnl}
+                        note={
+                          totals.returnPercent === null
+                            ? undefined
+                            : percent(totals.returnPercent)
+                        }
+                        profit
+                      />
+                    </dl>
                     <PortfolioValueChart
                       key={`${user.uid}:${selected.id}`}
                       uid={user.uid}
@@ -661,6 +718,7 @@ export default function Workspace({
                         key={`${editor.mode}:${editor.holding?.id ?? "new"}`}
                         {...editor}
                         busy={busy}
+                        saveError={error}
                         save={save}
                         cancel={() => setEditor(null)}
                       />
@@ -671,6 +729,14 @@ export default function Workspace({
                         holding={notificationEditor}
                         current={nFor(notificationEditor)}
                         busy={busy}
+                        saveError={error}
+                        emailEnabled={emailEnabled}
+                        marketPrice={
+                          totals.rows.find(
+                            ({ holding }) =>
+                              holding.id === notificationEditor.id,
+                          )?.valuation.referencePrice ?? null
+                        }
                         save={notify}
                         cancel={() => setNotificationEditor(null)}
                       />
@@ -707,11 +773,11 @@ export default function Workspace({
                               <th scope="col">Est. value</th>
                               <th scope="col">Total P&L</th>
                               <th scope="col">Return %</th>
+                              <th scope="col">Actions</th>
                             </tr>
                           </thead>
                           {totals.rows.map(({ holding: h, valuation: v }) => {
                             const notification = nFor(h);
-                            const expanded = expandedHolding === h.id;
                             const profitClass =
                               v.pnl === null
                                 ? "muted"
@@ -723,22 +789,9 @@ export default function Workspace({
                                 key={h.id}
                                 aria-label={`${h.name} holding`}
                               >
-                                <tr
-                                  className={`holding-row ${expanded ? "expanded" : ""}`}
-                                >
+                                <tr className="holding-row">
                                   <th scope="row">
-                                    <button
-                                      className="holding-toggle"
-                                      aria-label={`${expanded ? "Hide" : "Show"} details for ${h.name}`}
-                                      aria-expanded={expanded}
-                                      aria-controls={`holding-details-${h.id}`}
-                                      onClick={() =>
-                                        setExpandedHolding(
-                                          expanded ? null : h.id,
-                                        )
-                                      }
-                                    >
-                                      <ChevronRight size={14} />
+                                    <div className="holding-item">
                                       <ItemArt id={h.itemId} size="small" />
                                       <span
                                         className="holding-name"
@@ -751,7 +804,7 @@ export default function Workspace({
                                           ? "BZ"
                                           : "Unsupported"}
                                       </span>
-                                    </button>
+                                    </div>
                                   </th>
                                   <td
                                     title={
@@ -788,139 +841,67 @@ export default function Workspace({
                                   <td className={profitClass}>
                                     {percent(v.returnPercent)}
                                   </td>
+                                  <td className="holding-actions-cell">
+                                    <div className="holding-actions">
+                                      <button
+                                        aria-label="Edit"
+                                        title="Edit holding"
+                                        disabled={busy || h.kind !== "bazaar"}
+                                        onClick={() =>
+                                          setEditor({
+                                            mode: "edit",
+                                            holding: h,
+                                          })
+                                        }
+                                      >
+                                        <Pencil size={16} aria-hidden="true" />
+                                      </button>
+                                      <button
+                                        aria-label={
+                                          notification
+                                            ? "Edit notification"
+                                            : "Set notification"
+                                        }
+                                        title={
+                                          notification
+                                            ? "Edit notification"
+                                            : "Set notification"
+                                        }
+                                        className={
+                                          notification?.enabled
+                                            ? "notification-enabled"
+                                            : undefined
+                                        }
+                                        disabled={busy || h.kind !== "bazaar"}
+                                        onClick={() => {
+                                          setNotificationEditor(h);
+                                          setEditor(null);
+                                        }}
+                                      >
+                                        <Bell size={16} aria-hidden="true" />
+                                      </button>
+                                      <button
+                                        aria-label="Delete"
+                                        title="Delete holding"
+                                        className="holding-delete"
+                                        disabled={busy}
+                                        onClick={() => setRemoval(h)}
+                                      >
+                                        <Trash2 size={16} aria-hidden="true" />
+                                      </button>
+                                    </div>
+                                  </td>
                                 </tr>
-                                <tr
-                                  className="holding-detail-row"
-                                  hidden={!expanded}
-                                >
-                                  <td colSpan={8}>
-                                    <div
-                                      className="holding-expanded"
-                                      id={`holding-details-${h.id}`}
-                                    >
-                                      <p className="holding-identity">
-                                        <b>{h.name}</b> ·{" "}
-                                        {h.kind === "bazaar"
-                                          ? "Bazaar"
-                                          : "Unsupported saved asset"}{" "}
-                                        · {exact(h.quantity)}{" "}
-                                        {h.kind === "auction"
-                                          ? "stacks"
-                                          : "items"}
-                                      </p>
-                                      <details className="holding-details">
-                                        <summary>Valuation details</summary>
-                                        <p className="sample">
-                                          {v.sampledAt ? (
-                                            <>
-                                              <b>
-                                                {v.freshness === "stale"
-                                                  ? "Last-known estimate"
-                                                  : "Fresh sample"}
-                                              </b>{" "}
-                                              ·{" "}
-                                              <SampleTime
-                                                timestamp={v.sampledAt}
-                                                now={now}
-                                              />
-                                            </>
-                                          ) : (
-                                            "No usable price sample"
-                                          )}
-                                        </p>
-                                        <dl className="holding-metrics">
-                                          <Metric
-                                            label="Average acquisition"
-                                            value={h.costBasis / h.quantity}
-                                          />
-                                          <Metric
-                                            label="Reference per unit"
-                                            value={v.referencePrice}
-                                          />
-                                        </dl>
-                                        <p className="reference">
-                                          {v.reference}
-                                        </p>
-                                        {v.liquidation ? (
-                                          <p>
-                                            Full-quantity{" "}
-                                            {v.freshness === "stale"
-                                              ? "last-known "
-                                              : ""}
-                                            after-tax liquidation estimate:{" "}
-                                            <b>
-                                              {exact(v.liquidation.value)} coins
-                                            </b>{" "}
-                                            · {v.liquidation.taxPercent}% tax.
-                                            Entire quantity fits visible bids.
-                                            Unrealized P&L above uses the lowest
-                                            sell offer before fees; filling a
-                                            sell offer is not guaranteed.
-                                          </p>
-                                        ) : (
-                                          <p>
-                                            Full-quantity after-tax liquidation
-                                            unavailable: {v.liquidationReason}
-                                          </p>
-                                        )}
-                                      </details>
-                                      <div className="holding-bottom">
-                                        <span className="notification-status">
-                                          <Bell size={15} />
-                                          {h.kind !== "bazaar"
-                                            ? "Monitoring unavailable for this saved asset"
-                                            : notification
-                                              ? `${notification.enabled ? "Enabled" : "Paused"} · ${notification.up === null ? "" : `↑ ${notification.up}% `}${notification.down === null ? "" : `↓ ${notification.down}% `} · baseline ${exact(notificationBaseline(notification, h))}`
-                                              : "Notifications off"}
-                                        </span>
-                                        <div className="actions">
-                                          <button
-                                            disabled={
-                                              busy || h.kind !== "bazaar"
-                                            }
-                                            onClick={() =>
-                                              setEditor({
-                                                mode: "purchase",
-                                                holding: h,
-                                              })
-                                            }
-                                          >
-                                            Add purchase
-                                          </button>
-                                          <button
-                                            disabled={
-                                              busy || h.kind !== "bazaar"
-                                            }
-                                            onClick={() =>
-                                              setEditor({
-                                                mode: "edit",
-                                                holding: h,
-                                              })
-                                            }
-                                          >
-                                            Edit
-                                          </button>
-                                          <button
-                                            disabled={
-                                              busy || h.kind !== "bazaar"
-                                            }
-                                            onClick={() => {
-                                              setNotificationEditor(h);
-                                              setEditor(null);
-                                            }}
-                                          >
-                                            {notification
-                                              ? "Edit notification"
-                                              : "Set notification"}
-                                          </button>
-                                          <button
-                                            disabled={busy}
-                                            onClick={() => setRemoval(h)}
-                                          >
-                                            Delete
-                                          </button>
-                                        </div>
-                                      </div>
+                                <tr className="holding-detail-row">
+                                  <td colSpan={9}>
+                                    <div className="holding-expanded">
+                                      <span className="notification-status">
+                                        {h.kind !== "bazaar"
+                                          ? "Monitoring unavailable for this saved asset"
+                                          : notification
+                                            ? `${notification.enabled ? "Enabled" : "Paused"} · ${notification.up === null ? "" : `↑ ${notification.up}% `}${notification.down === null ? "" : `↓ ${notification.down}% `} · baseline ${exact(notificationBaseline(notification, h))}`
+                                            : "Notifications off"}
+                                      </span>
                                     </div>
                                   </td>
                                 </tr>
