@@ -32,4 +32,32 @@ revision `refreshmarket-00022-5xs`; no additional market-service rollout is need
   passed. Vite reports its existing non-fatal large-chunk warning.
 - `git diff --check` passed.
 
-Deployment results are recorded below after verification.
+## Deployment
+
+Application commit `eb36f32` was pushed to `origin/main` and released to
+[BazaarSignal](https://bazaarsignal.web.app).
+
+- Firebase Hosting: `sites/bazaarsignal/versions/de20669586539b89`.
+  Prior version retained: `sites/bazaarsignal/versions/677f1312832ce690`.
+- Private Firestore rules:
+  `projects/bazaarsignal/rulesets/e9a6f800-ec32-49d7-bbc0-845121fe963f`.
+  Rules and indexes deployed successfully; live rules match the local source,
+  and the market-cache value index exemption was verified.
+- Existing Apps Script web deployment: version **21**, previously **20**.
+  Saved source was read back and matched the local bundle. The deployment URL,
+  execution account and access setting remain the same. Google required renewal
+  of the existing, unchanged manifest permissions. The only source change in
+  this bundle is acceptance and validation of optional portfolio buying power.
+- Market API and collector already contain this commit's market code, as
+  verified above. Their images, schedules, policies and budget ledgers were not
+  changed by this release.
+
+Live HTML, entry JavaScript/CSS and Workspace JavaScript/CSS match the paid
+production build by SHA-256. The signed-out production page rendered normally.
+Private mutation journeys were tested against emulators; production validation
+did not create test holdings, send mail or run a manual collection.
+
+Ignored local receipts are retained as `.local/ui-oct16-before.json`,
+`.local/ui-oct16-verified.json`, `.local/ui-oct16-apps-script.json` and
+`.local/ui-oct16-apps-script.png`. The prior Apps Script source and rules are also
+retained locally for rollback reference.
