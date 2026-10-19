@@ -18,6 +18,7 @@ import { pausedMarketResponse } from '../../collector/paused-response';
 import { createMeasurementRuntime, verifyMeasurementContainment } from '../../collector/measurement';
 import { createPaidRuntime } from '../../collector/paid-budget';
 import { googleBillingFeed } from '../../collector/paid-billing';
+import { CloudPriceHistory, HISTORY_JOB, isHistoryJob } from '../../collector/cloud-price-history';
 
 // Source implementation only: the deployment guard still requires verified
 // preflight. Missing release deadlines or ledger always stop optional work.
@@ -40,7 +41,11 @@ const paidRuntime = createPaidRuntime({
   expiresAt: Date.parse(process.env.MARKET_LIVE_END ?? ''),
   store: session => trialGoogleStore({project,bucket:`${project}-market-cache`,token,inlineSmallSnapshots:true,
     report: data => console.info(JSON.stringify(data))},session),
-  shutdown: () => stopTrialInfrastructure({project,token}),
+  shutdown: () => stopTrialInfrastructure({project,token,additionalJobs:[HISTORY_JOB]}),
+  history: {
+    capture: session => new CloudPriceHistory({project,token},session).capture(Date.now,session.network()),
+    item: (session,item) => new CloudPriceHistory({project,token},session).item(item,Date.now(),Date.parse(process.env.MARKET_LIVE_END ?? '')),
+  },
   report: data => console.info(JSON.stringify(data)),
 });
 const measurement = process.env.MARKET_OPERATING_MODE === 'measurement';
@@ -132,7 +137,11 @@ export const refreshMarket = onSchedule(
     // Explicit one-shot operator grant. Scheduled events cannot match this
     // identity, and the ordinary collection gate/owner stop remain untouched.
     if (measurement) { await measurementRuntime.collect(event.jobName ?? ''); return; }
-    if (paid) { await paidRuntime.collect(`${event.jobName}:${event.scheduleTime}`); return; }
+    if (paid) {
+      if (isHistoryJob(event.jobName, project)) await paidRuntime.collectDaily();
+      else await paidRuntime.collect(`${event.jobName}:${event.scheduleTime}`);
+      return;
+    }
     // Gate before all private scans, allowance I/O and upstream collection.
     if(!PORTFOLIO_COLLECTION_ENABLED){console.info('Portfolio collection remains paused.');return;}
     await runtime.collect(`${event.jobName}:${event.scheduleTime}`);

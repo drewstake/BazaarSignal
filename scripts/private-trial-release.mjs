@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { loadDeploymentAccounting, verifyDeploymentAccounting } from './deployment-accounting.mjs';
 import { validPaidBilling } from '../shared/paid-spending.ts';
+import { isFirestoreWriteThrottle } from '../collector/diagnostics.ts';
 
 const project = 'bazaarsignal-510305';
 const root = `projects/${project}/locations/us-central1`;
@@ -29,6 +30,13 @@ export function verifyActivePaidPlan(plan) {
       plan.activationGranted !== undefined || plan.paidRolloutReserveUsd !== .5 ||
       plan.budgetUsd !== 5 || plan.applicationStopUsd !== 4.5 || plan.fixedReserveUsd !== 1 || plan.expiresAt !== paidEnd)
     throw new Error('Invalid active paid code update; activation, recovery and renewal are forbidden');
+  if (plan.paidThrottleRepair !== undefined) {
+    const stop = plan.paidThrottleRepair;
+    if (!Number.isFinite(stop?.stoppedAt) || !isFirestoreWriteThrottle(stop) ||
+        JSON.stringify([...plan.services].sort()) !== JSON.stringify(['marketapi','refreshmarket']) ||
+        !/^[a-f0-9]{64}$/.test(plan.dailyScheduleSha256 ?? ''))
+      throw Error('Throttle repair requires the inspected transient stop, both services, and daily schedule evidence');
+  }
 }
 
 export const releaseLedgerKey = plan => {
@@ -38,6 +46,11 @@ export const releaseLedgerKey = plan => {
 
 export function verifyPaidReleaseBudget(plan, ledger, now = Date.now()) {
   verifyActivePaidPlan(plan);
+  if (plan.paidThrottleRepair) {
+    if (ledger?.stoppedAt !== plan.paidThrottleRepair.stoppedAt || ledger.reason !== plan.paidThrottleRepair.message)
+      throw Error('Inspected Firestore throttle stop changed');
+    ledger = { ...ledger }; delete ledger.stoppedAt; delete ledger.reason;
+  }
   if (!ledger || ledger.version !== 1 || ledger.id !== plan.id ||
       !Number.isFinite(ledger.startsAt) || ledger.startsAt !== Date.parse(plan.startsAt) || ledger.startsAt > now ||
       ledger.expiresAt !== Date.parse(paidEnd) || now >= ledger.expiresAt || ledger.expiresAt <= ledger.startsAt ||
@@ -106,19 +119,34 @@ export async function reservePaidRelease(plan, readDocument, commit, now = Date.
 export const scheduleConfiguration = schedule => ({ name: schedule.name, state: schedule.state, schedule: schedule.schedule,
   timeZone: schedule.timeZone, httpTarget: schedule.httpTarget, retryConfig: schedule.retryConfig, attemptDeadline: schedule.attemptDeadline });
 
+// Repository GET may omit its aggregate size. A complete Files API listing is
+// independent evidence, not an assumption that an omitted size means zero.
+export function observedRepositoryBytes(resources) {
+  if (resources.repository?.sizeBytes !== undefined && Number.isFinite(Number(resources.repository.sizeBytes)))
+    return Number(resources.repository.sizeBytes);
+  const listing = resources.repositoryFiles;
+  if (!listing || listing.nextPageToken || (listing.files !== undefined && !Array.isArray(listing.files)))
+    throw Error('Complete repository size evidence is required');
+  const files = listing.files ?? [];
+  if (files.length > 1000 || files.some(file => !file.name?.startsWith(`${root}/repositories/gcf-artifacts/files/`) ||
+      !Number.isSafeInteger(Number(file.sizeBytes)) || Number(file.sizeBytes) < 0)) throw Error('Invalid repository file inventory');
+  return files.reduce((sum,file) => sum + Number(file.sizeBytes),0);
+}
+
 export function verifyPaidPreflight(plan, evidence, now = Date.now()) {
   verifyActivePaidPlan(plan);
   const r = evidence.resources, at = Date.parse(evidence.at);
   if (!r || evidence.errors?.length || !Number.isFinite(at) || at !== plan.observedAt || now < at || now - at > 1800000 ||
       evidence.calls > 24 || r.billing?.billingEnabled !== true || r.billing.projectId !== project ||
       r.database?.locationId !== 'us-central1' || r.repository?.name !== `${root}/repositories/gcf-artifacts` ||
-      !Number.isFinite(Number(r.repository.sizeBytes)) || Number(r.repository.sizeBytes) > plan.meters.artifactBytes.used ||
+      observedRepositoryBytes(r) > plan.meters.artifactBytes.used ||
       !r.hosting?.releases?.[0]?.version?.name?.startsWith('sites/bazaarsignal/versions/'))
     throw new Error('Paid preflight scope, rollback or freshness is incomplete');
   const ledger = JSON.parse(r.paid.fields.value.stringValue);
   verifyPaidReleaseBudget(plan, ledger, now);
   if (sha(r.legacy.fields.value.stringValue) !== ledger.legacyLedgerSha256) throw new Error('Legacy accounting changed');
   verifySchedule(plan, r.scheduler);
+  if (plan.paidThrottleRepair) verifyRepairDailySchedule(plan, r.dailyScheduler);
   const grant = (policy, role) => (policy.bindings ?? []).some(b => b.role === `projects/${project}/roles/${role}` &&
     b.condition?.expression === `request.time < timestamp('${plan.shutdownGrantExpiresAt}')` &&
     ['market-reader', 'market-collector'].every(a => b.members?.includes(`serviceAccount:${a}@${project}.iam.gserviceaccount.com`)));
@@ -129,7 +157,7 @@ export function verifyPaidPreflight(plan, evidence, now = Date.now()) {
     throw new Error('Shutdown authority is missing or changed');
   for (const name of ['marketapi','refreshmarket']) {
     verifyLiveUpdate(plan, ledger, r[name], now);
-    if (sha(JSON.stringify(r[`${name}Iam`])) !== plan.policySha256?.[name] || isPublic(r[`${name}Iam`]) !== (name === 'marketapi'))
+    if (sha(JSON.stringify(r[`${name}Iam`])) !== plan.policySha256?.[name] || isPublic(r[`${name}Iam`]) !== (!plan.paidThrottleRepair && name === 'marketapi'))
       throw new Error('Paid invocation permissions changed');
   }
 }
@@ -256,7 +284,7 @@ export function verifyLiveUpdate(plan, ledger, service, now = Date.now()) {
 export function verifySchedule(plan, schedule) {
   if (plan.activePaidUpdate) {
     verifyActivePaidPlan(plan);
-    if (schedule.state !== 'ENABLED' || schedule.schedule !== '0 * * * *' || schedule.timeZone !== 'Etc/UTC' ||
+    if (schedule.state !== (plan.paidThrottleRepair ? 'PAUSED' : 'ENABLED') || schedule.schedule !== '0 * * * *' || schedule.timeZone !== 'Etc/UTC' ||
         (schedule.retryConfig?.retryCount ?? 0) !== 0 || (schedule.retryConfig?.maxRetryDuration ?? '0s') !== '0s' ||
         schedule.httpTarget?.httpMethod !== 'POST' ||
         schedule.httpTarget?.uri !== 'https://refreshmarket-k5a64sgi2q-uc.a.run.app/' ||
@@ -275,6 +303,17 @@ export function verifySchedule(plan, schedule) {
     throw new Error('Five-minute release requires an explicit paused schedule');
   if (schedule.state !== (paused ? 'PAUSED' : 'ENABLED') || schedule.schedule !== expected)
     throw new Error('Existing hourly schedule or pause changed');
+}
+
+export function verifyRepairDailySchedule(plan, schedule) {
+  if (!schedule || schedule.state !== 'PAUSED' || schedule.name !== `${root}/jobs/bazaar-daily-close` ||
+      schedule.schedule !== '59 4 * * *' || schedule.timeZone !== 'Etc/UTC' ||
+      schedule.httpTarget?.uri !== 'https://refreshmarket-k5a64sgi2q-uc.a.run.app/' ||
+      schedule.httpTarget?.httpMethod !== 'POST' || schedule.httpTarget?.oidcToken?.audience !== schedule.httpTarget.uri ||
+      schedule.httpTarget?.oidcToken?.serviceAccountEmail !== `market-collector@${project}.iam.gserviceaccount.com` ||
+      (schedule.retryConfig?.retryCount ?? 0) !== 0 || schedule.retryConfig?.maxRetryDuration !== '0s' || schedule.attemptDeadline !== '90s' ||
+      sha(JSON.stringify(scheduleConfiguration(schedule))) !== plan.dailyScheduleSha256)
+    throw Error('Daily history repair schedule changed');
 }
 
 /** Explicit repair deployment keeps the inspected stopped ledger unchanged and
@@ -422,6 +461,8 @@ async function main() {
     const schedule=await json(`https://cloudscheduler.googleapis.com/v1/${job}`);
     if(liveUpdate) {
       verifySchedule(plan,schedule);
+      if (plan.paidThrottleRepair) verifyRepairDailySchedule(plan,
+        await json(`https://cloudscheduler.googleapis.com/v1/${root}/jobs/bazaar-daily-close`));
       const doc=await json(`https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/documents/marketCache/${releaseLedgerKey(plan)}`);
       const ledger=JSON.parse(doc.fields.value.stringValue);
       if (plan.activePaidUpdate) {
@@ -440,7 +481,7 @@ async function main() {
         else if(plan.recoverStopped)verifyStoppedUpdate(plan,ledger,service);
         else verifyLiveUpdate(plan,ledger,service);
         const policy=await json(`https://run.googleapis.com/v1/${root}/services/${name}:getIamPolicy?options.requestedPolicyVersion=3`);
-        if(isPublic(policy)!==(!plan.recoverStopped && !plan.pausedCodeOnly && name==='marketapi'))throw new Error('Live invocation permissions changed');
+        if(isPublic(policy)!==(!plan.recoverStopped && !plan.pausedCodeOnly && !plan.paidThrottleRepair && name==='marketapi'))throw new Error('Live invocation permissions changed');
         if (plan.activePaidUpdate && sha(JSON.stringify(policy)) !== plan.policySha256?.[name]) throw new Error('Paid IAM policy changed');
       }
       return;
@@ -524,7 +565,7 @@ async function main() {
       save();
     }
     await contained();
-    report.result = plan.activePaidUpdate ? 'active-paid-code-updated-counters-preserved' : plan.pausedCodeOnly ? 'paused-code-updated-stopped-ledger-preserved' : liveUpdate ? 'existing-live-code-updated-counters-preserved' : 'privately-deployed-collector-paused';
+    report.result = plan.paidThrottleRepair ? 'throttle-repair-deployed-stopped-ledger-preserved' : plan.activePaidUpdate ? 'active-paid-code-updated-counters-preserved' : plan.pausedCodeOnly ? 'paused-code-updated-stopped-ledger-preserved' : liveUpdate ? 'existing-live-code-updated-counters-preserved' : 'privately-deployed-collector-paused';
   } catch (error) { report.error = error.message; throw error; }
   finally { report.finishedAt = new Date().toISOString(); save(); console.log(JSON.stringify({ reportPath, ...report }, null, 2)); }
 }

@@ -1,0 +1,200 @@
+{
+  "at": "2026-10-19T04:05:02.186Z",
+  "status": "deployed-and-cloud-capture-verified",
+  "site": "https://bazaarsignal.web.app/#view=item&item=BOOSTER_COOKIE",
+  "project": "bazaarsignal-510305",
+  "region": "us-central1",
+  "api": {
+    "revision": "projects/bazaarsignal-510305/locations/us-central1/services/marketapi/revisions/marketapi-00027-fwq",
+    "image": "us-central1-docker.pkg.dev/bazaarsignal-510305/gcf-artifacts/market-trial@sha256:6476be6f1588155fb20ca282ac20da5ab6fef625ab05781bd5caea9c313a26b5",
+    "at": "2026-10-19T03:56:11.466Z"
+  },
+  "collector": {
+    "revision": "projects/bazaarsignal-510305/locations/us-central1/services/refreshmarket/revisions/refreshmarket-00024-w9w",
+    "image": "us-central1-docker.pkg.dev/bazaarsignal-510305/gcf-artifacts/market-trial@sha256:65e168fcba560cfb5bc0609fa3b81fd7e783b5eeda8614a62786a4a0c43b04a9",
+    "at": "2026-10-19T04:02:30.124Z"
+  },
+  "hosting": {
+    "version": "sites/bazaarsignal/versions/694039bb89e4aa5b",
+    "releaseTime": "2026-10-19T04:03:16.099Z"
+  },
+  "seed": {
+    "at": "2026-10-19T03:50:11.479Z",
+    "sha256": "32873e54dacd36a75032470896f94d8808ac0e466f8b62424b5fca01fb74fae9",
+    "documents": 64,
+    "years": [
+      2025,
+      2026
+    ],
+    "itemDays": 332105,
+    "encodedBytes": 4235652,
+    "maxDocumentBytes": 174876,
+    "dailyWrites": 33,
+    "dailyReads": 33,
+    "ownProvisionalSamplesExcluded": true,
+    "sources": [
+      "skytrack",
+      "bazaar-calc",
+      "bazaarsignal"
+    ]
+  },
+  "schedule": {
+    "job": "bazaar-daily-close",
+    "cron": "59 4 * * *",
+    "timeZone": "Etc/UTC",
+    "state": "ENABLED",
+    "lastAttemptTime": "2026-10-19T04:02:40.756850Z",
+    "lastStatus": {},
+    "display": "23:59 fixed EST (UTC-05:00)",
+    "attemptDeadline": "90s",
+    "retryCount": 0
+  },
+  "existingHourlySchedule": {
+    "state": "ENABLED",
+    "schedule": "0 * * * *",
+    "unchanged": true
+  },
+  "capture": {
+    "at": 1792382562796,
+    "checkedAt": 1792382565519,
+    "items": 2201,
+    "closing": false,
+    "sampleTime": "2026-10-19T04:02:42.796Z",
+    "purpose": "Provisional real cloud capture; nightly close remains scheduled",
+    "admissionFinished": true
+  },
+  "runtimeReceipts": [
+    {
+      "at": "2026-10-19T04:02:49.700459Z",
+      "data": {
+        "event": "paid_market",
+        "observed": {
+          "upstreamResponseBytes": 3545829,
+          "hypixelRequests": 1,
+          "firestoreReads": 33,
+          "observedHandlerMs": 4533,
+          "upstreamHttp200": 1,
+          "firestoreWrites": 33,
+          "firestoreEgressBytes": 4139551
+        },
+        "at": 1792382569701,
+        "kind": "history"
+      }
+    },
+    {
+      "at": "2026-10-19T04:02:49.608978Z",
+      "data": {
+        "event": "daily_history_saved",
+        "at": 1792382569609,
+        "capture": {
+          "closing": false,
+          "items": 2201,
+          "checkedAt": 1792382565519,
+          "at": 1792382562796
+        }
+      }
+    }
+  ],
+  "safeguards": {
+    "paidPeriod": "paid-202610",
+    "expiresAt": "2026-11-01T07:00:00.000Z",
+    "limitUsd": 5,
+    "stopUsd": 4.5,
+    "budgetReset": false,
+    "expiryExtended": false,
+    "retainedRolloutReservationsUsd": 1,
+    "notes": "Original deployment and collector job-name correction each retain the existing required $0.50 rollout hold. Reservations are estimates, not billed charges. Existing Google spending-feed admission remains in effect."
+  },
+  "local": {
+    "cloudHistoryEnabled": true,
+    "localDailyCollectionEnabled": false,
+    "sqliteAndSourceDownloadsRetained": true
+  },
+  "ui": [
+    {
+      "site": "local",
+      "size": "desktop",
+      "points": 180,
+      "gapSegments": 46,
+      "cloudCapture": {
+        "at": 1792382562796,
+        "checkedAt": 1792382565519,
+        "items": 2201,
+        "closing": false
+      },
+      "historyRequests": 1,
+      "bookBelow": true,
+      "overflow": false,
+      "errors": [],
+      "market": "fixture; daily history is the real cloud response"
+    },
+    {
+      "site": "local",
+      "size": "mobile",
+      "points": 180,
+      "gapSegments": 46,
+      "cloudCapture": {
+        "at": 1792382562796,
+        "checkedAt": 1792382565519,
+        "items": 2201,
+        "closing": false
+      },
+      "historyRequests": 1,
+      "bookBelow": true,
+      "overflow": false,
+      "errors": [],
+      "market": "fixture; daily history is the real cloud response"
+    },
+    {
+      "site": "hosted",
+      "size": "desktop",
+      "points": 180,
+      "gapSegments": 46,
+      "cloudCapture": {
+        "at": 1792382562796,
+        "checkedAt": 1792382565519,
+        "items": 2201,
+        "closing": false
+      },
+      "historyRequests": 1,
+      "bookBelow": true,
+      "overflow": false,
+      "errors": [],
+      "market": "fixture; daily history is the real cloud response"
+    },
+    {
+      "site": "hosted",
+      "size": "mobile",
+      "points": 180,
+      "gapSegments": 46,
+      "cloudCapture": {
+        "at": 1792382562796,
+        "checkedAt": 1792382565519,
+        "items": 2201,
+        "closing": false
+      },
+      "historyRequests": 1,
+      "bookBelow": true,
+      "overflow": false,
+      "errors": [],
+      "market": "fixture; daily history is the real cloud response"
+    }
+  ],
+  "verification": {
+    "cloudAndBudgetUnitTests": 22,
+    "releaseSafetyUnitTests": 26,
+    "postCorrectionCloudAndSharedMarketUnitTests": 25,
+    "isolatedBrowserTests": 4,
+    "realCloudHistoryBrowserChecks": 4,
+    "frontendTypecheck": true,
+    "collectorTypecheck": true,
+    "imageBootSmoke": true,
+    "productionBuild": true,
+    "diffCheck": true
+  },
+  "limits": [
+    "The first nightly closing run is scheduled; verification manually invoked the same cloud job before the close.",
+    "Missing source days remain gaps; no backfilling or inferred prices.",
+    "Collection and API stop at the retained pilot expiry or spending gate."
+  ]
+}

@@ -34,6 +34,11 @@ revision `refreshmarket-00022-5xs`; no additional market-service rollout is need
 
 ## Deployment
 
+**October 18 correction:** the live notification endpoint subsequently failed
+its configured-sender check. The [sender repair](NOTIFICATION-SENDER-REPAIR-2026-10-18.md)
+reapplied version 21 from the sender account and verified the live protected
+endpoint. That verification supersedes the execution-account assertion below.
+
 Application commit `eb36f32` was pushed to `origin/main` and released to
 [BazaarSignal](https://bazaarsignal.web.app).
 

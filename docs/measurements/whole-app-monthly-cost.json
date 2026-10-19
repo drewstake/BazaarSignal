@@ -1,0 +1,168 @@
+{
+  "at": "2026-10-19T04:40:15.715Z",
+  "currency": "USD",
+  "scope": "Whole BazaarSignal app: two existing projects, website, Google login, portfolios, existing Apps Script notifications, hourly order books, daily history, data storage, network transfer, logs and retained deployment files.",
+  "conclusion": "Approximately $0/month at the observed personal-use scale with available shared free allowances. A 1,000 cold-visit scenario is about $0.82/month before free allowances; $1 is a reasonable planning allowance, not a cap or guarantee.",
+  "pricesChecked": "2026-10-19",
+  "rates": {
+    "cpuSecond": 0.000024,
+    "memoryGiBSecond": 0.0000025,
+    "request": 4.0000000000000003e-7,
+    "read": 3e-7,
+    "write": 9e-7,
+    "firestoreGiBMonth": 0.15,
+    "runEgressGiB": 0.12,
+    "hostingGBMonth": 0.026,
+    "hostingEgressGB": 0.15,
+    "imageGiBMonth": 0.1,
+    "objectGiBMonth": 0.02,
+    "logsGiB": 0.5,
+    "schedulerJobMonth": 0.1
+  },
+  "observations": {
+    "hostingBillingEnabled": false,
+    "marketBillingEnabled": true,
+    "websiteSevenDayTransferBytes": 116240560,
+    "websiteThirtyDayTransferProjectionBytes": 498173828.57142854,
+    "websiteStorageLatestMetricBytes": 1517462521,
+    "websiteVersionsBytes": 1686630249,
+    "coldWebsiteLoadBytes": 1668773,
+    "warmReloadBytes": 259,
+    "sevenDayBilledInstanceSeconds": 1201.805713977208,
+    "sevenDayRunRequests": 234,
+    "imageStorageBytes": 25954853,
+    "objectStorageBytes": 6197366,
+    "historyEncodedBytes": 4235652,
+    "databaseMetrics": {
+      "bazaarsignal/firestore.googleapis.com/storage/data_and_index_storage_bytes": {
+        "observed": 96189,
+        "gauge": true,
+        "hasData": true
+      },
+      "bazaarsignal/firestore.googleapis.com/document/read_ops_count": {
+        "observed": 392,
+        "gauge": false,
+        "hasData": true
+      },
+      "bazaarsignal/firestore.googleapis.com/document/write_ops_count": {
+        "observed": 288,
+        "gauge": false,
+        "hasData": true
+      },
+      "bazaarsignal/logging.googleapis.com/billing/bytes_ingested": {
+        "observed": 1246,
+        "gauge": false,
+        "hasData": true
+      },
+      "bazaarsignal-510305/firestore.googleapis.com/storage/data_and_index_storage_bytes": {
+        "observed": 1105133,
+        "gauge": true,
+        "hasData": true
+      },
+      "bazaarsignal-510305/firestore.googleapis.com/document/read_ops_count": {
+        "observed": 3374,
+        "gauge": false,
+        "hasData": true
+      },
+      "bazaarsignal-510305/firestore.googleapis.com/document/write_ops_count": {
+        "observed": 1821,
+        "gauge": false,
+        "hasData": true
+      },
+      "bazaarsignal-510305/logging.googleapis.com/billing/bytes_ingested": {
+        "observed": 1088902,
+        "gauge": false,
+        "hasData": true
+      }
+    }
+  },
+  "assumptions": [
+    "30-day month with 720 hourly captures and 30 daily captures, regardless of current stopped state.",
+    "1 vCPU + 1 GiB memory; 10 billed seconds per capture and 1.5 seconds per API request are estimates including allowance for overhead, not invoice measurements.",
+    "Each modeled visit makes one uncached order-book read, one history read and downloads the entire cold public item-page asset set. Browser caching usually lowers traffic.",
+    "Per modeled visit, allow 20 portfolio document reads and 5 writes; ordinary personal usage is lower.",
+    "8 MiB total Firestore storage allowance includes imported history and metadata; storage metrics lag the newly imported 4.24 MB archive.",
+    "Both Scheduler jobs and API compute fit free allowances if those allowances are not consumed by unrelated account projects.",
+    "The current site uses free hosting with billing disabled; exceeding its 10 GiB monthly transfer quota can suspend hosting rather than create a bill.",
+    "Future code deployments, a purchased domain, paid subscriptions not used by this app, and taxes are not included. Existing retained deployment files are included.",
+    "Email has Apps Script/account quotas; this model does not purchase a new email service or account.",
+    "No usage cap, billing plan, stop state, ledger counter or schedule was changed for this estimate."
+  ],
+  "scenarios": [
+    {
+      "visits": 100,
+      "coldWebsiteTransferGB": 0.1668773,
+      "categories": {
+        "websiteStorage": 0.043852386474,
+        "websiteTransfer": 0.025031595,
+        "hourlyMarketCollection": 0.204048,
+        "dailyHistoryCollection": 0.009276000000000001,
+        "twoSchedules": 0.2,
+        "orderbookAndHistoryApi": 0.008690000000000003,
+        "apiBandwidth": 0.0001373291015625,
+        "portfolioDatabaseActivity": 0.0010500000000000002,
+        "firestoreStorage": 0.001171875,
+        "retainedImageStorage": 0.002417234051972628,
+        "retainedObjectStorage": 0.0001154349371790886,
+        "logging": 0.002536773681640625,
+        "googleSignInAndExistingAppsScript": 0
+      },
+      "totalBeforeFreeAllowancesUsd": 0.4983266282463548,
+      "expectedAfterFreeAllowancesUsd": 0
+    },
+    {
+      "visits": 1000,
+      "coldWebsiteTransferGB": 1.668773,
+      "categories": {
+        "websiteStorage": 0.043852386474,
+        "websiteTransfer": 0.25031595,
+        "hourlyMarketCollection": 0.204048,
+        "dailyHistoryCollection": 0.009276000000000001,
+        "twoSchedules": 0.2,
+        "orderbookAndHistoryApi": 0.08690000000000002,
+        "apiBandwidth": 0.001373291015625,
+        "portfolioDatabaseActivity": 0.0105,
+        "firestoreStorage": 0.001171875,
+        "retainedImageStorage": 0.002417234051972628,
+        "retainedObjectStorage": 0.0001154349371790886,
+        "logging": 0.00339508056640625,
+        "googleSignInAndExistingAppsScript": 0
+      },
+      "totalBeforeFreeAllowancesUsd": 0.813365252045183,
+      "expectedAfterFreeAllowancesUsd": 0
+    }
+  ],
+  "latestReportedMarketProjectSpend": {
+    "actualUsd": 0,
+    "publishedAt": "2026-10-19T03:52:07.295Z",
+    "receivedAt": 1792382377954,
+    "intervalStart": 1790838000000,
+    "delayed": true
+  },
+  "operationalIssue": {
+    "stoppedAt": "2026-10-19T04:11:30.346Z",
+    "reason": "This database has exceeded their maximum request_rate/bandwidth/document_rate for writes, please retry with exponential backoff. To learn more about best practices for increasing traffic, see 'Ramping up traffic' section of the support documentation.",
+    "schedules": [
+      {
+        "name": "bazaar-daily-close",
+        "state": "PAUSED"
+      },
+      {
+        "name": "firebase-schedule-refreshMarket-us-central1",
+        "state": "PAUSED"
+      }
+    ],
+    "budgetTriggered": false,
+    "needsRepair": true
+  },
+  "sources": {
+    "hosting": "https://firebase.google.com/docs/hosting/usage-quotas-pricing",
+    "firebase": "https://firebase.google.com/pricing",
+    "run": "https://cloud.google.com/run/pricing",
+    "firestore": "https://cloud.google.com/firestore/pricing",
+    "scheduler": "https://cloud.google.com/scheduler/pricing",
+    "artifacts": "https://cloud.google.com/artifact-registry/pricing",
+    "storage": "https://cloud.google.com/storage/pricing",
+    "appsScript": "https://developers.google.com/apps-script/guides/services/quotas"
+  }
+}

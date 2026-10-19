@@ -82,7 +82,7 @@ test.beforeEach(async ({ page }) => {
 
 test("public preview explains unavailable sign-in without making a request", async ({ page }) => {
   const requests: string[] = [];
-  await page.route("**/api/**", (route) => {
+  await page.route("**/api/companion/**", (route) => {
     requests.push(route.request().url());
     return route.abort();
   });
@@ -324,11 +324,9 @@ test("both complete order-book sides are visible without extra requests", async 
   const bidsBounds = (await bids.boundingBox())!;
   expect(bidsBounds.x).toBeGreaterThan(asksBounds.x + asksBounds.width);
   expect(Math.abs(asksBounds.y - bidsBounds.y)).toBeLessThan(1);
-  if (info.project.name === "desktop") {
-    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(page.viewportSize()!.height);
-  } else {
-    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThan(1200);
-  }
+  const chartBounds = (await page.getByRole("region", { name: "Price history", exact: true }).boundingBox())!;
+  expect(asksBounds.y).toBeGreaterThan(chartBounds.y + chartBounds.height);
+  expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThan(1600);
   const volume = async (table: typeof asks, row: number) => table.getByRole("row").nth(row).evaluate(el => ({
     percent: parseFloat((el as HTMLElement).style.getPropertyValue("--level-volume")),
     background: getComputedStyle(el).backgroundImage,
@@ -417,7 +415,7 @@ async function advanceTo(page: Page, stamp: number) {
 test("visible item pages read hourly, skip hidden hours, and stop on navigation", async ({ page }) => {
   const requests: string[] = [];
   let snapshotAt = now;
-  await page.route("**/api/**", route => {
+  await page.route("**/api/companion/**", route => {
     requests.push(route.request().url());
     return route.fulfill({ json: { usage, bazaar: [cookie(snapshotAt)] } });
   });
@@ -462,7 +460,7 @@ test("a returning item page reuses a new portfolio snapshot without another requ
   await page.addInitScript(() => {
     Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
   });
-  await page.route("**/api/**", route => {
+  await page.route("**/api/companion/**", route => {
     requests.push(route.request().url());
     return route.fulfill({ json: { usage, bazaar: [cookie()] } });
   });
@@ -497,7 +495,7 @@ for (const guard of ["paused", "expired", "backoff", "slow"] as const) {
       ...(guard === "backoff" ? { mode: "slow", retryAt: resume, reason: "Waiting for budget reset" } : {}),
       ...(guard === "slow" ? { mode: "slow", pollMs: 3 * 3600000 } : {}),
     };
-    await page.route("**/api/**", route => {
+    await page.route("**/api/companion/**", route => {
       requests.push(route.request().url());
       return route.fulfill({ json: { usage: directive, bazaar: [cookie()] } });
     });

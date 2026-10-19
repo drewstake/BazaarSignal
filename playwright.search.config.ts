@@ -26,6 +26,9 @@ export default defineConfig({
     env: {
       VITE_CONFIG_NATIVE_IGNORE_WARNING: "true",
       MARKET_SCHEDULER_DISABLED: "1",
+      PRICE_HISTORY_FILE: ":memory:",
+      LOCAL_CLOUD_HISTORY: "false",
+      VITE_PRICE_HISTORY_URL: "",
       VITE_LOCAL_WORKSPACE: "false",
       VITE_FIREBASE_API_KEY: "",
       VITE_FIREBASE_AUTH_DOMAIN: "",

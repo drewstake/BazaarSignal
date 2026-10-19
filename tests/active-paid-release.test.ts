@@ -1,6 +1,8 @@
 import { expect, it } from 'vitest';
 import { createHash } from 'node:crypto';
 // @ts-expect-error directly executable operator script
+import { recoveredPaidLedger } from '../scripts/recover-paid-throttle.mjs';
+// @ts-expect-error directly executable operator script
 import { verifyReleasePlan, releaseLedgerKey, verifyPaidReleaseBudget, verifyPaidContinuity,
   reservePaidRelease, verifyLiveUpdate, releasePatch, verifySchedule, scheduleConfiguration, verifyPaidPreflight } from '../scripts/private-trial-release.mjs';
 
@@ -49,6 +51,36 @@ function service(name = 'marketapi'): any {
 const schedule = (): any => ({ name: `${root}/jobs/firebase-schedule-refreshMarket-us-central1`, state: 'ENABLED', schedule: '0 * * * *', timeZone: 'Etc/UTC',
   retryConfig: { retryCount: 0, maxRetryDuration: '0s' }, httpTarget: { httpMethod: 'POST', uri: 'https://refreshmarket-k5a64sgi2q-uc.a.run.app/',
     oidcToken: { serviceAccountEmail: 'market-collector@bazaarsignal-510305.iam.gserviceaccount.com', audience: 'https://refreshmarket-k5a64sgi2q-uc.a.run.app/' } } });
+
+it('repairs only the inspected transient throttle while preserving the stop, holds, expiry and private rollout', async () => {
+  const p = plan(); p.services = ['marketapi','refreshmarket']; p.dailyScheduleSha256 = 'd'.repeat(64);
+  p.paidThrottleRepair = { code:429, stoppedAt:now-1000,
+    message:'This database has exceeded their maximum request_rate/bandwidth/document_rate for writes, please retry with exponential backoff.' };
+  const b = {...budget(), stoppedAt:p.paidThrottleRepair.stoppedAt, reason:p.paidThrottleRepair.message};
+  const s = schedule(); s.state='PAUSED'; p.scheduleSha256=hash(JSON.stringify(scheduleConfiguration(s)));
+  expect(()=>verifySchedule(p,s)).not.toThrow();
+  expect(()=>verifySchedule(p,{...s,state:'ENABLED'})).toThrow();
+  expect(()=>verifyLiveUpdate(p,b,service(),now)).not.toThrow();
+  const patched=releasePatch(service(),'marketapi',p);
+  expect(patched.template.containers[0].env).toEqual(service().template.containers[0].env);
+  const result=await reservePaidRelease(p,async()=>({updateTime:'1',fields:{value:{stringValue:JSON.stringify(b)}}}),async()=>true,()=>now);
+  expect(result.after).toMatchObject({stoppedAt:b.stoppedAt,reason:b.reason,expiresAt:b.expiresAt,reservedUsd:1.53,admissions:b.admissions});
+  const active=recoveredPaidLedger(p,result.after,now);
+  expect(active.stoppedAt).toBeUndefined();expect(active.reason).toBeUndefined();
+  expect(active.recoveries).toEqual({[p.releaseId]:{at:now,priorStoppedAt:b.stoppedAt,priorReason:b.reason,imageDigest:p.imageDigest}});
+  const prior={previous:{at:now-10000,priorReason:'old',priorStoppedAt:now-20000,imageDigest:'old'}};
+  expect(recoveredPaidLedger(p,{...result.after,recoveries:prior},now).recoveries.previous).toEqual(prior.previous);
+  const original=structuredClone(result.after); delete original.stoppedAt; delete original.reason;
+  const withoutAudit=structuredClone(active);delete withoutAudit.recoveries;
+  expect(withoutAudit).toEqual(original);
+  expect(()=>recoveredPaidLedger(p,active,now)).toThrow();
+  expect(()=>recoveredPaidLedger(p,b,now)).toThrow('hold missing');
+  expect(()=>recoveredPaidLedger(p,result.after,b.expiresAt)).toThrow();
+  for(const bad of [{...b,stoppedAt:b.stoppedAt+1},{...b,reason:'Quota exhausted'},{...b,reason:'Operator pause'},
+    {...b,reservedUsd:5},{...b,expiresAt:now}]) expect(()=>verifyPaidReleaseBudget(p,bad,now)).toThrow();
+  for(const bad of [{...p,services:['marketapi']},{...p,paidThrottleRepair:{...p.paidThrottleRepair,code:500}},
+    {...p,paidThrottleRepair:{...p.paidThrottleRepair,message:'Quota exhausted'}}]) expect(()=>verifyReleasePlan(bad,receipt,now)).toThrow();
+});
 
 it('admits a live paid release using its own ledger without renewing the service period', () => {
   const p = plan(), s = service();

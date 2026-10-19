@@ -10,6 +10,7 @@ import { SnapshotReadCache } from './snapshot-read-cache';
 import { type PaidBilling, type GoogleSpend, validPaidBilling, validGoogleSpend } from '../shared/paid-spending';
 import { errorDiagnostic, isFirestoreWriteThrottle, type DiagnosticReporter } from './diagnostics';
 import { LedgerWriteQueue } from './ledger-write-queue';
+import { historyDay, validHistoryItem } from '../shared/daily-price-history';
 
 export const PAID_INTERVAL_MS = 3_600_000;
 export const PAID_BUDGET_KEY = 'paid-budget-october';
@@ -30,7 +31,13 @@ export interface PaidBudget {
   admissions: Record<string, { at: number; finished?: boolean }>;
   billing?: PaidBilling;
 }
-export const paidEnvelope = (kind: 'collector' | 'browser'): Counters => ({
+export const paidEnvelope = (kind: 'collector' | 'browser' | 'history'): Counters => kind === 'history' ? ({
+  ...paidEnvelope('collector'), hypixelRequests: 1,
+  // 32 annual shards plus metadata, read and written once. Includes room for
+  // the next calendar year without multiplying writes by the number of items.
+  firestoreReads: 40, firestoreWrites: 40,
+  firestoreStorageBytes: 32 * 900 * 1024 + 128 * 1024,
+}) : ({
   runRequests: 1, cpuSeconds: kind === 'collector' ? 100 : 20,
   memoryGiBSeconds: kind === 'collector' ? 100 : 20,
   firestoreReads: kind === 'collector' ? 64 : 16,
@@ -85,7 +92,7 @@ export class PaidLedger {
     s.reservedUsd += usd;
     for (const [k,n] of Object.entries(costs)) s.reserved[k] = (s.reserved[k] ?? 0) + n;
   }
-  async admit(kind: 'collector' | 'browser', id: string, deadline = Infinity) {
+  async admit(kind: 'collector' | 'browser' | 'history', id: string, deadline = Infinity) {
     if (!/^[a-zA-Z0-9:_./-]{1,250}$/.test(id) || ['__proto__','constructor','prototype'].includes(id)) throw new TrialStopped('Invalid paid invocation');
     return this.change((s, now) => {
       if (Object.hasOwn(s.admissions,id)) return null;
@@ -96,7 +103,7 @@ export class PaidLedger {
       this.reserve(s, {...envelope, firestoreReads: envelope.firestoreReads + 20, firestoreWrites: envelope.firestoreWrites + 8});
       s.admissions[id] = { at: now };
       if (kind === 'collector') s.lastCollectorAt = now;
-      return new TrialSession(this, s.id, id, Math.min(s.expiresAt,now + (kind === 'collector' ? 80000 : 14000), deadline), envelope, this.clock, now - this.clock(), 'normal');
+      return new TrialSession(this, s.id, id, Math.min(s.expiresAt,now + (kind !== 'browser' ? 80000 : 14000), deadline), envelope, this.clock, now - this.clock(), 'normal');
     });
   }
   async add(id: string, costs: Counters) {
@@ -164,19 +171,20 @@ export function createPaidRuntime(config: {
   report?: (data: Record<string, unknown>) => void;
   ledgerWriteIntervalMs?: number;
   billingFeed?: (billing: PaidBilling, save: (costs: GoogleSpend[]) => Promise<void>, now: number) => Promise<void>;
+  history?: { capture: (session: TrialSession) => Promise<unknown>; item: (session: TrialSession, item: string) => Promise<unknown> };
 }) {
   const now = config.now ?? Date.now;
   // One bounded immutable-payload cache per warm runtime. Stores, sessions,
   // durable budget admission and control/freshness reads remain request-local.
   const snapshots = new SnapshotReadCache();
   const writes = config.ledgerWriteIntervalMs ? new LedgerWriteQueue(config.ledgerWriteIntervalMs) : undefined;
-  async function run(kind: 'collector' | 'browser', id: string, work: (session: TrialSession, collector: MarketCollector) => Promise<void>) {
-    const deadline = now() + (kind === 'collector' ? 80000 : 14000);
+  async function run(kind: 'collector' | 'browser' | 'history', id: string, work: (session: TrialSession, collector: MarketCollector) => Promise<void>) {
+    const deadline = now() + (kind !== 'browser' ? 80000 : 14000);
     const raw = config.store(), ledger = new PaidLedger(raw, now, config.report, writes);
     let session: TrialSession | null = null;
     try {
       if (!Number.isFinite(config.expiresAt) || now() >= config.expiresAt) throw new TrialStopped('Paid release expired');
-      if (kind === 'collector' && config.billingFeed) await ledger.refreshBilling(config.billingFeed);
+      if (kind !== 'browser' && config.billingFeed) await ledger.refreshBilling(config.billingFeed);
       session = await ledger.admit(kind, id, deadline);
       if (!session) return;
       const store = config.store(session);
@@ -195,6 +203,12 @@ export function createPaidRuntime(config: {
         throw e;
       }
       if (session) await session.finish().catch(() => {});
+      if (kind === 'history' && !(e instanceof TrialStopped)) {
+        // A missed daily snapshot leaves a gap and retains its reservation;
+        // it must not disable otherwise healthy hourly market collection.
+        config.report?.({event:'daily_history_failed',at:now(),...errorDiagnostic(e)});
+        throw e;
+      }
       const reason = e instanceof Error ? e.message : 'Paid collection failed';
       const stopped = await Promise.allSettled([ledger.stop(reason),config.shutdown()]);
       config.report?.({event:'paid_market_stopped',kind,reason,shutdownComplete:stopped.every(r=>r.status==='fulfilled')});
@@ -203,10 +217,48 @@ export function createPaidRuntime(config: {
   }
   return {
     collect: (event: string) => run('collector',event,async (_session,collector) => { await collector.tick(['catalog','election','bazaar']); }),
+    collectDaily: () => {
+      const at = now(), day = historyDay(at);
+      const phase = at - (day * 86_400_000 + 5 * 3_600_000) >= 86_340_000 ? 'close' : 'provisional';
+      return run('history',`daily-history:${day}:${phase}`,async session => {
+        if (!config.history) throw Error('Cloud daily archive is not configured');
+        const capture = await config.history.capture(session);
+        config.report?.({event:'daily_history_saved',at:now(),capture});
+      });
+    },
     async handle(req: IncomingMessage,res: ServerResponse) {
-      const path = new URL(req.url ?? '/', 'http://localhost').pathname;
+      // Complete durable accounting while request-based Cloud Run still has CPU.
+      // Keep the already-reserved reply if only its final accounting write is
+      // explicitly rejected; the full hold remains in the ledger in that case.
+      let reply: (() => void) | undefined;
+      const url = new URL(req.url ?? '/', 'http://localhost'), path = url.pathname;
+      if (path === '/api/price-history') {
+        res.setHeader('Access-Control-Allow-Origin','https://bazaarsignal.web.app');
+        res.setHeader('Access-Control-Allow-Methods','GET, OPTIONS');
+        if (req.method === 'OPTIONS') { res.writeHead(204).end(); return; }
+        if (req.method !== 'GET' || [...url.searchParams].length !== 1 || !validHistoryItem(url.searchParams.get('item'))) {
+          res.writeHead(400,{'Content-Type':'application/json'}).end('{"error":"One item ID required"}');return;
+        }
+      }
       try {
         await run('browser',randomUUID(),async (session,collector) => {
+          if (path === '/api/price-history') {
+            if (!config.history) throw Error('Cloud daily archive unavailable');
+            let data: unknown;
+            try { data = await config.history.item(session,url.searchParams.get('item')!); }
+            catch (error) {
+              if (error instanceof TrialStopped) throw error;
+              reply = () => { res.writeHead(503,{'Content-Type':'application/json','Cache-Control':'no-store'}).end('{"error":"Daily archive temporarily unavailable"}'); };return;
+            }
+            const text = JSON.stringify(data);
+            if (Buffer.byteLength(text) > 1024 ** 2) throw Error('History response exceeds limit');
+            const zipped = /\bgzip\b/.test(String(req.headers['accept-encoding'] ?? ''));
+            const bytes = zipped ? gzipSync(text) : Buffer.from(text);
+            if (bytes.length > 16 * 1024) await session.extend({egressBytes:bytes.length-16*1024});
+            session.take({egressBytes:bytes.length});
+            reply = () => { res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'private, max-age=300','Vary':'Accept-Encoding',
+              ...(zipped ? {'Content-Encoding':'gzip'} : {}),'Content-Length':bytes.length}).end(bytes); };return;
+          }
           if (path === '/api/companion/presence') {
             // Hourly collection also serves email while browsers are closed.
             // Even this no-op consumes admission budget; it cannot evade the stop.
@@ -214,7 +266,7 @@ export function createPaidRuntime(config: {
             res.setHeader('Access-Control-Allow-Headers','Authorization, Content-Type');
             res.setHeader('Access-Control-Allow-Methods','POST, OPTIONS');
             res.setHeader('Access-Control-Max-Age','86400');
-            res.writeHead(req.method === 'OPTIONS' ? 204 : 200).end(req.method === 'OPTIONS' ? '' : '{"accepted":true}'); return;
+            reply = () => { res.writeHead(req.method === 'OPTIONS' ? 204 : 200).end(req.method === 'OPTIONS' ? '' : '{"accepted":true}'); }; return;
           }
           await marketHandler(collector,async (request,response,status,body) => {
             const text = body === undefined ? '' : JSON.stringify({...body as object,usage:{mode:'normal',pollMs:PAID_INTERVAL_MS,bazaarMs:PAID_INTERVAL_MS,trialId:'paid-202610',expiresAt:config.expiresAt}});
@@ -224,13 +276,17 @@ export function createPaidRuntime(config: {
             const size = bytes.length + 2048;
             if (size > 16384) await session.extend({egressBytes:size-16384});
             session.take({egressBytes:size},false);
-            if (compressed) response.setHeader('Content-Encoding','gzip');
-            response.setHeader('Cache-Control','private, no-store');
-            response.setHeader('Content-Length',bytes.length);
-            response.writeHead(status).end(bytes);
+            reply = () => {
+              if (compressed) response.setHeader('Content-Encoding','gzip');
+              response.setHeader('Cache-Control','private, no-store');
+              response.setHeader('Content-Length',bytes.length);
+              response.writeHead(status).end(bytes);
+            };
           })(req,res);
         });
+        reply?.();
       } catch (error) {
+        if (reply && isFirestoreWriteThrottle(error)) { reply(); return; }
         if (!res.headersSent) {
           res.setHeader('Access-Control-Allow-Origin','https://bazaarsignal.web.app');
           res.setHeader('Content-Type','application/json');

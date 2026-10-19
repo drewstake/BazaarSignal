@@ -3,7 +3,7 @@ export function errorDiagnostic(error: unknown) {
   const e = error as { code?: unknown; message?: unknown; billingStage?: unknown } | null;
   const message = typeof e?.message === 'string' ? e.message : '';
   const code = typeof e?.code === 'number' && Number.isFinite(e.code) ? e.code : undefined;
-  const reason = /maximum bandwidth for writes/i.test(message) ? 'firestore-write-bandwidth'
+  const reason = isFirestoreWriteThrottle(e) ? 'firestore-write-bandwidth'
     : /quota/i.test(message) ? 'quota-exhausted'
     : message === 'Invalid Google cost update' ? 'invalid-cost-timestamp-or-value'
     : /Google billing configuration/.test(message) ? 'invalid-billing-configuration'
@@ -22,5 +22,6 @@ export type DiagnosticReporter = (data: Record<string, unknown>) => void;
 export function isFirestoreWriteThrottle(error: unknown) {
   const e = error as { code?: unknown; message?: unknown } | null;
   return (e?.code === 429 || e?.code === 8) &&
-    typeof e.message === 'string' && /maximum bandwidth for writes/i.test(e.message);
+    typeof e.message === 'string' && /maximum (?:bandwidth|request_rate\/bandwidth\/document_rate) for writes\b/i.test(e.message) &&
+    !/quota/i.test(e.message);
 }

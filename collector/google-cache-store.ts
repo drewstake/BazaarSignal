@@ -95,7 +95,7 @@ export class GoogleCacheStore implements CacheStore {
         // ambiguous timeout/5xx, or keep hammering an exhausted quota.
         const retryable = (code === 8 || code === 429) && !/quota/i.test(message ?? '');
         const retry = retryable && attempt < 2;
-        const delayMs = retry ? Math.floor(250 * 2 ** attempt * (1 + (this.retries.random ?? Math.random)())) : 0;
+        const delayMs = retry ? Math.floor(1000 * 2 ** attempt * (1 + (this.retries.random ?? Math.random)())) : 0;
         this.retries.report?.({ event: retry ? 'firestore_retry' : 'firestore_operation_failed',
           severity: retry ? 'WARNING' : 'ERROR', operation: 'commit', key, attempt: attempt + 1,
           at: Date.now(), ...(retry ? { delayMs } : {}), ...errorDiagnostic(error) });

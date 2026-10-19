@@ -1,0 +1,102 @@
+{
+  "auditedAt": "2026-10-19T03:42:56.070Z",
+  "importedAt": "2026-10-19T03:41:30.412Z",
+  "sources": {
+    "skytrack": "https://skytrack.twango.dev/docs",
+    "bazaarCalc": "https://github.com/Goofythesecond/bazaar-calc",
+    "bazaarCalcCommit": "94268123456e057f15d3264577049ff0f211c5ec"
+  },
+  "attemptedSources": 3077,
+  "importedFiles": 2747,
+  "observationsProcessed": 21066095,
+  "sourceUnavailable": {
+    "count": 330,
+    "noHistory404": 325,
+    "noBazaarHistory": 5
+  },
+  "unexpectedFailures": [],
+  "closedHistory": {
+    "itemDays": 332105,
+    "items": 2201,
+    "pricedItemDays": 300117,
+    "pricedItems": 1879,
+    "firstDay": 20362,
+    "lastDay": 20743,
+    "firstDate": "2025-10-01",
+    "lastDate": "2026-10-17"
+  },
+  "perSource": [
+    {
+      "source": "bazaar-calc",
+      "itemDays": 188793,
+      "items": 2201,
+      "firstDay": 20362,
+      "lastDay": 20743,
+      "firstDate": "2025-10-01",
+      "lastDate": "2026-10-17"
+    },
+    {
+      "source": "skytrack",
+      "itemDays": 199354,
+      "items": 1871,
+      "firstDay": 20614,
+      "lastDay": 20743,
+      "firstDate": "2026-06-10",
+      "lastDate": "2026-10-17"
+    }
+  ],
+  "catalogCoverage": {
+    "total": 1866,
+    "withPrices": 1866,
+    "withoutPrices": []
+  },
+  "boosterCookie": {
+    "recordedDays": 180,
+    "firstDate": "2025-10-01",
+    "lastDate": "2026-10-17",
+    "missingDaysInSpan": 202
+  },
+  "collection": {
+    "scope": "Local app / optional standalone runner, all Bazaar items",
+    "closingTime": "23:59 fixed EST (UTC-05:00)",
+    "lastSuccess": {
+      "at": 1792380722802,
+      "checkedAt": 1792380733705,
+      "day": 20744,
+      "closing": false,
+      "items": 2201
+    },
+    "cloudDeployed": false
+  },
+  "storage": {
+    "database": ".local/price-history.sqlite",
+    "databaseBytes": 87474176,
+    "compressedSourceCacheBytes": 220976421,
+    "backup": ".local/history-backups/prices-2026-10-19T03-42-08.398Z.sqlite",
+    "backupBytes": 74145792
+  },
+  "integrity": {
+    "quick_check": "ok"
+  },
+  "backupIntegrity": {
+    "quick_check": "ok"
+  },
+  "ui": [
+    {
+      "name": "desktop",
+      "days": 180,
+      "gapSegments": 46,
+      "bookBelow": true,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "name": "mobile",
+      "days": 180,
+      "gapSegments": 46,
+      "bookBelow": true,
+      "overflow": false,
+      "errors": []
+    }
+  ]
+}

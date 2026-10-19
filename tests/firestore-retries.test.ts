@@ -24,8 +24,11 @@ it('retries at most twice, counts every RPC, and has enough reserved inline stor
   expect(session.observed).toMatchObject({firestoreReads:3,firestoreWrites:6});
   expect(await store.read('bazaar')).toBe(payload);
   expect(report.mock.calls.map(c=>c[0].event)).toEqual(['firestore_retry','firestore_retry']);
-  expect(report.mock.calls.every(c=>c[0].delayMs>=250 && c[0].delayMs<1000)).toBe(true);
-});
+  expect(report.mock.calls[0][0].delayMs).toBeGreaterThanOrEqual(1000);
+  expect(report.mock.calls[0][0].delayMs).toBeLessThan(2000);
+  expect(report.mock.calls[1][0].delayMs).toBeGreaterThanOrEqual(2000);
+  expect(report.mock.calls[1][0].delayMs).toBeLessThan(4000);
+}, 15000);
 
 it('exhausts three attempts and preserves the previous snapshot with a durable failure event', async () => {
   const f=offlineGoogle(), report=vi.fn(); let commits=0;
@@ -36,7 +39,7 @@ it('exhausts three attempts and preserves the previous snapshot with a durable f
   await expect(store.commit('control',f.read('control')!,f.read('control')!,{key:'bazaar',value:'new'})).rejects.toMatchObject({code:429});
   expect(commits).toBe(3);expect(f.read('bazaar')).toBe('last-good');
   expect(report).toHaveBeenLastCalledWith(expect.objectContaining({event:'firestore_operation_failed',attempt:3,code:429,reason:'firestore-write-bandwidth'}));
-});
+}, 15000);
 
 it.each(['changed','expired'])('rereads state and does not publish after the owner is %s during backoff', async mode => {
   let now=Date.now(); const f=offlineGoogle(()=>now); let commits=0;

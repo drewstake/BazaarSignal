@@ -115,10 +115,10 @@ it("does not accept missing policy or a new release that extends the existing al
 
 it("local launchers share the fixed release and keep collection disabled, with an offline option", () => {
   vi.useFakeTimers(); vi.setSystemTime(now);
-  expect(localMarketEnvironment()).toMatchObject({ LOCAL_SHARED_MARKET: "true", VITE_LOCAL_MARKET_PREVIEW: "false",
+  expect(localMarketEnvironment()).toMatchObject({ LOCAL_SHARED_MARKET: "true", LOCAL_CLOUD_HISTORY: "true", LOCAL_DAILY_HISTORY: "false", VITE_LOCAL_MARKET_PREVIEW: "false",
     VITE_MARKET_API_URL: "/live-market", MARKET_SCHEDULER_DISABLED: "1", VITE_MARKET_TRIAL_ID: PAID_PILOT_ID,
     VITE_MARKET_TRIAL_END: new Date(PAID_PILOT_END).toISOString(), VITE_MARKET_UPDATES_PAUSED: "false" });
-  expect(localMarketEnvironment(true)).toMatchObject({ LOCAL_SHARED_MARKET: "false", VITE_LOCAL_MARKET_PREVIEW: "true",
+  expect(localMarketEnvironment(true)).toMatchObject({ LOCAL_SHARED_MARKET: "false", LOCAL_CLOUD_HISTORY: "false", LOCAL_DAILY_HISTORY: "false", VITE_PRICE_HISTORY_URL: "", VITE_LOCAL_MARKET_PREVIEW: "true",
     VITE_MARKET_API_URL: "", VITE_MARKET_UPDATES_PAUSED: "true", MARKET_SCHEDULER_DISABLED: "1" });
   vi.setSystemTime(PAID_PILOT_END);
   expect(localMarketEnvironment().VITE_MARKET_UPDATES_PAUSED).toBe("true");

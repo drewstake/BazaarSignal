@@ -1,0 +1,143 @@
+{
+  "verifiedAt": "2026-10-19T05:25:19.809Z",
+  "project": "bazaarsignal-510305",
+  "result": "both-existing-collectors-enabled-budget-and-history-preserved",
+  "rootCause": "Firestore HTTP 429 changed from maximum bandwidth for writes to maximum request_rate/bandwidth/document_rate for writes; the old classifier treated the final rejection as a permanent stop.",
+  "changes": [
+    "Recognize both explicit write throttle variants while excluding quota exhaustion and unknown errors.",
+    "Keep two counted retries with jittered 1-2 second then 2-4 second exponential backoff.",
+    "Finish durable accounting and close stores before sending prepared browser responses.",
+    "Preserve the full admitted hold if the finish write is explicitly rejected.",
+    "Deploy both private services before clearing the exact inspected technical stop using updateTime CAS; preserve original stop in the existing recovery audit."
+  ],
+  "revisions": {
+    "marketapi": {
+      "revision": "projects/bazaarsignal-510305/locations/us-central1/services/marketapi/revisions/marketapi-00028-722",
+      "image": "us-central1-docker.pkg.dev/bazaarsignal-510305/gcf-artifacts/market-trial@sha256:36077510d7079be2d753529d54521fbe0a3ce0611f6828ea5a39d88470675a85",
+      "at": "2026-10-19T05:22:29.933Z"
+    },
+    "refreshmarket": {
+      "revision": "projects/bazaarsignal-510305/locations/us-central1/services/refreshmarket/revisions/refreshmarket-00025-mqp",
+      "image": "us-central1-docker.pkg.dev/bazaarsignal-510305/gcf-artifacts/market-trial@sha256:36077510d7079be2d753529d54521fbe0a3ce0611f6828ea5a39d88470675a85",
+      "at": "2026-10-19T05:22:42.945Z"
+    }
+  },
+  "limits": {
+    "limitUsd": 5,
+    "stopUsd": 4.5,
+    "expiresAt": "2026-11-01T07:00:00.000Z",
+    "countersAndAdmissionsPreserved": true,
+    "importedHistoryPreserved": true
+  },
+  "collectors": {
+    "schedules": [
+      {
+        "job": "firebase-schedule-refreshMarket-us-central1",
+        "state": "ENABLED",
+        "lastAttemptTime": "2026-10-19T05:24:03.694101Z",
+        "status": {},
+        "schedule": "0 * * * *"
+      },
+      {
+        "job": "bazaar-daily-close",
+        "state": "ENABLED",
+        "lastAttemptTime": "2026-10-19T05:24:05.095082Z",
+        "status": {},
+        "schedule": "59 4 * * *"
+      }
+    ],
+    "admissions": {
+      "firebase-schedule-refreshMarket-us-central1:2026-10-18T23:00:00-07:00": {
+        "at": 1792387447996,
+        "finished": true
+      },
+      "daily-history:20745:provisional": {
+        "at": 1792387453402,
+        "finished": true
+      },
+      "9be65872-023a-4233-acc3-16708ee254f1": {
+        "at": 1792387470983,
+        "finished": true
+      },
+      "8bd33ead-36d0-47bb-8bdf-ee69dba9aa62": {
+        "at": 1792387473720,
+        "finished": true
+      },
+      "36c0ccc7-cc82-4b3d-a7f7-19796fc42c61": {
+        "at": 1792387513994,
+        "finished": true
+      },
+      "8d16418e-7e6d-4755-83de-0ea64865f187": {
+        "at": 1792387515803,
+        "finished": true
+      }
+    },
+    "orderbook": {
+      "observedAt": "2026-10-19T05:24:10.979Z",
+      "failures": 0,
+      "error": null
+    },
+    "dailyCapture": {
+      "at": 1792387442813,
+      "checkedAt": 1792387454636,
+      "items": 2201,
+      "closing": false
+    },
+    "historyYears": [
+      2025,
+      2026
+    ]
+  },
+  "publicApi": [
+    {
+      "path": "/api/companion/book?itemId=BOOSTER_COOKIE",
+      "status": 200,
+      "ms": 1385,
+      "book": {
+        "buyLevels": 30,
+        "sellLevels": 30
+      },
+      "observedAt": 1792387450979,
+      "usage": {
+        "mode": "normal",
+        "pollMs": 3600000,
+        "bazaarMs": 3600000,
+        "trialId": "paid-202610",
+        "expiresAt": 1793516400000
+      }
+    },
+    {
+      "path": "/api/price-history?item=BOOSTER_COOKIE",
+      "status": 200,
+      "ms": 2201,
+      "points": 181,
+      "collector": {
+        "enabled": true,
+        "location": "cloud",
+        "expiresAt": 1793516400000,
+        "lastSuccess": {
+          "at": 1792387442813,
+          "checkedAt": 1792387454636,
+          "items": 2201,
+          "closing": false
+        },
+        "lastError": null
+      }
+    }
+  ],
+  "validation": {
+    "typecheckAndImageBuild": "passed",
+    "localImageSmoke": "both handlers in three modes; outbound connections blocked",
+    "regressionTests": "80 passing across nine relevant test files",
+    "accountingCompletedForAllVerificationRequests": true
+  },
+  "references": [
+    "https://firebase.google.com/docs/firestore/best-practices",
+    "https://docs.cloud.google.com/run/docs/tips/general#avoid_background_activities"
+  ],
+  "receipts": {
+    "deployment": ".local/private-release-throttle-repair-ready-oct19-apply.json",
+    "recovery": ".local/throttle-repair-ready-oct19-recovery-apply.json",
+    "smoke": ".local/throttle-smoke-verification.json"
+  }
+}

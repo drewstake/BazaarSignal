@@ -1,0 +1,70 @@
+[
+  {
+    "site": "local",
+    "size": "desktop",
+    "points": 180,
+    "gapSegments": 1,
+    "cloudCapture": {
+      "at": 1792382562796,
+      "checkedAt": 1792382565519,
+      "items": 2201,
+      "closing": false
+    },
+    "historyRequests": 1,
+    "bookBelow": true,
+    "overflow": false,
+    "errors": [],
+    "market": "fixture; daily history is the real cloud response"
+  },
+  {
+    "site": "local",
+    "size": "mobile",
+    "points": 180,
+    "gapSegments": 1,
+    "cloudCapture": {
+      "at": 1792382562796,
+      "checkedAt": 1792382565519,
+      "items": 2201,
+      "closing": false
+    },
+    "historyRequests": 1,
+    "bookBelow": true,
+    "overflow": false,
+    "errors": [],
+    "market": "fixture; daily history is the real cloud response"
+  },
+  {
+    "site": "hosted",
+    "size": "desktop",
+    "points": 180,
+    "gapSegments": 1,
+    "cloudCapture": {
+      "at": 1792382562796,
+      "checkedAt": 1792382565519,
+      "items": 2201,
+      "closing": false
+    },
+    "historyRequests": 1,
+    "bookBelow": true,
+    "overflow": false,
+    "errors": [],
+    "market": "fixture; daily history is the real cloud response"
+  },
+  {
+    "site": "hosted",
+    "size": "mobile",
+    "points": 180,
+    "gapSegments": 1,
+    "cloudCapture": {
+      "at": 1792382562796,
+      "checkedAt": 1792382565519,
+      "items": 2201,
+      "closing": false
+    },
+    "historyRequests": 1,
+    "bookBelow": true,
+    "overflow": false,
+    "errors": [],
+    "market": "fixture; daily history is the real cloud response"
+  }
+]

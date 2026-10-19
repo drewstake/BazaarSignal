@@ -1,0 +1,104 @@
+{
+  "at": "2026-10-19T04:12:10.767Z",
+  "scope": "Incremental daily price-history system, all 2,201 items, 30-day run rate; excludes pre-existing website/order-book/email and deployment activity",
+  "currency": "USD",
+  "pricesChecked": "2026-10-19",
+  "rates": {
+    "cpuSecond": 0.000024,
+    "memoryGiBSecond": 0.0000025,
+    "request": 4.0000000000000003e-7,
+    "read": 3e-7,
+    "write": 9e-7,
+    "storedGiBMonth": 0.15,
+    "egressGiB": 0.12,
+    "imageGiBMonth": 0.1,
+    "logsGiB": 0.5,
+    "schedulerJobMonth": 0.1
+  },
+  "measured": {
+    "items": 2201,
+    "encodedBytes": 4235652,
+    "averageCompressedItemResponseBytes": 2412.144479781917,
+    "medianCompressedItemResponseBytes": 2759,
+    "p95CompressedItemResponseBytes": 3332,
+    "maxCompressedItemResponseBytes": 3675,
+    "successfulApiLatencySeconds": [
+      1.446151245,
+      1.317419026,
+      1.264928951,
+      0.298272311,
+      1.29465713,
+      1.682134299,
+      0.565106768,
+      0.920264072
+    ],
+    "dailyArchiveReads": 33,
+    "dailyArchiveWrites": 33,
+    "dailyObservedHandlerMs": 4533
+  },
+  "assumptions": {
+    "collectionBilledSeconds": 10,
+    "apiBilledSeconds": 1.2,
+    "apiSecondsReason": "Recent successful request latencies were 0.30–1.68 seconds; 1.2 is an estimate, not metered billable instance time. Cold starts, contention and concurrency change it.",
+    "retainedArchiveBytesIncludingGrowthAndMetadata": 6291456,
+    "internetBytesPerLoadIncludingHeaders": 4096,
+    "freeAllowancesApplied": false,
+    "backupPitrEnabled": false,
+    "initialImportRecurring": false,
+    "notes": [
+      "One daily invocation captures all items; no per-item cloud invocation multiplier.",
+      "Firestore-to-Cloud-Run transfer is free in the same region.",
+      "Budget admission/settlement adds database operations beyond the 3 archive reads per view.",
+      "High-traffic rows are price extrapolations, not a claim that the fixed pilot admission cap supports that traffic.",
+      "A full 365 days for all 2,201 items contains 803,365 rows; storage size varies with compression. Even a 25 MiB archive costs about $0.0037/month before free storage."
+    ]
+  },
+  "fixedMonthly": {
+    "scheduler": 0.1,
+    "dailyCompute": 0.007962,
+    "dailyArchiveOperations": 0.001188,
+    "dailyBudgetBookkeeping": 0.00012600000000000003,
+    "archiveStorage": 0.0008789062499999999,
+    "retainedHistoryImageLayers": 0.0024172477424144745,
+    "collectionLogs": 0.00011444091796875
+  },
+  "perUncachedChartLoad": {
+    "compute": 0.0000318,
+    "request": 4.0000000000000003e-7,
+    "archiveReads": 9e-7,
+    "budgetBookkeeping": 0.0000024,
+    "bandwidth": 4.57763671875e-7,
+    "logs": 4.76837158203125e-7
+  },
+  "scenarios": [
+    {
+      "uncachedChartLoads": 0,
+      "grossMonthlyUsd": 0.11268659491038323
+    },
+    {
+      "uncachedChartLoads": 1000,
+      "grossMonthlyUsd": 0.14912119574046134
+    },
+    {
+      "uncachedChartLoads": 10000,
+      "grossMonthlyUsd": 0.4770326032111645
+    }
+  ],
+  "annualFullCoverageStorageExampleUsd": 0.003662109375,
+  "freeAllowanceExpectation": "Approximately $0 incremental at personal-use volume if shared account/project free allowances remain available. Scheduler could add $0.10 if its 3 free account-wide jobs are already allocated. Existing imported data is far below the 1 GiB Firestore storage allowance.",
+  "latestReportedProjectSpend": {
+    "actualUsd": 0,
+    "publishedAt": 1792381927295,
+    "receivedAt": 1792382377954,
+    "intervalStart": 1790838000000,
+    "publishedAtIso": "2026-10-19T03:52:07.295Z",
+    "note": "Delayed month-to-date Google feed; not a final invoice or future monthly guarantee."
+  },
+  "sources": {
+    "firestore": "https://cloud.google.com/firestore/pricing",
+    "run": "https://cloud.google.com/run/pricing",
+    "scheduler": "https://cloud.google.com/scheduler/pricing",
+    "network": "https://cloud.google.com/vpc/network-pricing",
+    "images": "https://cloud.google.com/artifact-registry/pricing"
+  }
+}

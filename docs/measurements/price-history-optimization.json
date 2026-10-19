@@ -1,0 +1,468 @@
+{
+  "assumptions": {
+    "items": 1866,
+    "hoursPerYear": 8760,
+    "monthlyHours": 730,
+    "shardSize": 32,
+    "shards": 59,
+    "preservedPrecision": "IEEE-754 float64; no price rounding; nulls retained",
+    "data": "Synthetic flat/walk/noise series, seeded from the existing local PUBLIC snapshot when available; no fetched historical prices.",
+    "model": "Incremental archive cost in USD: us-central1 Standard Firestore, North America egress, no free credits, no minimum instances; excludes existing site/email/deployment/backup costs",
+    "processing": "Unmeasured planning allowance: 30 s per archive cycle, 1 s per uncached chart; 1 vCPU + 1 GiB. Hourly designs have 730 cycles/month; daily has 365/12. A sensitivity case retains hourly compute. Existing live collection is unchanged. Not inferred from local codec timings.",
+    "archive": "13 monthly chunks; at most 32 items per chunk; byte payload excluded from indexing; .4 GiB allows an extra boundary month and metadata.",
+    "retention": "365-day readable window; whole-month cleanup may retain up to one extra boundary month. Exact per-hour physical deletion would need additional budgeted writes.",
+    "cautions": [
+      "Batch grouping alone does not reduce billed writes; fewer documents does.",
+      "Grouped reads amplify internal bytes. Same-region Firestore transfer is free, but decode/latency must be measured.",
+      "HTTP gzip and shared hourly collection already exist; compression is not a newly implemented saving. Actual year-long price distributions are unknown.",
+      "Chart read allowance is 13 monthly documents plus 4 overhead reads and 2 accounting writes; the final budget gate may require more operations.",
+      "Split writes below the 10 MiB commit limit; per-item history must stay complete through partial multi-batch publication.",
+      "Existing paid envelopes, response bounds and publication API do not permit the new archive unchanged."
+    ]
+  },
+  "sourceUrls": [
+    "https://cloud.google.com/firestore/pricing",
+    "https://firebase.google.com/docs/firestore/quotas",
+    "https://firebase.google.com/docs/firestore/best-practices",
+    "https://cloud.google.com/run/pricing",
+    "https://cloud.google.com/vpc/network-pricing"
+  ],
+  "rates": {
+    "write": 9e-7,
+    "read": 3e-7,
+    "delete": 1e-7,
+    "gibMonth": 0.15,
+    "cpuSecond": 0.000024,
+    "gibSecond": 0.0000025,
+    "request": 4.0000000000000003e-7,
+    "egressGiB": 0.12
+  },
+  "recommendations": [
+    "Reuse the existing hourly full-market collection. Archive only source timestamp, best ask and best bid; never archive raw order books for a price-line chart.",
+    "Use stable groups of at most 32 item IDs and one bounded binary document per group per UTC month. Do not reassign existing IDs when the catalog changes.",
+    "Keep exact hourly observations, missing-side markers and original source timestamps. Deduplicate upstream snapshots, not equal prices at different times.",
+    "Read only the selected item and requested time range. A full year spans at most 13 calendar-month documents; never send other items' grouped data to a browser.",
+    "Cache immutable closed months in a bounded client cache and server cache. Fetch only the changed current month or new points. Reuse existing cross-tab request coordination and respect stop/expiry directives.",
+    "Consider separate daily min/max or OHLC overview data if traffic grows; keep hourly records available for zoom. This is not included in modeled savings.",
+    "Exclude archive payloads from indexing. Split commits below 10 MiB including REST base64 and metadata; use guarded, resumable publication and test failures between batches.",
+    "Measure live archive read latency and incremental CPU in an emulator/staging harness before changing the paid reservation envelopes. Never bypass the existing budget or expiration gates."
+  ],
+  "currentRuntimeCompatibility": {
+    "serverHistoryArchive": false,
+    "collectorWriteEnvelope": 40,
+    "proposedArchiveWritesPerHourIncludingControl": 60,
+    "browserResponseReservationBytes": 16384,
+    "proposedSyntheticGzipYearBytes": 172374,
+    "note": "New counted archive transport and route are required. The present cache API and budgets cannot accept the proposed archive as-is. Pilot renewal is separate from retention."
+  },
+  "groupSizeTradeoffs": [
+    {
+      "itemsPerGroup": 1,
+      "groups": 1866,
+      "boundedMonthBytes": 18026,
+      "fitsFirestoreDocumentWith4KiBMetadata": true,
+      "monthlyMaintenanceReadWriteUsd": 1.635492,
+      "internalBytesReadFor13Months": 234338
+    },
+    {
+      "itemsPerGroup": 16,
+      "groups": 117,
+      "boundedMonthBytes": 197216,
+      "fitsFirestoreDocumentWith4KiBMetadata": true,
+      "monthlyMaintenanceReadWriteUsd": 0.103368,
+      "internalBytesReadFor13Months": 2563808
+    },
+    {
+      "itemsPerGroup": 32,
+      "groups": 59,
+      "boundedMonthBytes": 388352,
+      "fitsFirestoreDocumentWith4KiBMetadata": true,
+      "monthlyMaintenanceReadWriteUsd": 0.052559999999999996,
+      "internalBytesReadFor13Months": 5048576
+    },
+    {
+      "itemsPerGroup": 64,
+      "groups": 30,
+      "boundedMonthBytes": 770624,
+      "fitsFirestoreDocumentWith4KiBMetadata": true,
+      "monthlyMaintenanceReadWriteUsd": 0.027156,
+      "internalBytesReadFor13Months": 10018112
+    },
+    {
+      "itemsPerGroup": 128,
+      "groups": 15,
+      "boundedMonthBytes": 1535168,
+      "fitsFirestoreDocumentWith4KiBMetadata": false,
+      "monthlyMaintenanceReadWriteUsd": 0.014015999999999999,
+      "internalBytesReadFor13Months": 19957184
+    }
+  ],
+  "shardExperiments": [
+    {
+      "mode": "flat",
+      "rows": 744,
+      "items": 32,
+      "objectJsonBytes": 1188163,
+      "packedBytes": 387478,
+      "gzipBytes": 6166,
+      "brotliBytes": 4178,
+      "restBase64Bytes": 516640,
+      "exactRoundTrips": 32,
+      "encodeMs": 9.013600000000011,
+      "extractOneItemMs": 1.015900000000002
+    },
+    {
+      "mode": "walk",
+      "rows": 744,
+      "items": 32,
+      "objectJsonBytes": 1670459,
+      "packedBytes": 387478,
+      "gzipBytes": 364722,
+      "brotliBytes": 299120,
+      "restBase64Bytes": 516640,
+      "exactRoundTrips": 32,
+      "encodeMs": 3.1521999999999935,
+      "extractOneItemMs": 0.13920000000001664
+    },
+    {
+      "mode": "noise",
+      "rows": 744,
+      "items": 32,
+      "objectJsonBytes": 1662419,
+      "packedBytes": 387478,
+      "gzipBytes": 359353,
+      "brotliBytes": 357482,
+      "restBase64Bytes": 516640,
+      "exactRoundTrips": 32,
+      "encodeMs": 6.767099999999999,
+      "extractOneItemMs": 0.10880000000000223
+    }
+  ],
+  "storageComparison": {
+    "syntheticYear": true,
+    "records": 8760,
+    "objectJsonBytes": 622257,
+    "tupleJsonBytes": 464577,
+    "tupleReductionPct": 25.340012245744127,
+    "objectGzipBytes": 187516,
+    "tupleGzipBytes": 182535,
+    "binaryBytes": 210288,
+    "binaryGzipBytes": 172374
+  },
+  "dailyComparison": {
+    "pointsPerItem": 365,
+    "observationsAllItems": 681090,
+    "packedAnnualRawBytes": 11069720,
+    "binaryBytesPerFullYear": 8807,
+    "gzipBytesPerFullYear": 7257,
+    "observationsReductionPct": 95.83333333333334,
+    "caveats": [
+      "Daily display alone does not save archive costs: persist one finalized daily observation rather than all hourly observations.",
+      "Existing live order books, portfolios and alerts retain their hourly collection. Only archive processing moves to daily.",
+      "Keeping monthly documents still needs up to 13 document reads per full-year chart. Read billing does not shrink 24-fold just because those documents are smaller.",
+      "Choose one explicit day-boundary timezone. Keep the last qualifying source snapshot's actual timestamp, define a freshness window, and leave gaps when no qualifying close exists.",
+      "Current best-ask/best-bid quotes do not provide a last executed trade price. A daily close here means a scheduled closing quote for each side."
+    ]
+  },
+  "packedAnnualRawBytes": 265673280,
+  "operationsReductionPct": 96.83815648445874,
+  "costModels": [
+    {
+      "name": "Earlier per-item monthly estimate",
+      "docs": 1866,
+      "storageGiB": 1.25,
+      "bytesPerFullYear": 515112,
+      "responseEncoding": "prior representative uncompressed JSON",
+      "writesPerMonth": 1362910,
+      "fixed": {
+        "writes": 1.226619,
+        "maintenanceReads": 0.408873,
+        "storage": 0.1875,
+        "cleanupAllowance": 0.01,
+        "compute": 0.58035
+      },
+      "traffic": [
+        {
+          "uncachedFullYearLoads": 0,
+          "chartReads": 0,
+          "accountingWrites": 0,
+          "serving": 0,
+          "bandwidth": 0,
+          "totalUsd": 2.413342
+        },
+        {
+          "uncachedFullYearLoads": 1000,
+          "chartReads": 0.0050999999999999995,
+          "accountingWrites": 0.0018,
+          "serving": 0.0269,
+          "bandwidth": 0.057568252086639404,
+          "totalUsd": 2.5047102520866393
+        },
+        {
+          "uncachedFullYearLoads": 10000,
+          "chartReads": 0.051,
+          "accountingWrites": 0.018,
+          "serving": 0.269,
+          "bandwidth": 0.575682520866394,
+          "totalUsd": 3.327024520866394
+        },
+        {
+          "uncachedFullYearLoads": 100000,
+          "chartReads": 0.51,
+          "accountingWrites": 0.18,
+          "serving": 2.69,
+          "bandwidth": 5.75682520866394,
+          "totalUsd": 11.55016720866394
+        }
+      ]
+    },
+    {
+      "name": "Per-item monthly chunks with existing HTTP gzip",
+      "docs": 1866,
+      "storageGiB": 1.25,
+      "bytesPerFullYear": 187516,
+      "responseEncoding": "gzip JSON; synthetic full-precision walk",
+      "writesPerMonth": 1362910,
+      "fixed": {
+        "writes": 1.226619,
+        "maintenanceReads": 0.408873,
+        "storage": 0.1875,
+        "cleanupAllowance": 0.01,
+        "compute": 0.58035
+      },
+      "traffic": [
+        {
+          "uncachedFullYearLoads": 0,
+          "chartReads": 0,
+          "accountingWrites": 0,
+          "serving": 0,
+          "bandwidth": 0,
+          "totalUsd": 2.413342
+        },
+        {
+          "uncachedFullYearLoads": 1000,
+          "chartReads": 0.0050999999999999995,
+          "accountingWrites": 0.0018,
+          "serving": 0.0269,
+          "bandwidth": 0.02095654606819153,
+          "totalUsd": 2.4680985460681915
+        },
+        {
+          "uncachedFullYearLoads": 10000,
+          "chartReads": 0.051,
+          "accountingWrites": 0.018,
+          "serving": 0.269,
+          "bandwidth": 0.20956546068191528,
+          "totalUsd": 2.9609074606819155
+        },
+        {
+          "uncachedFullYearLoads": 100000,
+          "chartReads": 0.51,
+          "accountingWrites": 0.18,
+          "serving": 2.69,
+          "bandwidth": 2.095654606819153,
+          "totalUsd": 7.888996606819153
+        }
+      ]
+    },
+    {
+      "name": "32-item monthly chunks, exact float64, HTTP gzip",
+      "docs": 59,
+      "storageGiB": 0.4,
+      "bytesPerFullYear": 172374,
+      "responseEncoding": "gzip binary; synthetic full-precision walk",
+      "writesPerMonth": 43800,
+      "fixed": {
+        "writes": 0.03942,
+        "maintenanceReads": 0.013139999999999999,
+        "storage": 0.06,
+        "cleanupAllowance": 0.01,
+        "compute": 0.58035
+      },
+      "traffic": [
+        {
+          "uncachedFullYearLoads": 0,
+          "chartReads": 0,
+          "accountingWrites": 0,
+          "serving": 0,
+          "bandwidth": 0,
+          "totalUsd": 0.70291
+        },
+        {
+          "uncachedFullYearLoads": 1000,
+          "chartReads": 0.0050999999999999995,
+          "accountingWrites": 0.0018,
+          "serving": 0.0269,
+          "bandwidth": 0.01926429569721222,
+          "totalUsd": 0.7559742956972122
+        },
+        {
+          "uncachedFullYearLoads": 10000,
+          "chartReads": 0.051,
+          "accountingWrites": 0.018,
+          "serving": 0.269,
+          "bandwidth": 0.1926429569721222,
+          "totalUsd": 1.2335529569721224
+        },
+        {
+          "uncachedFullYearLoads": 100000,
+          "chartReads": 0.51,
+          "accountingWrites": 0.18,
+          "serving": 2.69,
+          "bandwidth": 1.926429569721222,
+          "totalUsd": 6.009339569721222
+        }
+      ]
+    },
+    {
+      "name": "32-item monthly chunks without HTTP compression",
+      "docs": 59,
+      "storageGiB": 0.4,
+      "bytesPerFullYear": 210288,
+      "responseEncoding": "uncompressed binary sensitivity case",
+      "writesPerMonth": 43800,
+      "fixed": {
+        "writes": 0.03942,
+        "maintenanceReads": 0.013139999999999999,
+        "storage": 0.06,
+        "cleanupAllowance": 0.01,
+        "compute": 0.58035
+      },
+      "traffic": [
+        {
+          "uncachedFullYearLoads": 0,
+          "chartReads": 0,
+          "accountingWrites": 0,
+          "serving": 0,
+          "bandwidth": 0,
+          "totalUsd": 0.70291
+        },
+        {
+          "uncachedFullYearLoads": 1000,
+          "chartReads": 0.0050999999999999995,
+          "accountingWrites": 0.0018,
+          "serving": 0.0269,
+          "bandwidth": 0.02350151538848877,
+          "totalUsd": 0.7602115153884887
+        },
+        {
+          "uncachedFullYearLoads": 10000,
+          "chartReads": 0.051,
+          "accountingWrites": 0.018,
+          "serving": 0.269,
+          "bandwidth": 0.2350151538848877,
+          "totalUsd": 1.275925153884888
+        },
+        {
+          "uncachedFullYearLoads": 100000,
+          "chartReads": 0.51,
+          "accountingWrites": 0.18,
+          "serving": 2.69,
+          "bandwidth": 2.350151538848877,
+          "totalUsd": 6.433061538848877
+        }
+      ]
+    },
+    {
+      "name": "Daily closes, 32-item monthly chunks, HTTP gzip",
+      "docs": 59,
+      "cyclesPerMonth": 30.416666666666668,
+      "storageGiB": 0.016666666666666666,
+      "bytesPerFullYear": 7257,
+      "responseEncoding": "gzip binary; last hourly observation of each synthetic UTC day",
+      "writesPerMonth": 1825,
+      "fixed": {
+        "writes": 0.0016424999999999999,
+        "maintenanceReads": 0.0005475,
+        "storage": 0.0025,
+        "cleanupAllowance": 0.01,
+        "compute": 0.02418125
+      },
+      "traffic": [
+        {
+          "uncachedFullYearLoads": 0,
+          "chartReads": 0,
+          "accountingWrites": 0,
+          "serving": 0,
+          "bandwidth": 0,
+          "totalUsd": 0.03887125
+        },
+        {
+          "uncachedFullYearLoads": 1000,
+          "chartReads": 0.0050999999999999995,
+          "accountingWrites": 0.0018,
+          "serving": 0.0269,
+          "bandwidth": 0.0008110329508781433,
+          "totalUsd": 0.07348228295087814
+        },
+        {
+          "uncachedFullYearLoads": 10000,
+          "chartReads": 0.051,
+          "accountingWrites": 0.018,
+          "serving": 0.269,
+          "bandwidth": 0.008110329508781433,
+          "totalUsd": 0.3849815795087815
+        },
+        {
+          "uncachedFullYearLoads": 100000,
+          "chartReads": 0.51,
+          "accountingWrites": 0.18,
+          "serving": 2.69,
+          "bandwidth": 0.08110329508781433,
+          "totalUsd": 3.4999745450878144
+        }
+      ]
+    },
+    {
+      "name": "Daily closes retaining the full prior hourly compute allowance",
+      "docs": 59,
+      "cyclesPerMonth": 30.416666666666668,
+      "computeCyclesPerMonth": 730,
+      "storageGiB": 0.016666666666666666,
+      "bytesPerFullYear": 7257,
+      "responseEncoding": "gzip binary; sensitivity case, unchanged collector compute allowance",
+      "writesPerMonth": 1825,
+      "fixed": {
+        "writes": 0.0016424999999999999,
+        "maintenanceReads": 0.0005475,
+        "storage": 0.0025,
+        "cleanupAllowance": 0.01,
+        "compute": 0.58035
+      },
+      "traffic": [
+        {
+          "uncachedFullYearLoads": 0,
+          "chartReads": 0,
+          "accountingWrites": 0,
+          "serving": 0,
+          "bandwidth": 0,
+          "totalUsd": 0.59504
+        },
+        {
+          "uncachedFullYearLoads": 1000,
+          "chartReads": 0.0050999999999999995,
+          "accountingWrites": 0.0018,
+          "serving": 0.0269,
+          "bandwidth": 0.0008110329508781433,
+          "totalUsd": 0.6296510329508782
+        },
+        {
+          "uncachedFullYearLoads": 10000,
+          "chartReads": 0.051,
+          "accountingWrites": 0.018,
+          "serving": 0.269,
+          "bandwidth": 0.008110329508781433,
+          "totalUsd": 0.9411503295087815
+        },
+        {
+          "uncachedFullYearLoads": 100000,
+          "chartReads": 0.51,
+          "accountingWrites": 0.18,
+          "serving": 2.69,
+          "bandwidth": 0.08110329508781433,
+          "totalUsd": 4.056143295087814
+        }
+      ]
+    }
+  ]
+}

@@ -3,10 +3,10 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
-import { verifyReleasePlan, verifyPaidPreflight, scheduleConfiguration } from './private-trial-release.mjs';
+import { verifyReleasePlan, verifyPaidPreflight, scheduleConfiguration, observedRepositoryBytes } from './private-trial-release.mjs';
 
-const [directory, releaseId] = process.argv.slice(2);
-if (process.argv.length !== 4 || !/^[a-z][a-z0-9-]{1,90}$/.test(releaseId ?? '')) throw Error('Usage: node scripts/prepare-active-paid-release.mjs <image-directory> <new-release-id>');
+const [directory, releaseId, repair] = process.argv.slice(2);
+if (![4,5].includes(process.argv.length) || (repair !== undefined && repair !== '--repair-write-throttle') || !/^[a-z][a-z0-9-]{1,90}$/.test(releaseId ?? '')) throw Error('Usage: node scripts/prepare-active-paid-release.mjs <image-directory> <new-release-id> [--repair-write-throttle]');
 const image = JSON.parse(readFileSync(resolve(directory, 'receipt.json'), 'utf8'));
 if (!image.localRuntimeSmokeVerified || !image.applicationOnly) throw Error('Verify the local image first');
 const project = 'bazaarsignal-510305', root = `projects/${project}/locations/us-central1`;
@@ -28,6 +28,7 @@ try {
     legacy: `https://firestore.googleapis.com/v1/${docs}/live-allowance`,
     control: `https://firestore.googleapis.com/v1/${docs}/control`,
     scheduler: `https://cloudscheduler.googleapis.com/v1/${root}/jobs/firebase-schedule-refreshMarket-us-central1`,
+    ...(repair ? { dailyScheduler: `https://cloudscheduler.googleapis.com/v1/${root}/jobs/bazaar-daily-close` } : {}),
     marketapi: `https://run.googleapis.com/v2/${root}/services/marketapi`,
     refreshmarket: `https://run.googleapis.com/v2/${root}/services/refreshmarket`,
     marketapiIam: `https://run.googleapis.com/v1/${root}/services/marketapi:getIamPolicy?options.requestedPolicyVersion=3`,
@@ -36,6 +37,7 @@ try {
     schedulerStopRole: `https://iam.googleapis.com/v1/projects/${project}/roles/marketTrialSchedulerStop`,
     apiStopRole: `https://iam.googleapis.com/v1/projects/${project}/roles/marketTrialApiStop`,
     repository: `https://artifactregistry.googleapis.com/v1/${root}/repositories/gcf-artifacts`,
+    repositoryFiles: `https://artifactregistry.googleapis.com/v1/${root}/repositories/gcf-artifacts/files?pageSize=1000`,
     database: `https://firestore.googleapis.com/v1/projects/${project}/databases/(default)`,
     billing: `https://cloudbilling.googleapis.com/v1/projects/${project}/billingInfo`,
     hosting: 'https://firebasehosting.googleapis.com/v1beta1/sites/bazaarsignal/releases?pageSize=1',
@@ -59,7 +61,9 @@ try {
   const r = out.resources, ledger = JSON.parse(r.paid.fields.value.stringValue);
   const env = Object.fromEntries(r.marketapi.template.containers[0].env.map(e => [e.name, e.value]));
   const plan = { project, activePaidUpdate: true, operatingMode: 'paid-budget', updateExistingLive: true,
-    services: ['marketapi'], releaseId, id: ledger.id, servicePeriodId: env.MARKET_LIVE_ID,
+    services: repair ? ['marketapi','refreshmarket'] : ['marketapi'], releaseId, id: ledger.id, servicePeriodId: env.MARKET_LIVE_ID,
+    ...(repair ? { paidThrottleRepair: { stoppedAt: ledger.stoppedAt, code: 429, message: ledger.reason },
+      dailyScheduleSha256: hash(JSON.stringify(scheduleConfiguration(r.dailyScheduler))) } : {}),
     startsAt: new Date(ledger.startsAt).toISOString(), expiresAt: new Date(ledger.expiresAt).toISOString(),
     shutdownGrantExpiresAt: '2026-11-01T08:00:00.000Z', legacyLedgerSha256: ledger.legacyLedgerSha256,
     budgetUsd: 5, applicationStopUsd: 4.5, fixedReserveUsd: 1, paidRolloutReserveUsd: .5,
@@ -71,7 +75,7 @@ try {
     meters: {
       cpuSeconds: { used: ledger.reserved.cpuSeconds ?? 0, hold: 10000, headroom: 0, limit: 180000 },
       memoryGiBSeconds: { used: ledger.reserved.memoryGiBSeconds ?? 0, hold: 10000, headroom: 0, limit: 360000 },
-      artifactBytes: { used: Math.max(Number(r.repository.sizeBytes), ledger.reserved.artifactBytes ?? 0), hold: image.artifactStorageHoldBytes, headroom: 0, limit: 1024 ** 3 },
+      artifactBytes: { used: Math.max(observedRepositoryBytes(r), ledger.reserved.artifactBytes ?? 0), hold: image.artifactStorageHoldBytes, headroom: 0, limit: 1024 ** 3 },
       logBytes: { used: ledger.reserved.logBytes ?? 0, hold: 16 * 1024 ** 2, headroom: 0, limit: 50 * 1024 ** 3 },
     }, preflightPath: file,
   };

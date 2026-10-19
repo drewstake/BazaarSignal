@@ -13,6 +13,7 @@ import {
 import { pollingDirective, visiblePoll } from "./polling";
 import { MARKET_HOUR } from "../../shared/market-schedule";
 import SearchOrderBook from "./SearchOrderBook";
+import BazaarPriceChart from "./BazaarPriceChart";
 import "./bazaar-item-page.css";
 import { useVisibleNow } from './use-visible-now';
 
@@ -179,12 +180,12 @@ export default function BazaarItemPage({ itemId }: { itemId: string }) {
                   </dd>
                 </div>
               </dl>
-              <SearchOrderBook
-                asks={detail.item.asks}
-                bids={detail.item.bids}
-              />
             </>
           )}
+          <div className="bazaar-item-analysis">
+            <BazaarPriceChart key={itemId} itemId={itemId} detail={detail} now={now} />
+            {detail.item && <SearchOrderBook asks={detail.item.asks} bids={detail.item.bids} />}
+          </div>
         </>
       )}
     </section>

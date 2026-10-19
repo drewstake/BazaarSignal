@@ -43,7 +43,7 @@ Object.assign(env, {
   MARKET_SCHEDULER_DISABLED: "1",
 });
 // Use the real Google identity with a separate LOCAL database namespace.
-// This command starts only an emulator and Vite, never a deployment or collector.
+// Daily price history comes from the scheduled cloud archive.
 const data = ".local/local-workspace-data";
 if (recoverLocalExport()) console.log("Recovered the last completed local Firestore export.");
 const args = [
@@ -61,7 +61,7 @@ const args = [
   "node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5173 --strictPort",
 ];
 console.log(
-  "Local workspace: real Google sign-in, local-only saved portfolios; cached market reads enabled unless --offline. Email and local collection disabled.",
+  "Local workspace: real Google sign-in and local portfolios. Cached market reads and cloud daily history enabled unless --offline. Local collection and email disabled.",
 );
 const child = spawn(process.execPath, args, {
   env,

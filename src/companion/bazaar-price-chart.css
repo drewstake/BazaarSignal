@@ -1,0 +1,219 @@
+.bazaar-item-analysis {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+  align-items: start;
+}
+.bazaar-item-analysis > * {
+  min-width: 0;
+}
+.bazaar-price-chart {
+  border: 1px solid #28485e;
+  border-top: 2px solid #64bbaa;
+  border-radius: 3px;
+  padding: 14px;
+  background: linear-gradient(135deg, #0d2738, #081828);
+}
+.item-chart-heading {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.bazaar-item-page .item-chart-heading h2 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: #eaf2ff;
+  font:
+    600 16px/1.2 Arial,
+    sans-serif;
+}
+.item-chart-heading h2 svg {
+  color: #7bffc0;
+}
+.item-chart-periods {
+  display: flex;
+  gap: 2px;
+}
+.item-chart-modes { margin-top: 10px; }
+.night-workspace .item-chart-periods button {
+  min-height: 32px;
+  padding: 5px 8px;
+  border: 1px solid transparent;
+  background: #071a2a;
+  color: #adc2df;
+  border-radius: 3px;
+  box-shadow: none;
+  font-size: 11px;
+}
+.night-workspace .item-chart-periods button[aria-pressed="true"] {
+  border-color: #397961;
+  background: #174235;
+  color: #9bffd0;
+}
+.item-chart-caption,
+.item-chart-sample,
+.item-chart-notes {
+  color: #adc2df;
+  font-size: 11px;
+}
+.item-chart-caption {
+  margin: 4px 0 14px;
+}
+.item-chart-readout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.item-chart-readout span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+.item-chart-readout strong {
+  display: block;
+  margin-top: 4px;
+  color: #fff4cc;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.item-chart-buy {
+  --series-color: #7bffc0;
+}
+.item-chart-sell {
+  --series-color: #66ceff;
+}
+.item-chart-readout i {
+  width: 14px;
+  border-top: 2px solid var(--series-color);
+}
+.item-chart-sell i {
+  border-top-style: dashed;
+}
+.item-chart-sample {
+  min-height: 15px;
+  margin: 7px 0 10px;
+}
+.item-chart-canvas {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 6px;
+}
+.item-chart-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 14px 0;
+  font-size: 10px;
+  color: #adc2df;
+}
+.item-chart-plot {
+  position: relative;
+  height: 200px;
+  min-width: 0;
+  cursor: crosshair;
+}
+.item-chart-plot svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.item-chart-plot:focus-within {
+  outline: 2px solid #8bf1c4;
+  outline-offset: 4px;
+}
+.item-chart-dot {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--series-color);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.item-chart-dot.is-active {
+  width: 9px;
+  height: 9px;
+  border: 2px solid #0b2637;
+}
+.night-workspace input.item-chart-explorer {
+  position: absolute;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  padding: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.item-chart-times {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 5px 0 0 70px;
+  color: #adc2df;
+  font-size: 10px;
+}
+.item-chart-times > span:last-child {
+  text-align: right;
+}
+.item-chart-times.is-single {
+  justify-content: center;
+}
+.item-chart-notes {
+  border-top: 1px solid #28485e;
+  padding-top: 8px;
+  margin-top: 12px;
+}
+.item-chart-notes p {
+  margin: 3px 0;
+}
+.item-chart-empty {
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  color: #adc2df;
+}
+.item-chart-empty p {
+  max-width: 35ch;
+}
+@media (min-width: 1100px) {
+  .bazaar-item-analysis {
+    gap: 18px;
+  }
+  .bazaar-item-analysis .bazaar-search-book-heading {
+    margin-top: 0;
+  }
+}
+@media (max-width: 700px) {
+  .bazaar-price-chart {
+    padding: 10px;
+  }
+  .item-chart-plot {
+    height: 160px;
+  }
+  .item-chart-empty {
+    min-height: 160px;
+  }
+  .item-chart-readout strong {
+    font-size: 12px;
+  }
+  .item-chart-canvas {
+    grid-template-columns: 54px minmax(0, 1fr);
+  }
+  .item-chart-times {
+    margin-left: 60px;
+  }
+}

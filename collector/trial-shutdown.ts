@@ -3,11 +3,16 @@ export interface ShutdownConfig {
   project: string;
   token: () => Promise<string>;
   network?: typeof fetch;
+  additionalJobs?: string[];
 }
 export async function stopTrialInfrastructure(config: ShutdownConfig) {
   const network = config.network ?? fetch;
   const root = `projects/${config.project}/locations/us-central1`;
   const job = `https://cloudscheduler.googleapis.com/v1/${root}/jobs/firebase-schedule-refreshMarket-us-central1`;
+  const extraJobs = (config.additionalJobs ?? []).map(name => {
+    if (name !== 'bazaar-daily-close') throw Error('Unrecognized shutdown job');
+    return `https://cloudscheduler.googleapis.com/v1/${root}/jobs/${name}`;
+  });
   const api = `https://run.googleapis.com/v1/${root}/services/marketapi`;
   async function call(url: string, method = "GET", body?: unknown) {
     const token = await config.token();
@@ -21,11 +26,17 @@ export async function stopTrialInfrastructure(config: ShutdownConfig) {
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       signal: AbortSignal.timeout(5000),
     });
+    if (response.status === 404 && extraJobs.includes(url)) return {state:'PAUSED'};
     if (!response.ok) throw new Error(`Trial shutdown HTTP ${response.status}`);
     return response.json();
   }
   // One failure must never prevent attempting the other independent containment action.
   const result = await Promise.allSettled([
+    ...extraJobs.map(async extra => {
+      const current = await call(extra);
+      if (current.state === 'ENABLED') await call(`${extra}:pause`,'POST',{});
+      if ((await call(extra)).state !== 'PAUSED') throw Error('Daily history shutdown is unverified');
+    }),
     (async () => {
       const current = await call(job);
       if (current.state === "ENABLED") await call(`${job}:pause`, "POST", {});
