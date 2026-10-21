@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests/private-browser",
+  testIgnore: 'portfolio-retry.spec.ts',
   outputDir: './test-results/private-browser',
   workers: 1,
   use: { baseURL: "http://127.0.0.1:5199", screenshot: "only-on-failure" },

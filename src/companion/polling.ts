@@ -56,21 +56,30 @@ export function visiblePoll(
 ) {
   const hidden = () => document.visibilityState === "hidden";
   let closed = false, busy = false, completedAt = 0, attempted = false;
+  let attemptedRetryAt: number | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let controller: AbortController | undefined;
   const paused = () => market && pollingDirective().mode === "paused";
   const delay = () => Math.max(interval, market ? pollingDirective().pollMs : interval);
   const schedule = () => {
     clearTimeout(timer);
-    if (!closed && !hidden() && !busy && !(attempted && paused()))
-      timer = setTimeout(run, completedAt ? Math.max(0,
-        Math.max(market && liveMode ? nextMarketRead(completedAt, delay()) : completedAt + delay(),market?directive.retryAt??0:0) - Date.now()) : initialDelay);
+    if (!closed && !hidden() && !busy && !(attempted && paused())) {
+      const retryAt = market ? pollingDirective().retryAt : undefined;
+      // A server recovery deadline replaces the normal clock slot. Consume it
+      // once so a failed retry without a new directive cannot create a hot loop.
+      const recoveryAt = retryAt !== attemptedRetryAt ? retryAt : undefined;
+      const nextAt = recoveryAt ?? (market && liveMode
+        ? nextMarketRead(completedAt, delay()) : completedAt + delay());
+      timer = setTimeout(run, completedAt ? Math.max(0, nextAt - Date.now()) : initialDelay);
+    }
   };
   const run = async () => {
     clearTimeout(timer);
     if (closed || busy || hidden() || (attempted && paused())) return;
     busy = true;
     attempted = true;
+    const retryAt = market ? pollingDirective().retryAt : undefined;
+    if (retryAt !== undefined && retryAt <= Date.now()) attemptedRetryAt = retryAt;
     const current = new AbortController();
     controller = current;
     const timeout = setTimeout(() => current.abort(), 20_000);
@@ -86,7 +95,12 @@ export function visiblePoll(
     }
   };
   const visibility = () => {
-    if (hidden()) { clearTimeout(timer); controller?.abort(); }
+    if (hidden()) {
+      clearTimeout(timer);
+      // An interrupted recovery still needs a read when the user returns.
+      if (busy) attemptedRetryAt = undefined;
+      controller?.abort();
+    }
     else schedule();
   };
   const policy = () => {

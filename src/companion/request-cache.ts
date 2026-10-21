@@ -177,7 +177,11 @@ export async function cachedMarketRequest<T>(url: string, signal?: AbortSignal):
     const sameSlot = budgeted
       ? marketReadSlot(old?.at ?? 0, policy.pollMs) === marketReadSlot(Date.now(), policy.pollMs)
       : old && (Date.now() - old.at < policy.pollMs || firstRead);
-    if (old && sameRelease && Date.now() - old.at >= 0 && sameSlot) return deliver(old.body, true);
+    // A same-slot response saved before the retry deadline cannot prove that
+    // the service recovered. A newer response from another tab can be reused.
+    const recoveryDue = policy.retryAt !== undefined && Date.now() >= policy.retryAt &&
+      (!old || old.at < policy.retryAt);
+    if (old && sameRelease && Date.now() - old.at >= 0 && sameSlot && !recoveryDue) return deliver(old.body, true);
     const response = await fetch(url, {
       credentials: "omit", signal: AbortSignal.any([
         AbortSignal.timeout(localPreview ? 20_000 : Math.max(1,Math.floor(Math.min(20_000,(policy.expiresAt ?? Infinity)-Date.now())))),
@@ -196,7 +200,7 @@ export async function cachedMarketRequest<T>(url: string, signal?: AbortSignal):
     }
     const body = await response.json();
     deliver(body);
-    if(response.status===429&&old&&pollingDirective().retryAt&&Date.now()<pollingDirective().retryAt!)
+    if((response.status===429||response.status===503)&&old&&pollingDirective().retryAt&&Date.now()<pollingDirective().retryAt!)
       return savedDuringWait(pollingDirective(),body.error??'Waiting for the app budget reset.');
     if (!response.ok) throw new Error(body.error ?? "Market service unavailable");
     if (reusable) await save(url, { at: Date.now(), etag: response.headers.get("ETag"), body });
