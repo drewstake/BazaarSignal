@@ -41,3 +41,13 @@ Firebase Hosting only, using `node scripts/build-paid-site.mjs` to preserve the
 current paid release configuration. No collector, API, notification backend,
 rules, schedules, budget settings or permissions change. The previous Hosting
 version is retained as `sites/bazaarsignal/versions/dccdeee3bafa97c9`.
+
+Deployed implementation commit `c65abf5` to Hosting version
+`sites/bazaarsignal/versions/6a044b5ff03b3f06`, verified October 20 at 8:05 PM
+America/New_York (October 21, 00:05 UTC). Published HTML and all six JavaScript
+files matched the tested local build by SHA-256. The existing signed-in browser
+loaded the new release and showed the Summoning Eye price, portfolio totals and
+two chart observations with no captured JavaScript errors. The service-error
+recovery itself was tested with intercepted responses in isolated emulators;
+no production failure was induced. Before/after release receipts are saved under
+ignored `.local/automatic-retry-release-{before,after}.json`.
