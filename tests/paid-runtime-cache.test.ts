@@ -15,8 +15,9 @@ it('shares only immutable public prices across concurrent requests; each request
   expect(f.metrics.snapshotLoads).toBe(1);
   expect(f.metrics.controlReads).toBe(2);
   const budget = JSON.parse(f.f.read(PAID_BUDGET_KEY)!);
-  expect(Object.values(budget.admissions).every((a: any) => a.finished)).toBe(true);
-  expect(Object.keys(budget.admissions)).toHaveLength(2);
+  expect(f.receipts().every(a => a.finished)).toBe(true);
+  expect(f.receipts()).toHaveLength(2);
+  expect(budget.admissionCount).toBe(2);
   expect(budget.reserved.runRequests).toBe(2);
   expect(budget.observed.firestoreReads).toBe(3); // two controls + one payload
   expect(f.metrics.upstreamCalls).toBe(0);

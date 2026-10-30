@@ -145,63 +145,73 @@
 }
 .night-workspace .notification-card-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 8px;
-  overflow-x: auto;
-  padding: 2px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
+  align-items: start;
+  gap: 20px;
 }
 .night-workspace .notification-card {
   display: flex;
-  align-items: center;
-  gap: 20px;
-  min-width: 850px;
-  padding: 10px 14px;
-  border: 1px solid #375e70;
-  background: #0b2032;
-  border-radius: 3px;
-  white-space: nowrap;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+  max-width: 640px;
+  border: 1px solid #345367;
+  border-top: 2px solid #91edbc;
+  background: linear-gradient(135deg, #102536, #0b1e2e);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.night-workspace .notification-card[data-state="paused"] {
+  border-top-color: #d6ad68;
+}
+.night-workspace .notification-card[data-state="stopped"] {
+  border-top-color: #b88374;
 }
 .night-workspace .notification-card-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex: 1;
+  gap: 14px;
   min-width: 0;
+  padding: 20px 24px;
+  border-bottom: 1px solid #2a4558;
+}
+.night-workspace .notification-item-art {
+  flex-shrink: 0;
 }
 .night-workspace .notification-item-art .item-art {
-  width: 26px;
-  height: 26px;
+  width: 42px;
+  height: 42px;
   margin: 0;
 }
 .night-workspace .notification-item-name {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
   min-width: 0;
 }
 .night-workspace .notification-item-name p {
   color: #92abc2;
-  font-size: 11px;
-  max-width: 90px;
+  font-size: 13px;
   margin: 0;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .night-workspace .notification-item-name h3 {
   color: #f2f7fb;
   font:
-    600 13px/1.4 Arial,
+    600 17px/1.35 Arial,
     sans-serif;
   margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 .night-workspace .notification-state {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 7px;
-  font-size: 11px;
+  padding: 5px 8px;
+  font-size: 12px;
   color: #91edbc;
   border: 1px solid #39775f;
   border-radius: 3px;
@@ -225,40 +235,119 @@
   background: #45292255;
 }
 .night-workspace .notification-thresholds {
-  display: flex;
-  gap: 14px;
+  display: grid;
+  gap: 20px;
 }
-.night-workspace .notification-threshold,
-.night-workspace .notification-threshold > span {
+.night-workspace .notification-card-body {
+  padding: 20px 24px 22px;
+}
+.night-workspace .notification-trigger-label {
+  color: #9bb8d0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.night-workspace .notification-trigger-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
+  gap: 10px 16px;
+}
+.night-workspace .notification-threshold-percent {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 5px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #18463880;
+  font-size: 14px;
+  font-weight: 700;
 }
 .night-workspace .notification-threshold {
-  color: #81efba;
-  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 8px;
+  color: #a0f3cc;
+}
+.night-workspace .notification-threshold + .notification-threshold {
+  padding-top: 20px;
+  border-top: 1px solid #2a4558;
+}
+.night-workspace .notification-trigger-price {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  font-size: clamp(28px, 3.2vw, 44px);
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+.night-workspace .notification-price-amount {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.night-workspace .notification-price-unit {
+  font-size: 0.45em;
+  letter-spacing: 0;
+}
+.night-workspace .notification-trigger-price.unavailable {
+  color: #b4c8dd;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 0;
 }
 .night-workspace .notification-threshold.downward {
   color: #ffb6a3;
 }
+.night-workspace
+  .notification-threshold.downward
+  .notification-threshold-percent {
+  background: #59372c80;
+}
 .night-workspace .notification-baseline {
   display: flex;
-  gap: 6px;
-  color: #8fa9c0;
-  font-size: 12px;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-top: 14px;
+  color: #9bb8d0;
+  font-size: 14px;
+  line-height: 1.5;
 }
 .night-workspace .notification-baseline b {
-  font-weight: 400;
-  color: #c1d3e5;
+  color: #e6eff7;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.night-workspace .notification-card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 10px 16px 10px 24px;
+  border-top: 1px solid #2a4558;
+  color: #9bb8d0;
+  font-size: 12px;
 }
 .night-workspace .notification-card-actions {
   display: flex;
   gap: 4px;
+  margin-left: auto;
+  padding-left: 12px;
+  border-left: 1px solid #2a4558;
 }
 .night-workspace main .notification-card-actions button {
-  width: 34px;
-  min-width: 34px;
-  min-height: 34px;
+  width: 36px;
+  min-width: 36px;
+  min-height: 36px;
   padding: 0;
   background: transparent;
   border: 1px solid transparent;
@@ -298,6 +387,30 @@
   }
 }
 @media (max-width: 650px) {
+  .night-workspace .notification-card-header {
+    gap: 10px;
+    padding: 16px;
+  }
+  .night-workspace .notification-item-art .item-art {
+    width: 34px;
+    height: 34px;
+  }
+  .night-workspace .notification-item-name h3 {
+    font-size: 15px;
+  }
+  .night-workspace .notification-card-body {
+    padding: 18px 16px;
+  }
+  .night-workspace .notification-card-footer {
+    padding: 10px 12px 10px 16px;
+  }
+  .night-workspace .notification-trigger-row {
+    gap: 10px;
+  }
+  .night-workspace .notification-threshold-percent {
+    padding: 6px 9px;
+    font-size: 12px;
+  }
   .night-workspace .notification-overview {
     grid-template-columns: 1fr;
     gap: 8px;

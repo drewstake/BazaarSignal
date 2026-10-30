@@ -8,14 +8,18 @@ const storage = vi.hoisted(() => ({
   legacy: { alerts: [], mail: [] },
   admissions: 0,
   prices: { bazaar: [], listings: [] } as any,
+  priceReads: 0,
   accountEnabled: true,
   quota: 100,
+  properties: new Map<string, string>(),
+  queryFailures: new Set<string>(),
+  onCommit: undefined as undefined | (() => void),
 }));
 vi.mock("../shared/companion/portfolio-policy", () => ({
   PORTFOLIO_EVALUATION_ENABLED: true,
 }));
 vi.mock("../apps-script/companion", () => ({
-  sharedMarket: () => storage.prices,
+  sharedMarket: () => { storage.priceReads++; return storage.prices; },
 }));
 const encode = (v: any): any =>
   v === null
@@ -65,7 +69,7 @@ vi.mock("../apps-script/store", () => ({
       if (w.currentDocument?.exists === false && old)
         throw new Error("Already exists");
     }
-    return {
+    const result = {
       writeResults: writes.map((w) => {
         if (w.verify) return {};
         const path = w.update.name.split("/documents/")[1],
@@ -78,17 +82,24 @@ vi.mock("../apps-script/store", () => ({
         return { updateTime };
       }),
     };
+    storage.onCommit?.();
+    return result;
   },
-  firestore: (path: string) =>
-    path === ":runQuery"
-      ? [...storage.docs]
-          .filter(([k]) => k.startsWith("portfolioSubscribers/"))
-          .map(([, document]) => ({ document }))
-      : {
+  firestore: (path: string, _method?: string, body?: any) => {
+    if (storage.queryFailures.has(path)) throw Error('Isolated account read failure');
+    if (path === ':runQuery') {
+      const query = body.structuredQuery, start = query.startAt?.values[0].referenceValue;
+      return [...storage.docs]
+        .filter(([k, d]) => k.startsWith('portfolioSubscribers/') && d.fields.active?.booleanValue === true && (!start || d.name > start))
+        .sort(([, a], [, b]) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
+        .slice(0, query.limit).map(([, document]) => ({ document }));
+    }
+    return {
           documents: [...storage.docs]
             .filter(([k]) => k.startsWith(path.slice(1).split("?")[0] + "/"))
             .map(([, v]) => v),
-        },
+        };
+  },
   fetchJson: () => ({
     users: [
       {
@@ -147,9 +158,9 @@ const request = (
 beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(now);
-  const properties = new Map<string, string>([
-    ["MARKET_UPDATES_PAUSED", "false"],
-  ]);
+  const properties = storage.properties;
+  properties.clear(); properties.set('MARKET_UPDATES_PAUSED', 'false');
+  storage.queryFailures.clear(); storage.onCommit = undefined;
   vi.stubGlobal("PropertiesService", {
     getScriptProperties: () => ({
       getProperty: (key: string) => properties.get(key) ?? null,
@@ -170,6 +181,7 @@ beforeEach(() => {
   storage.accountEnabled = true;
   storage.quota = 100;
   storage.prices = { bazaar: [], listings: [] };
+  storage.priceReads = 0;
   storage.legacy = { alerts: [], mail: [] };
   seed(`users/alice/portfolios/${pid}`, p);
   seed(`users/alice/portfolios/${pid}/holdings/${hid}`, h);
@@ -205,7 +217,7 @@ it('reads a shared portfolio once and writes the evaluated ledger once when noth
   seed('users/alice/portfolioPreferences/main', { emailEnabled: true });
   workerSample(100, now - 2000);
   storage.reads = []; storage.commits = [];
-  expect(runPortfolioNotifications(now)).toEqual({ processed: 1 });
+  expect(runPortfolioNotifications(now)).toEqual({ processed: 1, failed: 0, complete: true });
   expect(storage.reads).toHaveLength(6); // Ledger, preference, one parent, three holdings. Previously eight.
   expect(storage.reads.filter(path => path === `users/alice/portfolios/${pid}`)).toHaveLength(1);
   expect(storage.commits).toHaveLength(1); // Previously an identical second write.
@@ -216,10 +228,10 @@ it("runs the persisted worker through priming, crossing, verified recipient look
   portfolioNotificationRequest(identity, request(), now);
   seed("users/alice/portfolioPreferences/main", { emailEnabled: true });
   workerSample(100, now - 2000);
-  expect(runPortfolioNotifications(now)).toEqual({ processed: 1 });
+  expect(runPortfolioNotifications(now)).toEqual({ processed: 1, failed: 0, complete: true });
   expect((globalThis as any).MailApp.sendEmail).not.toHaveBeenCalled();
   workerSample(115, now - 1000);
-  expect(runPortfolioNotifications(now)).toEqual({ processed: 1 });
+  expect(runPortfolioNotifications(now)).toEqual({ processed: 1, failed: 0, complete: true });
   expect((globalThis as any).MailApp.sendEmail).toHaveBeenCalledTimes(1);
   expect((globalThis as any).MailApp.sendEmail.mock.calls[0][0]).toMatchObject({
     to: "current@example.test",
@@ -423,4 +435,84 @@ it("enforces combined legacy and portfolio active/stored limits without new mail
     ).state.mail,
   ).toEqual([]);
   expect(decodeFields(storage.docs.get(path).fields).enabled).toBe(true);
+});
+function seedSubscribers(count: number) {
+  const notification = portfolioNotificationRequest(identity, request(), now);
+  storage.docs.delete('portfolioSubscribers/alice');
+  const users = Array.from({length:count}, (_, i) => `user${String(i).padStart(3,'0')}`);
+  for (const uid of users) {
+    seed(`portfolioSubscribers/${uid}`, {active:true});
+    seed(`users/${uid}/portfolios/${pid}`, p);
+    seed(`users/${uid}/portfolios/${pid}/holdings/${hid}`, h);
+    seed(`users/${uid}/portfolioPreferences/main`, {emailEnabled:true});
+    seed(`users/${uid}/portfolioNotifications/${notification.id}`, notification);
+  }
+  return {users, notification};
+}
+it.each([1,5,6,11])('evaluates all %i subscribers in every quarter-hour pass with actual cursor semantics', count => {
+  const {users, notification} = seedSubscribers(count);
+  seed('portfolioSubscribers/inactive', {active:false});
+  storage.properties.set('PORTFOLIO_CURSOR', users[Math.floor(count/2)]);
+  for (let slot = 0; slot < 4; slot++) {
+    const at = now + slot * 900000; vi.setSystemTime(at); workerSample(100, at - 1000);
+    expect(runPortfolioNotifications(at)).toEqual({processed:count,failed:0,complete:true});
+    for (const uid of users) {
+      const ledger = JSON.parse(storage.docs.get(`portfolioDelivery/${uid}`).fields.json.stringValue);
+      expect(ledger.crossings[notification.id].lastSample).toBe(at - 1000);
+    }
+  }
+  expect(storage.docs.has('portfolioDelivery/inactive')).toBe(false);
+  expect(storage.priceReads).toBe(4); // One shared bundle per pass, including 11 accounts.
+  expect((globalThis as any).MailApp.sendEmail).not.toHaveBeenCalled();
+});
+it('reports a failed account while continuing through subsequent pages, then recovers next pass', () => {
+  const {users} = seedSubscribers(11); workerSample(100, now - 1000);
+  const failedQuery = `/users/${users[2]}/portfolioNotifications?pageSize=101`;
+  storage.queryFailures.add(failedQuery);
+  expect(runPortfolioNotifications(now)).toEqual({processed:10,failed:1,complete:true});
+  storage.queryFailures.clear();
+  expect(runPortfolioNotifications(now)).toEqual({processed:11,failed:0,complete:true});
+});
+it('retains the last attempted cursor on timeout and resumes at the next subscriber', () => {
+  const {users} = seedSubscribers(6); workerSample(100, now - 1000);
+  storage.onCommit = () => vi.setSystemTime(now + 41000);
+  expect(runPortfolioNotifications(now)).toEqual({processed:1,failed:0,complete:false});
+  expect(storage.properties.get('PORTFOLIO_CURSOR')).toBe(users[0]);
+  storage.onCommit = undefined; storage.reads = [];
+  vi.setSystemTime(now + 900000); workerSample(100, Date.now() - 1000);
+  expect(runPortfolioNotifications(Date.now())).toEqual({processed:6,failed:0,complete:true});
+  expect(storage.reads.find(path => path.startsWith('portfolioDelivery/'))).toBe(`portfolioDelivery/${users[1]}`);
+});
+it('marks the final alert inactive and cleans up existing empty subscribers', () => {
+  portfolioNotificationRequest(identity, request(), now);
+  portfolioNotificationRequest(identity, request('pause',1), now);
+  expect(decodeFields(storage.docs.get('portfolioSubscribers/alice').fields).active).toBe(false);
+  seed('portfolioSubscribers/old-empty', {active:true});
+  expect(runPortfolioNotifications(now)).toEqual({processed:1,failed:0,complete:true});
+  expect(decodeFields(storage.docs.get('portfolioSubscribers/old-empty').fields).active).toBe(false);
+  expect(runPortfolioNotifications(now)).toEqual({processed:0,failed:0,complete:true});
+});
+it('keeps a subscriber active when an alert is re-enabled during cleanup', () => {
+  portfolioNotificationRequest(identity, request(), now);
+  portfolioNotificationRequest(identity, request('pause',1), now);
+  seed('portfolioSubscribers/alice', {active:true}); // Existing stale subscriber.
+  storage.onCommit = () => {
+    storage.onCommit = undefined;
+    portfolioNotificationRequest(identity, request('resume',2), now);
+  };
+  expect(runPortfolioNotifications(now)).toEqual({processed:1,failed:0,complete:true});
+  expect(decodeFields(storage.docs.get('portfolioSubscribers/alice').fields).active).toBe(true);
+  workerSample(100, now - 1000);
+  expect(runPortfolioNotifications(now)).toEqual({processed:1,failed:0,complete:true});
+  expect((globalThis as any).MailApp.sendEmail).not.toHaveBeenCalled();
+});
+it.each([100,101])('bounds a large subscriber sweep at 100 accounts and reports completion accurately (%i total)', count => {
+  const {users} = seedSubscribers(count); workerSample(100, now - 1000);
+  expect(runPortfolioNotifications(now)).toEqual({processed:100,failed:0,complete:count===100});
+  if (count===101) {
+    expect(storage.properties.get('PORTFOLIO_CURSOR')).toBe(users[99]);
+    storage.reads=[];
+    expect(runPortfolioNotifications(now)).toEqual({processed:100,failed:0,complete:false});
+    expect(storage.reads.find(path=>path.startsWith('portfolioDelivery/'))).toBe(`portfolioDelivery/${users[100]}`);
+  }
 });

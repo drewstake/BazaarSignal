@@ -1,5 +1,12 @@
 # October $5 paid pilot
 
+**October 21 cadence update:** market collection, browser price checks and alert
+evaluation now use a 15-minute interval. Collection runs at :00/:15/:30/:45;
+visible browser checks and alert evaluation follow around :02/:17/:32/:47.
+The original expiration and spending controls remain in effect. The initial
+hourly activation details below are historical. See
+[the cadence release record](QUARTER-HOUR-REFRESH-2026-10-21.md).
+
 Activated October 13, 2026, approximately 5:32 p.m. Eastern, on the existing billed collector project. No new hosting provider, paid subscription, billing account, database or Scheduler job was created.
 
 ## Active behavior

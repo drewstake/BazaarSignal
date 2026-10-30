@@ -183,7 +183,7 @@ export default function AdminDashboard({ user }: { user: User }) {
                 The server clock collects this report once daily around{" "}
                 {updateTime}, independently of page visits. Repeated opens
                 cannot trigger collection. Failed attempts are not retried that
-                day. Status and balances describe the measured snapshot; hourly
+                day. Status and balances describe the measured snapshot; 15-minute
                 market and email checks continue separately. Unsupported sources
                 retain their original measurement times.
               </p>
@@ -236,7 +236,7 @@ export default function AdminDashboard({ user }: { user: User }) {
               <details>
                 <summary>About Google spending updates</summary>
                 <p>
-                  The collector checks Google billing notifications hourly. Google
+                  The collector checks Google billing notifications every 15 minutes. Google
                   publishes net cost updates several times a day, after credits.
                   This dashboard shows the saved daily reading and its original
                   publication time. An unavailable reading is never treated as $0.

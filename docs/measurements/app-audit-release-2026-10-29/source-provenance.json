@@ -1,0 +1,717 @@
+[
+  {
+    "path": "collector/paid-ledger-storage.ts",
+    "sha256": "fa441f7c86bca49eef6f9927fca3e9fdaef49c9c85869e9121cb91ccdebc1c18",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/private-workspace-sync.ts",
+    "sha256": "5571983f4f75a3f646d906e976908dd10435228809266a4d231cb7a58108a6bb",
+    "origin": "tested-audit-fix"
+  },
+  {
+    "path": "src/session-token.ts",
+    "sha256": "7825c3beee199083cba934e065c81b7d910a315b35cc094823ce0bb6b90c953e",
+    "origin": "tested-audit-fix"
+  },
+  {
+    "path": "apps-script/admin-report.ts",
+    "sha256": "775228fb0e3a5b45e10defe86bcb2e3db539e41143c1470cc1a93fd0b2e94c4e",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "apps-script/appsscript.json",
+    "sha256": "1af5b7b09c273a9a923c9a71d09609948dbde7b98984228bc494532598a7b36e",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "apps-script/backend.ts",
+    "sha256": "ea1c61b1a50d22e85903a683847d0ccf71c16a200c9e499825470c868c1955cc",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "apps-script/companion.ts",
+    "sha256": "4d630d2bb933ee897dd100c74209102d413d7b8e8d5587ce68c84427b8bc7afe",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "apps-script/core.ts",
+    "sha256": "a55dadd9d897e5bdecc7686a2d97dcbea096099816ce257d42daecf89439c768",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "apps-script/portfolio-backend.ts",
+    "sha256": "56f54294ede82cf439f085cab483080196a18c50034a468b858c23daff0e8954",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "apps-script/store.ts",
+    "sha256": "26d3d3e86bb2d2336bdc1bb9bce7c384aa5f0a1d8b984a1fae952232e680318c",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "apps-script/tsconfig.json",
+    "sha256": "2fac8b4487656f6739654e122bb11515790e89d769557971c9b06e64661232bf",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "apps-script/usage-report.ts",
+    "sha256": "adf996801bd268724db2f2300b3b4ca3897c5641da6322f0d4025989ef4eb84b",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/allowance-live.ts",
+    "sha256": "67fa0ccecc5e9e802c5c2056a7ccffaa732752e8aae8c354b53f171925192d99",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/cache-store.ts",
+    "sha256": "bee620a41d249be47db180e332434255300ca32693320898d2f0b7d307d9f6cd",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/capacity-plan.ts",
+    "sha256": "ea44cc228ecc2fc61e83322b4be25c49d2a97a1c592ad30e7fa17f879f72221a",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/cloud-price-history.ts",
+    "sha256": "d2b3b13ac06f0ae7905337c0b15105d269dc6c6c84b4d66af807dd079254dc51",
+    "origin": "tested-audit-fix"
+  },
+  {
+    "path": "collector/coordinator.ts",
+    "sha256": "32c4aa4497fc74818063df0af6dc8a98770114ed0ab6dae537eb10a2cbf10462",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/daily-close-collector.ts",
+    "sha256": "905a0a1380e337319fab49b2abbf61a7e20073e712fc43b9936f0c66ddb98aa7",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/diagnostics.ts",
+    "sha256": "24ae4cba85c7c52451f2dd0f16f982b1f4624619f0d82ba2dc32341551d022b3",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/engine.ts",
+    "sha256": "5ad6de8c3093fb93ccb3215a9544c59bc4a8e676d033ec8e6693166f7cad24ab",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/fee-context.ts",
+    "sha256": "e012794517fa9ff69aeeba97777f7b1fe70dbe0a51a9798211945865826eb4f8",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/google-cache-store.ts",
+    "sha256": "51ff558ca01e1c9e64cd4d9c3e812eb392ccd706b98f6d2e0687ffe32705716d",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/history-download.ts",
+    "sha256": "4cef4197bf05e3d4305dc6dd0183ea03d3358cf43cd8f99f7a17d542b272ae34",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/history-sources.ts",
+    "sha256": "ae6039b506aded729305894f23151df784c3fda5abe685b0c960a390748b427a",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/history-store.ts",
+    "sha256": "ba3b3af1f96b3332bbee9d5ad6988301589cc0eae23ae840f13db8fddb289cb8",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/http.ts",
+    "sha256": "64e7918d6447ad57d8afd7bf1f01abcf67a52497b754e15ff1d160ec13dd8474",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/inline-snapshot.ts",
+    "sha256": "f47c2fc01397bdc5a6a1cd62755afbc0a7f0e7b7888bbd647fea2528168ea1f7",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/ledger-write-queue.ts",
+    "sha256": "4fdf6938eb89001be1b0ea52e63b5999f40f5bd450fc08406d830594925ef7e0",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/live-activation.ts",
+    "sha256": "b36fef688cca1410cb27040de2782be32c808303d7b5536ef5f9103536812e57",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/main.ts",
+    "sha256": "6fde0cf2320d2694db65c07abb6ceaacb12f1c34c740a3ed48c30db81cf6ef24",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/measurement-capacity.ts",
+    "sha256": "254b7111adebace87a7548e7aef537a408cf2ed4513fdb0a0580f97ce0436e98",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/measurement.ts",
+    "sha256": "8e5500c5f958178899b66f9171d3dd915f483c673830b57b5620b08c40813f0a",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/paid-billing.ts",
+    "sha256": "46a7a57d785b60215914c00f6195c506ef31bed2f934d95ebb656543dfed3e90",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/paid-budget.ts",
+    "sha256": "6cf67fbddf7ad9d1f1ce95653a98d09aedd11db160252910b92158795b0251e9",
+    "origin": "tested-audit-fix"
+  },
+  {
+    "path": "collector/paused-response.ts",
+    "sha256": "b209daf1e04bca82c1a8f2e88f79fcd7c4e5eb48366e4c5c2ee130fb48434d62",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/policy.ts",
+    "sha256": "f6c71737671459a9b8c20fa46a06e43a4b0f0744ae55a62b5cecbdce58122817",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/portfolio-demand.ts",
+    "sha256": "3cf92ff379ac2a024b3fc49d84f71ec6c4a159ec93c81c9d9d8c71727c407c94",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/routes.ts",
+    "sha256": "39544f285fa1e2673cba6c33fc07438408bd75614d8e0f0523e8748a562a0d9c",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/snapshot-read-cache.ts",
+    "sha256": "04eca603a24e3246259889a69b8b7029988ed8192eab2c8f5aedf1d2f1dadf10",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/trial-google.ts",
+    "sha256": "9cffc7c38bcacab284d85f63ac23279679824dd93639cea24831e4eaeaa87270",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/trial-launch-google.ts",
+    "sha256": "6a74c45155fbec9f1d6808d5f8a27f76ba3a9b21974e56f9646638fd9e71a54f",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/trial-launch.ts",
+    "sha256": "2ab1ee18797292a56b76a8f3d0cdb52a2b65af79e8acad299b16c1e28d997234",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/trial-preflight.ts",
+    "sha256": "de32bf09252059eaf3878088357adcf93fe16e0b94d15de19e89a3a5157fd22c",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/trial-runtime.ts",
+    "sha256": "18b1cb7ae0265966d83fbac668b078ea14bcfdfa60456bd963b5780ec1dda5e0",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/trial-shutdown.ts",
+    "sha256": "a05699f3650661416e3f59383070fb14cb22c1d5fdbe667292c6767409c20176",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/trial.ts",
+    "sha256": "0a65a8bf5aea4cac102dae76a3576be4e8645534ecd685c387adf59081b24e02",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/tsconfig.json",
+    "sha256": "e3bf4a796eb279538df44da51d737b984ba7316a405e5eb90ca2cefff4ce606d",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/usage-dashboard.ts",
+    "sha256": "549be9b010b572e39e589a6ac8cba0bc1a29552910a91a3cd9133304e86001d1",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/usage.ts",
+    "sha256": "8a0c621959e714d98a3e889d210438fddd65b0755ccb8ab8cdd4d1ff494cabdd",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "collector/visible-demand.ts",
+    "sha256": "901c26b10c643111fbc132ccb401dba913a1588982580ee48e949863ef520747",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "market-functions/firestore.indexes.json",
+    "sha256": "44115295b470082c99a3dccf572edf2d7783dbea8238c361e3762bbbfbeee254",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "market-functions/package-lock.json",
+    "sha256": "f6a24673af58b9853fe5b01ea7e208c3d013365d3b047a33a7089ab3a55552f0",
+    "origin": "tested-audit-fix"
+  },
+  {
+    "path": "market-functions/package.json",
+    "sha256": "f8c5879ffb955f8a0e589341c82b4213ae8f9b1e9bf90aebb2cea153e8305c1c",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "market-functions/src/index.ts",
+    "sha256": "5018861ab2ddf6d5717b6688bb387c8f52a4d06274b383015abcb5a34c6a61a5",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "market-functions/tsconfig.json",
+    "sha256": "986ca0075ea05c7ab308169133cb3c7a0cbe70ec5ed7f4f3c3a5ebef9354fd8a",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "shared/admin.ts",
+    "sha256": "4f9f1c43cccededd1e5c59270b31e919640d1ca44e9e0424a91f0f75b120e4df",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "shared/app-budget-policy.ts",
+    "sha256": "194774d1be033634b5c900f41379518cb4f1c0982bf15a61e2fe07f13a5c3c43",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "shared/automation-policy.ts",
+    "sha256": "e868ed2a74a030acc3163b108541e7fc13f038b13486eb261700f546ed6ec513",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "shared/companion/bazaar.ts",
+    "sha256": "02e270b03aea8cf4a0d6266593cb3014b6c0bcae2212207dccded005c9f6cf5e",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "shared/companion/fees.ts",
+    "sha256": "9f19145357e82589afdfdc8ca7af41e00ad4c9db8ee886afe6a30c92f6a6c05f",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "shared/companion/notifications.ts",
+    "sha256": "5a465a2504ea9a24c3aaed9a92936d7aaa195c6c163a3c6bad8187f5e344a749",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "shared/companion/portfolio-policy.ts",
+    "sha256": "06b8e59051f1fd979328adfccc9f4cf6f9f94b748295a2acdf148b439d6a405d",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "shared/companion/portfolio.ts",
+    "sha256": "0c3541e8e56f1e1839d3bf021c4f9cf11134fd4885408a6fe66c216e992a1d33",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "shared/companion/positions.ts",
+    "sha256": "6a3050152b676aec65dc7b4e871ff35b20c43f6d629fb2c7a31ca369e868d98b",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "shared/companion/types.ts",
+    "sha256": "a415bfa26c76f2b1433f41ba5e5ad0c42110e07c06bd3e08327c6198c070c3cb",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "shared/daily-price-history.ts",
+    "sha256": "8a49e91f97b78bb4c70f60a8f39d1b16197fefea5e6b6f1c85b7438b56e6da85",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "shared/hourly-trial.ts",
+    "sha256": "55bb3eb8127263bef3b3f18b5df307ce50b733d679c6a6211ec3aede1ae67830",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "shared/market-schedule.ts",
+    "sha256": "834a5e536b5eeee3291624f78d39309ecf851e5eb5f3bbd62683ca4acce96bfd",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "shared/market.ts",
+    "sha256": "89d0e9e5d188d52ec28c2167d6534ff03000a0f52cf2deb4e5f53aea2ca3830c",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "shared/model.ts",
+    "sha256": "752d6b26f0e32dfb2233a6a5af4617d0dc517ed3f1b04e6f485d5b8c46cc4afd",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "shared/paid-pilot.ts",
+    "sha256": "56cdecb1a56f235688f24a12e38dff01ff33fa9c178078aaea59ec28a476782c",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "shared/paid-spending.ts",
+    "sha256": "28ff3b37c76899e4174fc86dd2057a3877c02c1e129201d40c7062cad50c6640",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "shared/price-alert.ts",
+    "sha256": "db4e063c5abf2d625271f6dcb6bfd80b3fa6aab4a5afca5cf3ce57963f2f4194",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "shared/published-usage.ts",
+    "sha256": "edda673d808bed873a92adce19ee9fa9af87d3835b4ac93fa40eef1dd384f521",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "shared/usage-dashboard.ts",
+    "sha256": "fd443a59224c25bf8d6530ff76ecdf75a4fea3d11092db2495ea041cba99705e",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "shared/usage-presentation.ts",
+    "sha256": "250ca2b35c7b7da784ad37c05f561552c87fd18517859969e94070c1f4413607",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "shared/workflow.ts",
+    "sha256": "09b58451920f448f63dbef1b657373e5702099a6f1b6ae9fa5924b68409c204e",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/Root.tsx",
+    "sha256": "08203faf2fc0cb666b1fd0921988d479a51f2bb890c5366e18e0223fa92b95e8",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/SampleTime.tsx",
+    "sha256": "92f89511a89a312c1c96903a49b5d8c4f6e62738a5315bf35519502f4bdf5796",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/ViewBoundary.tsx",
+    "sha256": "0622863a4893a144855fdacf68da5c1514d77187c462b7fac8777d71981988de",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/account.ts",
+    "sha256": "09ff009cee1505f96e8638e7d86a44556fc9fec20bcbe1a5a8417be73dc4e9c7",
+    "origin": "tested-audit-fix"
+  },
+  {
+    "path": "src/backend.ts",
+    "sha256": "3aa93e643036a4c817e426db7376d2b6bf8f387de6b39beaa415d9c64d79574b",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/AdminDashboard.tsx",
+    "sha256": "4d5f5b3abea7f2b6c897145c3327f0866010e9d4bcae5657777f6cc24cfca2cc",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/BazaarItemPage.tsx",
+    "sha256": "dfd6ccad68a461e6df9a5c9b61423713b0d5ac7805258233840f8c94aceca150",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/BazaarPriceChart.tsx",
+    "sha256": "a8910706625bc1d5fcace8da27ef6e452f23f8ccf18e16fdc2e0de267d1168ba",
+    "origin": "tested-audit-fix"
+  },
+  {
+    "path": "src/companion/BazaarSearch.tsx",
+    "sha256": "88ba009b4c4865b0aff4eaf5dc6571012d015c644a6359aa2c4ae134ed9fb440",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/BuyingPower.tsx",
+    "sha256": "75127125babbc278a3d3dada9c06bb4c587f1af9351417eddd178ccaaf865aef",
+    "origin": "tested-audit-fix"
+  },
+  {
+    "path": "src/companion/DeletionDialog.tsx",
+    "sha256": "2bd486bdb48fd8939529b43aeffbd509f0747fb1ae2490eef645e26381995f71",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/HoldingEditor.tsx",
+    "sha256": "b9495a460b2c498f9fc0d2c375099b77fe2e7282a5dc353c5c745b9cc53e7fc2",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/HoldingSearch.tsx",
+    "sha256": "40730700424c1e6062f9489defb8c8600f4da70a1944013c948cabe71ded05ba",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/NightMarketAccount.tsx",
+    "sha256": "94f76f88b67fccc5d82c0451f086ce3860b9a0c453e9c4cdaae2915bc8cb6b6e",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/NightMarketComponents.tsx",
+    "sha256": "e67515aa2283bdd41805f0e8a4b3ad8b8d80f7fdbd8893bc38b36aaf28bf3782",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/NightMarketLanding.tsx",
+    "sha256": "e4c310aa268c1f681551962203234e56f17c4c2a49b30e36cbafc31c522db3c3",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/NightMarketNotifications.tsx",
+    "sha256": "042096c81fe21e4c2a8f51089d5dc98905e4041bd2da861411cd41628eb05792",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/NotificationEditor.tsx",
+    "sha256": "68e6d49b707afe0a6f1389a5167e457f68cb5d7c49be128069f64f97265f9b6e",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/PortfolioApp.tsx",
+    "sha256": "a8a3f905325e00552240358dfcbea68089a3936f0e73f0fffb44b24876ddbd99",
+    "origin": "tested-audit-fix"
+  },
+  {
+    "path": "src/companion/PortfolioValueChart.tsx",
+    "sha256": "f97328b6187eff53c0c20f8e6f201942a871635c9cc6fe1d743c72737db45ba5",
+    "origin": "tested-audit-fix"
+  },
+  {
+    "path": "src/companion/SearchOrderBook.tsx",
+    "sha256": "f2a3dbbcbfd171f5b0140daa723c189d521bfe975ae51bb13626ea3883af8f0a",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/SettingsNotificationEditor.tsx",
+    "sha256": "d56e5b4ea5b2b4c3071a963af24f82c13e2751a20b062aea01fc0bba45f708df",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/UsageDashboard.tsx",
+    "sha256": "57e3776f56acbf54e6c9873e28d3796bd81683ccb4bd72ea916f7821aac8645b",
+    "origin": "tested-audit-fix"
+  },
+  {
+    "path": "src/companion/Workspace.tsx",
+    "sha256": "37603add111c27a75de2062aafb46a1673ee7a5b472421d72940b0d4038ed922",
+    "origin": "tested-audit-fix"
+  },
+  {
+    "path": "src/companion/WorkspaceDialog.tsx",
+    "sha256": "d9a0bcb199367e3a5f959efd2d4f483fb6858046adadcd626b181a9de84d9f53",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/admin-dashboard.css",
+    "sha256": "40a7fce089fdc02052bc8dd9b59e42d5f6ae8a9539df5dea5c17de6b4ff945ef",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/admin-snapshot.ts",
+    "sha256": "d9748a689f9d479c7efb372be44ea46f32311a57d2b795a92e5dfb7542bc7e8d",
+    "origin": "tested-audit-fix"
+  },
+  {
+    "path": "src/companion/api.ts",
+    "sha256": "a8a766cf0b67cebc995904332831933fe9bb9f62a346f240a7ddf973fcb1f591",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/bazaar-catalog.json",
+    "sha256": "7d0159accc8487e51685ad58cc2ef58a093de500f515ddfc930702c9984bac7b",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/bazaar-item-page.css",
+    "sha256": "859a83a974dd6fd9cfa503202eeca685298ddb15724a45ee1458f2e899404109",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/bazaar-price-chart.css",
+    "sha256": "c69b304c2704a8b263c31c21013676014137ca0de0966d38451ee8319487fd51",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/bazaar-price-history.ts",
+    "sha256": "dfa2808fa925a2b6f194cb899e92c31d0ffc01d6b16c431388e415f817f39d55",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/bazaar-search-data.ts",
+    "sha256": "b0c9ee5c4153e1b632aa1382a4686bebf7012c1a8be91e0437830a7fd1d1eb2d",
+    "origin": "tested-audit-fix"
+  },
+  {
+    "path": "src/companion/bazaar-search.css",
+    "sha256": "e9f40bc1973a295728be717919e2b364e4c89be78faefc2f56644e6f285cecec",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/components.tsx",
+    "sha256": "507b763d9fac56cee57797d848afb26be53fb2a53f3cb8d4af33cf229a757953",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/daily-price-history.ts",
+    "sha256": "a901bc2e80817152dfb44a18dc9ebdc49530862b5a34b4102581a38f44db5ae0",
+    "origin": "tested-audit-fix"
+  },
+  {
+    "path": "src/companion/fixtures.ts",
+    "sha256": "3ad7df89bc6bd0d2d10e76378b7b09c5e335a6e29e8c95f036fba40787d9ccea",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/holding-catalog.ts",
+    "sha256": "a00ce3b1e11eb3c388f391ac0dc09bc3ee6ca811a2c7392fad16c0f36ee7910f",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/holding-search.css",
+    "sha256": "49c27510da1f97d480762aa84430c7d6d92e760314ea7176f4a3b4e1ea6d679a",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/item-artwork.ts",
+    "sha256": "d5ab8951f65e711d209429d04789bf51b28adb7732444e356efcbfeaa63595ad",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/item-route.ts",
+    "sha256": "64ddfbd4bd5e12e00d225eead6ca754761ff3bc0d5fcf08fcb58694eb1f57c3d",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/local-market-preview.ts",
+    "sha256": "b70f4eb9154c8b75e3faa9d0479c1efcc485e13679a400e3ac0cb9f7c2795b93",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/night-market-account.css",
+    "sha256": "1d6f9f2fdda5c67c87e03ad81a724861ddda723544b845b0ad4e235d150ec511",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/night-market-notifications.css",
+    "sha256": "f6d07522d95cf112919756aaf2185238cef57c477cf91ca3ecdb153eaab9af4d",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/night-market-workspace.css",
+    "sha256": "2ba1ed763dd7fc93fd77616aad5b8f33707b969a04a0dc37e826ed864e90abbd",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/night-market.css",
+    "sha256": "14c5c5b07dd207b8b3ebe4d29917b284909a95cddfdfa7025ba1468e85e3c2bb",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/polling.ts",
+    "sha256": "bca5bd3767fdca6f122b3f6106f691cd9d0bf9988b0af076bde731d5878f9db1",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/portfolio-market.ts",
+    "sha256": "0faa3ec250995e16d7b2c75b1b87af6b928fb87b3875de6b09c3577dae387d05",
+    "origin": "tested-audit-fix"
+  },
+  {
+    "path": "src/companion/portfolio-notifications.ts",
+    "sha256": "51b747cfcfd509d2795dc556f151bc4db4afa51f6b7872c9e5450da06b612c1d",
+    "origin": "tested-audit-fix"
+  },
+  {
+    "path": "src/companion/portfolio-store.ts",
+    "sha256": "7828f337b4ec69482a2c201075a4168247c3fd9ec09d047eeab06435e0ee0561",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/portfolio-value-chart.css",
+    "sha256": "0528381d846c3df2f447a07a0d4328790167bec689ee8b3cc15ad6c69e8f6b29",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/portfolio-value-history.ts",
+    "sha256": "06bae5a7b6c873838c81e51214fd3f33b9f06d65d0894afd116db1fab713ad69",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/portfolio.css",
+    "sha256": "8c0ff7e2d8e5e44dcd1eedc2d1c83a02e7e34d17688735c7fc85c23060e02b51",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/request-cache.ts",
+    "sha256": "e5bf565d4da8b549ae82d0c62a3a555bf4df62f379564117bb540068788256d4",
+    "origin": "tested-audit-fix"
+  },
+  {
+    "path": "src/companion/session-reads.ts",
+    "sha256": "68e13e46b890982d36a9d632774a4e0c205c5fa1d5e23addc55169f8b32f9d0a",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/skyblock-theme.css",
+    "sha256": "9662b86f650159e9c68b37ff193aa8c5428076c6c325f0eb25e8df61c0d6e4e2",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/usage-access.ts",
+    "sha256": "f48eb2f7febe88b081e44e2d75cf1e156479a0f6de749a41a812c36321868c5a",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/usage-dashboard.css",
+    "sha256": "523a649bb990709f24e521e840ea027c5f41ff27402d43c9f511b46ac2dd6baa",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/usage-report.ts",
+    "sha256": "f3fed7f187f9c7d0c5ea0f9e2b279250dab75fab7bbdbeaecdb8ac1784fbf717",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/companion/use-visible-now.ts",
+    "sha256": "1a2607cf5a1abe5a9d52282fa6c539ea12a914a41375b7b9491e9898d61eeca5",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/data.ts",
+    "sha256": "60e3e645bdf9f97b83429bddbdac9f79dd0353cbdf3ff78ca30e1540beb50bb1",
+    "origin": "tested-audit-fix"
+  },
+  {
+    "path": "src/firestore.ts",
+    "sha256": "7cc44af2808bf4f3ac243045b22c7881aad7a9cb43e014f8251817859eb9c52a",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/local-workspace.ts",
+    "sha256": "8f141abfaec99c309bd06f8c3396c3099a239b1142df3097209456710c9c803e",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/main.tsx",
+    "sha256": "3aa76c2f72c47506395edf1c68004be6a375d9e9f5c853257839ce37c004d014",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/sign-in-error.ts",
+    "sha256": "b7971dc0101fbe854f89685289c00818a4484339afd4f9b46b68919d6d0062ce",
+    "origin": "October-27-release"
+  },
+  {
+    "path": "src/time.ts",
+    "sha256": "d7124fda771c1b2b790540e4e6b4fbfb943773b65508a7a18fe36dd71e2de2e5",
+    "origin": "October-27-release"
+  }
+]

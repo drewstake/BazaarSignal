@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pencil } from "lucide-react";
 import { parseCoinAmount } from "../../shared/companion/positions";
 import { exact } from "./components";
@@ -7,12 +7,18 @@ export default function BuyingPower({
   value,
   busy,
   save,
+  onEditingChange,
 }: {
   value?: number;
   busy: boolean;
   save: (value: number) => Promise<boolean>;
+  onEditingChange?: (editing: boolean) => void;
 }) {
   const [editing, setEditing] = useState(false);
+  useEffect(() => {
+    onEditingChange?.(editing);
+    return () => onEditingChange?.(false);
+  }, [editing, onEditingChange]);
   const [amount, setAmount] = useState("");
   const [error, setError] = useState("");
   return (

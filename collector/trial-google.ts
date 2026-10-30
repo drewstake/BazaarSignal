@@ -6,6 +6,7 @@ import { TrialStopped } from "./trial";
 import { inlineSnapshotLimits, INLINE_DOCUMENT_OVERHEAD, INLINE_SNAPSHOT_PREFIX } from './inline-snapshot';
 import { setTimeout as delay } from 'node:timers/promises';
 import type { DiagnosticReporter } from './diagnostics';
+import { PAID_BUDGET_KEY, PAID_LEDGER_READ_LIMIT } from './paid-ledger-storage';
 
 export interface GoogleTransport {
   project: string;
@@ -96,6 +97,7 @@ export function trialGoogleStore(
       const error = Object.assign(
         new Error(parsed.error?.message ?? `Google HTTP ${r.status}`),
         {
+          service: url.startsWith(root) ? 'firestore' : undefined,
           code:
             statuses[parsed.error?.status] ??
             (r.status === 409 ? 10 : r.status === 412 ? 9 : r.status),
@@ -140,8 +142,11 @@ export function trialGoogleStore(
       { documents: refs.map((r) => r.name) },
       { firestoreReads: refs.length },
       // Readers support both formats, including rollback/read-only releases.
-      refs.reduce((sum, r) => sum + Math.max(128 * 1024,
-        (inlineSnapshotLimits[r.name.split('/').at(-1)!] ?? 0) + INLINE_DOCUMENT_OVERHEAD), 0),
+      refs.reduce((sum, r) => {
+        const key = r.name.split('/').at(-1)!;
+        return sum + (key === PAID_BUDGET_KEY ? PAID_LEDGER_READ_LIMIT : Math.max(128 * 1024,
+          (inlineSnapshotLimits[key] ?? 0) + INLINE_DOCUMENT_OVERHEAD));
+      }, 0),
     );
     if (!Array.isArray(results)) throw new Error("Missing Firestore read time");
     return refs.map((ref) => {

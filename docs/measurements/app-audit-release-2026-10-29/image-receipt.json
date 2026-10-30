@@ -1,0 +1,37 @@
+{
+  "createdAt": "2026-10-29T18:53:01.031Z",
+  "stage": "C:\\Users\\drews\\Development\\BazaarSignal\\.local\\audit-release-2026-10-29\\site\\.local\\market-image-skCt6e",
+  "layout": "C:\\Users\\drews\\Development\\BazaarSignal\\.local\\audit-release-2026-10-29\\site\\.local\\market-image-skCt6e\\oci",
+  "imageDigest": "sha256:52c2ba960b5d6a5bf30f5f549a71f0c175dc8380f8fd8a9381ddecac650f7847",
+  "fileCount": 5728,
+  "sourceSha256": "3e4f7183728480b4848b1bbb29725493d9887e8da008b9bd38c88cb985feac22",
+  "lockSha256": "f6a24673af58b9853fe5b01ea7e208c3d013365d3b047a33a7089ab3a55552f0",
+  "unpackedBytes": 65108681,
+  "layerTarBytes": 69605376,
+  "compressedLayerBytes": 12997540,
+  "excludedDeclarationFiles": 2235,
+  "excludedDeclarationBytes": 16548257,
+  "registryUploadBytes": 12998392,
+  "artifactStorageHoldBytes": 83651492,
+  "cloudBuildMinutes": 0,
+  "applicationOnly": true,
+  "requiredBaseImage": "us-central1-docker.pkg.dev/serverless-runtimes/google-24-full/runtimes/nodejs24",
+  "localRuntimeSmokeVerified": true,
+  "cloudRuntimeVerified": false,
+  "uploaded": false,
+  "localRuntimeSmokePlatform": "win32/x64 Node v24.19.0",
+  "localRuntimeSmokeVerifiedAt": "2026-10-29T18:53:34.719Z",
+  "localRuntimeSmoke": {
+    "handlers": [
+      "marketApi",
+      "refreshMarket"
+    ],
+    "operatingModes": [
+      "free-tier",
+      "measurement",
+      "paid-budget"
+    ],
+    "outboundConnections": "blocked",
+    "handlerRequests": 0
+  }
+}

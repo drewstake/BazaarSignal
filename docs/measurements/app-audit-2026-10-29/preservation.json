@@ -1,0 +1,15 @@
+{
+  "checkedAt": "2026-10-29T18:00:30.402Z",
+  "baselineAt": "2026-10-29T17:34:51.983Z",
+  "head": "2c323a688c6f6f274dad285dc8cee38cdbb8aed1",
+  "files": 651,
+  "changed": [],
+  "missing": [],
+  "stagedSourceComparison": {
+    "stage": ".local/portfolio-auto-recovery-oct27/site",
+    "compared": 143,
+    "absent": [],
+    "differences": [],
+    "comparison": "UTF-8 content, CRLF normalized; only application directories present at baseline"
+  }
+}

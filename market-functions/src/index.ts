@@ -12,6 +12,7 @@ import { getFirestore, FieldPath } from 'firebase-admin/firestore';
 import { readPortfolioDemand } from '../../collector/portfolio-demand';
 import { PORTFOLIO_COLLECTION_ENABLED } from '../../shared/companion/portfolio-policy';
 import { MARKET_COLLECTION_SCHEDULE } from '../../shared/market-schedule';
+import { PAID_COLLECTION_SCHEDULE } from '../../shared/paid-pilot';
 import type { Holding } from '../../shared/companion/portfolio';
 import type { TrialSession } from '../../collector/trial';
 import { pausedMarketResponse } from '../../collector/paused-response';
@@ -121,7 +122,7 @@ export const marketApi = onRequest(
 );
 export const refreshMarket = onSchedule(
   {
-    schedule: live ? MARKET_COLLECTION_SCHEDULE : "* * * * *",
+    schedule: paid ? PAID_COLLECTION_SCHEDULE : live ? MARKET_COLLECTION_SCHEDULE : "* * * * *",
     timeZone: "Etc/UTC",
     region: "us-central1",
     memory: "1GiB",

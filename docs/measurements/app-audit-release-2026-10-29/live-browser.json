@@ -1,0 +1,344 @@
+{
+  "at": "2026-10-29T19:05:17.145Z",
+  "apiReads": 4,
+  "results": [
+    {
+      "width": 1440,
+      "landingMs": 4435.4676,
+      "overflow": false,
+      "requests": [
+        {
+          "origin": "https://bazaarsignal.web.app",
+          "path": "/",
+          "method": "GET"
+        },
+        {
+          "origin": "https://bazaarsignal.web.app",
+          "path": "/assets/app-DA73zRPU.js",
+          "method": "GET"
+        },
+        {
+          "origin": "https://bazaarsignal.web.app",
+          "path": "/assets/app-C_4kQh20.css",
+          "method": "GET"
+        },
+        {
+          "origin": "https://fonts.googleapis.com",
+          "path": "/css2",
+          "method": "GET"
+        },
+        {
+          "origin": "https://bazaarsignal.web.app",
+          "path": "/assets/sky-island-v1/web/ui-watchlist-chest-64.png",
+          "method": "GET"
+        },
+        {
+          "origin": "https://bazaarsignal.web.app",
+          "path": "/assets/items/booster_cookie.webp",
+          "method": "GET"
+        },
+        {
+          "origin": "https://bazaarsignal.web.app",
+          "path": "/assets/items/enchanted_diamond_block.webp",
+          "method": "GET"
+        },
+        {
+          "origin": "https://bazaarsignal.web.app",
+          "path": "/assets/items/summoning_eye.webp",
+          "method": "GET"
+        },
+        {
+          "origin": "https://bazaarsignal.web.app",
+          "path": "/assets/night-market/scene-only.webp",
+          "method": "GET"
+        },
+        {
+          "origin": "https://bazaarsignal.web.app",
+          "path": "/assets/night-market/reference.webp",
+          "method": "GET"
+        },
+        {
+          "origin": "https://bazaarsignal.web.app",
+          "path": "/assets/night-market/workspace-courtyard.webp",
+          "method": "GET"
+        },
+        {
+          "origin": "https://bazaarsignal.web.app",
+          "path": "/art/ui/wood-dark.png",
+          "method": "GET"
+        },
+        {
+          "origin": "https://bazaarsignal.web.app",
+          "path": "/assets/night-market/pixelify-sans-700.ttf",
+          "method": "GET"
+        },
+        {
+          "origin": "https://bazaarsignal.web.app",
+          "path": "/assets/sky-island-v1/web/ui-emerald-128.png",
+          "method": "GET"
+        },
+        {
+          "origin": "https://marketapi-k5a64sgi2q-uc.a.run.app",
+          "path": "/api/companion/portfolio-prices",
+          "method": "GET"
+        },
+        {
+          "origin": "https://marketapi-k5a64sgi2q-uc.a.run.app",
+          "path": "/api/price-history",
+          "method": "GET"
+        }
+      ],
+      "responses": [
+        {
+          "path": "/",
+          "status": 200
+        },
+        {
+          "path": "/assets/app-DA73zRPU.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/app-C_4kQh20.css",
+          "status": 200
+        },
+        {
+          "path": "/assets/sky-island-v1/web/ui-watchlist-chest-64.png",
+          "status": 200
+        },
+        {
+          "path": "/assets/items/enchanted_diamond_block.webp",
+          "status": 200
+        },
+        {
+          "path": "/assets/items/summoning_eye.webp",
+          "status": 200
+        },
+        {
+          "path": "/assets/items/booster_cookie.webp",
+          "status": 200
+        },
+        {
+          "path": "/assets/night-market/reference.webp",
+          "status": 200
+        },
+        {
+          "path": "/assets/night-market/scene-only.webp",
+          "status": 200
+        },
+        {
+          "path": "/assets/sky-island-v1/web/ui-emerald-128.png",
+          "status": 200
+        },
+        {
+          "path": "/assets/night-market/pixelify-sans-700.ttf",
+          "status": 200
+        },
+        {
+          "path": "/art/ui/wood-dark.png",
+          "status": 200
+        },
+        {
+          "path": "/assets/night-market/workspace-courtyard.webp",
+          "status": 200
+        },
+        {
+          "path": "/api/companion/portfolio-prices",
+          "status": 200
+        },
+        {
+          "path": "/api/price-history",
+          "status": 200
+        }
+      ],
+      "errors": [],
+      "consoleErrors": [
+        "Failed to load resource: net::ERR_FAILED"
+      ],
+      "blocked": [
+        "https://fonts.googleapis.com/css2"
+      ],
+      "market": [
+        {
+          "path": "/api/companion/portfolio-prices",
+          "status": 200,
+          "quotes": 1
+        },
+        {
+          "path": "/api/price-history",
+          "status": 200,
+          "points": 190,
+          "warning": "Daily closing prices are overdue. Retained prices may be incomplete."
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "landingMs": 1580.5368999999992,
+      "overflow": false,
+      "requests": [
+        {
+          "origin": "https://bazaarsignal.web.app",
+          "path": "/",
+          "method": "GET"
+        },
+        {
+          "origin": "https://bazaarsignal.web.app",
+          "path": "/assets/app-DA73zRPU.js",
+          "method": "GET"
+        },
+        {
+          "origin": "https://bazaarsignal.web.app",
+          "path": "/assets/app-C_4kQh20.css",
+          "method": "GET"
+        },
+        {
+          "origin": "https://fonts.googleapis.com",
+          "path": "/css2",
+          "method": "GET"
+        },
+        {
+          "origin": "https://bazaarsignal.web.app",
+          "path": "/assets/sky-island-v1/web/ui-watchlist-chest-64.png",
+          "method": "GET"
+        },
+        {
+          "origin": "https://bazaarsignal.web.app",
+          "path": "/assets/items/booster_cookie.webp",
+          "method": "GET"
+        },
+        {
+          "origin": "https://bazaarsignal.web.app",
+          "path": "/assets/items/enchanted_diamond_block.webp",
+          "method": "GET"
+        },
+        {
+          "origin": "https://bazaarsignal.web.app",
+          "path": "/assets/items/summoning_eye.webp",
+          "method": "GET"
+        },
+        {
+          "origin": "https://bazaarsignal.web.app",
+          "path": "/assets/night-market/reference.webp",
+          "method": "GET"
+        },
+        {
+          "origin": "https://bazaarsignal.web.app",
+          "path": "/assets/night-market/scene-only.webp",
+          "method": "GET"
+        },
+        {
+          "origin": "https://bazaarsignal.web.app",
+          "path": "/assets/night-market/workspace-courtyard.webp",
+          "method": "GET"
+        },
+        {
+          "origin": "https://bazaarsignal.web.app",
+          "path": "/art/ui/wood-dark.png",
+          "method": "GET"
+        },
+        {
+          "origin": "https://bazaarsignal.web.app",
+          "path": "/assets/night-market/pixelify-sans-700.ttf",
+          "method": "GET"
+        },
+        {
+          "origin": "https://bazaarsignal.web.app",
+          "path": "/assets/sky-island-v1/web/ui-emerald-128.png",
+          "method": "GET"
+        },
+        {
+          "origin": "https://marketapi-k5a64sgi2q-uc.a.run.app",
+          "path": "/api/companion/portfolio-prices",
+          "method": "GET"
+        },
+        {
+          "origin": "https://marketapi-k5a64sgi2q-uc.a.run.app",
+          "path": "/api/price-history",
+          "method": "GET"
+        }
+      ],
+      "responses": [
+        {
+          "path": "/",
+          "status": 200
+        },
+        {
+          "path": "/assets/app-C_4kQh20.css",
+          "status": 200
+        },
+        {
+          "path": "/assets/app-DA73zRPU.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/sky-island-v1/web/ui-watchlist-chest-64.png",
+          "status": 200
+        },
+        {
+          "path": "/assets/items/summoning_eye.webp",
+          "status": 200
+        },
+        {
+          "path": "/assets/items/enchanted_diamond_block.webp",
+          "status": 200
+        },
+        {
+          "path": "/assets/night-market/reference.webp",
+          "status": 200
+        },
+        {
+          "path": "/assets/items/booster_cookie.webp",
+          "status": 200
+        },
+        {
+          "path": "/assets/night-market/scene-only.webp",
+          "status": 200
+        },
+        {
+          "path": "/assets/sky-island-v1/web/ui-emerald-128.png",
+          "status": 200
+        },
+        {
+          "path": "/art/ui/wood-dark.png",
+          "status": 200
+        },
+        {
+          "path": "/assets/night-market/pixelify-sans-700.ttf",
+          "status": 200
+        },
+        {
+          "path": "/assets/night-market/workspace-courtyard.webp",
+          "status": 200
+        },
+        {
+          "path": "/api/companion/portfolio-prices",
+          "status": 200
+        },
+        {
+          "path": "/api/price-history",
+          "status": 200
+        }
+      ],
+      "errors": [],
+      "consoleErrors": [
+        "Failed to load resource: net::ERR_FAILED"
+      ],
+      "blocked": [
+        "https://fonts.googleapis.com/css2"
+      ],
+      "market": [
+        {
+          "path": "/api/companion/portfolio-prices",
+          "status": 200,
+          "quotes": 1
+        },
+        {
+          "path": "/api/price-history",
+          "status": 200,
+          "points": 190,
+          "warning": "Daily closing prices are overdue. Retained prices may be incomplete."
+        }
+      ]
+    }
+  ]
+}

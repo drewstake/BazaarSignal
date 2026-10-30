@@ -1,0 +1,46 @@
+{
+  "at": "2026-10-29T19:12:14.088Z",
+  "tests": [
+    {
+      "evidence": "release-tool-tests.json",
+      "passed": true,
+      "operations": {
+        "marketapi": "projects/bazaarsignal-510305/locations/us-central1/operations/offline-1",
+        "marketapiTraffic": "projects/bazaarsignal-510305/locations/us-central1/operations/offline-2",
+        "refreshmarket": "projects/bazaarsignal-510305/locations/us-central1/operations/offline-3",
+        "refreshmarketTraffic": "projects/bazaarsignal-510305/locations/us-central1/operations/offline-4"
+      },
+      "productionCalls": 0
+    },
+    {
+      "evidence": "cloud-continuation-offline.json",
+      "passed": true,
+      "operations": {
+        "marketapiTraffic": "projects/bazaarsignal-510305/locations/us-central1/operations/offline-1",
+        "refreshmarketImage": "projects/bazaarsignal-510305/locations/us-central1/operations/offline-2",
+        "refreshmarketTraffic": "projects/bazaarsignal-510305/locations/us-central1/operations/offline-3"
+      },
+      "productionCalls": 0
+    },
+    {
+      "evidence": "cloud-continuation-resume-offline.json",
+      "passed": true,
+      "operations": {
+        "marketapiTrafficReconciled": "projects/bazaarsignal-510305/locations/us-central1/operations/83f1e318-22a2-4e4f-a98a-41603d79b7e9",
+        "refreshmarketImage": "projects/bazaarsignal-510305/locations/us-central1/operations/offline-1",
+        "refreshmarketTraffic": "projects/bazaarsignal-510305/locations/us-central1/operations/offline-2"
+      },
+      "productionCalls": 0
+    },
+    {
+      "evidence": "cloud-continuation-resume2-offline.json",
+      "passed": true,
+      "operations": {
+        "marketapiTrafficReconciled": "projects/bazaarsignal-510305/locations/us-central1/operations/83f1e318-22a2-4e4f-a98a-41603d79b7e9",
+        "refreshmarketImage": "projects/bazaarsignal-510305/locations/us-central1/operations/offline-1",
+        "refreshmarketTraffic": "projects/bazaarsignal-510305/locations/us-central1/operations/offline-2"
+      },
+      "productionCalls": 0
+    }
+  ]
+}

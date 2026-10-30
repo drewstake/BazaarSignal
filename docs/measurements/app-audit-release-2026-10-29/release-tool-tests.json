@@ -1,0 +1,14 @@
+{
+  "at": "2026-10-29T18:56:02.525Z",
+  "passed": true,
+  "services": 2,
+  "expiryAndPinGuards": true,
+  "fullOfflineRelease": true,
+  "operations": {
+    "marketapi": "projects/bazaarsignal-510305/locations/us-central1/operations/offline-1",
+    "marketapiTraffic": "projects/bazaarsignal-510305/locations/us-central1/operations/offline-2",
+    "refreshmarket": "projects/bazaarsignal-510305/locations/us-central1/operations/offline-3",
+    "refreshmarketTraffic": "projects/bazaarsignal-510305/locations/us-central1/operations/offline-4"
+  },
+  "productionCalls": 0
+}

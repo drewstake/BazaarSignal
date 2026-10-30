@@ -7,6 +7,10 @@ import { recoverLocalExport } from "./local-export.mjs";
 import { localMarketEnvironment } from "./local-market-config.mjs";
 
 const require = createRequire(import.meta.url);
+const portIndex = process.argv.indexOf("--port");
+const port = portIndex === -1 ? 5173 : Number(process.argv[portIndex + 1]);
+if (!Number.isInteger(port) || port < 1 || port > 65535)
+  throw new Error("Use --port with a port number from 1 to 65535.");
 const env = { ...process.env, ...loadEnv("development", process.cwd(), "") };
 if (
   env.VITE_FIREBASE_PROJECT_ID !== "bazaarsignal" ||
@@ -58,7 +62,7 @@ const args = [
     : []),
   "--export-on-exit",
   data,
-  "node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5173 --strictPort",
+  `node node_modules/vite/bin/vite.js --host 127.0.0.1 --port ${port} --strictPort`,
 ];
 console.log(
   "Local workspace: real Google sign-in and local portfolios. Cached market reads and cloud daily history enabled unless --offline. Local collection and email disabled.",

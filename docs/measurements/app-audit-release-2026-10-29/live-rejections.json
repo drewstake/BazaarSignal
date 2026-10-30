@@ -1,0 +1,33 @@
+{
+  "at": "2026-10-29T19:04:37.400Z",
+  "results": [
+    {
+      "path": "/api/audit-invalid-route",
+      "status": 404,
+      "body": {
+        "error": "Unknown market route"
+      }
+    },
+    {
+      "path": "/api/companion/portfolio-prices?assets=invalid",
+      "status": 400,
+      "body": {
+        "error": "Invalid asset keys."
+      }
+    },
+    {
+      "path": "/api/companion/portfolio-prices?assets=bz_BOOSTER_COOKIE&force=1",
+      "status": 400,
+      "body": {
+        "error": "Invalid market query"
+      }
+    }
+  ],
+  "beforeHash": "6f32ff063f5e054f948a1f6eb50b43235c872403cc98714f205c659537c27269",
+  "afterHash": "6f32ff063f5e054f948a1f6eb50b43235c872403cc98714f205c659537c27269",
+  "beforeAdmission": 1466,
+  "afterAdmission": 1466,
+  "reservedUsdBefore": 10.060389574000276,
+  "reservedUsdAfter": 10.060389574000276,
+  "ledgerUnchanged": true
+}

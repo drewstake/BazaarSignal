@@ -1,0 +1,202 @@
+{
+  "tests/audit-2026-10-29/private/journeys.spec.ts": {
+    "bytes": 13951,
+    "sha256": "47b853bd3b04619de8ac5a062c152e477811b72eadf71b78d27363364da0b7f3"
+  },
+  "tests/audit-2026-10-29/public/recovery.spec.ts": {
+    "bytes": 4103,
+    "sha256": "95a0b5517f7a6ebd7fc895b70ee3063f4c08074e69e08168957229de34172fe3"
+  },
+  "tests/audit-reproductions.test.ts": {
+    "bytes": 4527,
+    "sha256": "a47bff0af83ad49dd573e50a9c35f88e6414b11c3598bc61e7a6608bb4ffb6e8"
+  },
+  "collector/cloud-price-history.ts": {
+    "bytes": 14889,
+    "sha256": "d2b3b13ac06f0ae7905337c0b15105d269dc6c6c84b4d66af807dd079254dc51"
+  },
+  "collector/paid-budget.ts": {
+    "bytes": 22585,
+    "sha256": "6cf67fbddf7ad9d1f1ce95653a98d09aedd11db160252910b92158795b0251e9"
+  },
+  "market-functions/package-lock.json": {
+    "bytes": 144175,
+    "sha256": "f6a24673af58b9853fe5b01ea7e208c3d013365d3b047a33a7089ab3a55552f0"
+  },
+  "package-lock.json": {
+    "bytes": 521856,
+    "sha256": "dc04b8149ca5a92be043f65a153d1e3edbfb81998b5af653e616c1a13ebd1bdf"
+  },
+  "src/account.ts": {
+    "bytes": 2458,
+    "sha256": "09ff009cee1505f96e8638e7d86a44556fc9fec20bcbe1a5a8417be73dc4e9c7"
+  },
+  "src/companion/BazaarPriceChart.tsx": {
+    "bytes": 16654,
+    "sha256": "a8910706625bc1d5fcace8da27ef6e452f23f8ccf18e16fdc2e0de267d1168ba"
+  },
+  "src/companion/BuyingPower.tsx": {
+    "bytes": 3280,
+    "sha256": "75127125babbc278a3d3dada9c06bb4c587f1af9351417eddd178ccaaf865aef"
+  },
+  "src/companion/PortfolioApp.tsx": {
+    "bytes": 9112,
+    "sha256": "a8a3f905325e00552240358dfcbea68089a3936f0e73f0fffb44b24876ddbd99"
+  },
+  "src/companion/PortfolioValueChart.tsx": {
+    "bytes": 11536,
+    "sha256": "f97328b6187eff53c0c20f8e6f201942a871635c9cc6fe1d743c72737db45ba5"
+  },
+  "src/companion/UsageDashboard.tsx": {
+    "bytes": 31076,
+    "sha256": "57e3776f56acbf54e6c9873e28d3796bd81683ccb4bd72ea916f7821aac8645b"
+  },
+  "src/companion/Workspace.tsx": {
+    "bytes": 40989,
+    "sha256": "37603add111c27a75de2062aafb46a1673ee7a5b472421d72940b0d4038ed922"
+  },
+  "src/companion/admin-snapshot.ts": {
+    "bytes": 2235,
+    "sha256": "d9748a689f9d479c7efb372be44ea46f32311a57d2b795a92e5dfb7542bc7e8d"
+  },
+  "src/companion/bazaar-search-data.ts": {
+    "bytes": 7196,
+    "sha256": "b0c9ee5c4153e1b632aa1382a4686bebf7012c1a8be91e0437830a7fd1d1eb2d"
+  },
+  "src/companion/daily-price-history.ts": {
+    "bytes": 4929,
+    "sha256": "a901bc2e80817152dfb44a18dc9ebdc49530862b5a34b4102581a38f44db5ae0"
+  },
+  "src/companion/portfolio-market.ts": {
+    "bytes": 5361,
+    "sha256": "0faa3ec250995e16d7b2c75b1b87af6b928fb87b3875de6b09c3577dae387d05"
+  },
+  "src/companion/portfolio-notifications.ts": {
+    "bytes": 1779,
+    "sha256": "51b747cfcfd509d2795dc556f151bc4db4afa51f6b7872c9e5450da06b612c1d"
+  },
+  "src/companion/request-cache.ts": {
+    "bytes": 14208,
+    "sha256": "e5bf565d4da8b549ae82d0c62a3a555bf4df62f379564117bb540068788256d4"
+  },
+  "src/data.ts": {
+    "bytes": 3506,
+    "sha256": "60e3e645bdf9f97b83429bddbdac9f79dd0353cbdf3ff78ca30e1540beb50bb1"
+  },
+  "tests/bazaar-search.test.ts": {
+    "bytes": 19737,
+    "sha256": "c4f4985e4827cd678492cfb9134445fb20aa4af7c3aa0f682bdbc925b2e375e9"
+  },
+  "tests/cloud-price-history.test.ts": {
+    "bytes": 14745,
+    "sha256": "98cdaa8e6a2ff5c8cc2d43787903f548cce120817b3f24db52f6bc26faf0bd04"
+  },
+  "src/session-token.ts": {
+    "bytes": 941,
+    "sha256": "7825c3beee199083cba934e065c81b7d910a315b35cc094823ce0bb6b90c953e"
+  },
+  "src/companion/private-workspace-sync.ts": {
+    "bytes": 1034,
+    "sha256": "5571983f4f75a3f646d906e976908dd10435228809266a4d231cb7a58108a6bb"
+  },
+  "tests/audit-fixes.test.ts": {
+    "bytes": 9293,
+    "sha256": "2762dce875800e351c865f93b5db13ee91c332a8296033aaca8bf9964318ee4a"
+  },
+  "tests/parser-security.test.ts": {
+    "bytes": 1829,
+    "sha256": "21d1856914e91d86e39ddc823d14a668a2d63bb2d6e45f5a7e1d711ee1c50b38"
+  },
+  "tests/support/parser-probe.cjs": {
+    "bytes": 1684,
+    "sha256": "534cac85a1b417c0199c044259619fecb70ec77e18a0f04be0399e2af402cd34"
+  },
+  "docs/APP-AUDIT-FIXES-2026-10-29.md": {
+    "bytes": 12234,
+    "sha256": "12b139d315eae6d7e64e81a928dc710f654e8ebd5569f04ec9629196a839bf32"
+  },
+  "docs/measurements/app-audit-fixes-2026-10-29/audit-private-final.log": {
+    "bytes": 3167,
+    "sha256": "cb167099bc83fd3dbbb828664d695f753874f2bbe42a50bf74f19cd9c9cd8c35"
+  },
+  "docs/measurements/app-audit-fixes-2026-10-29/browser-public-audit.log": {
+    "bytes": 1482,
+    "sha256": "244a8d7c18b90ef719662d6fc337a28718b0b75550dd7f2f699bfc2780f52747"
+  },
+  "docs/measurements/app-audit-fixes-2026-10-29/build-collector-final.log": {
+    "bytes": 121,
+    "sha256": "7a4b5c35271ad158343fc133b97260ac9d304a3e59ae2e8960834c7a8ea6744b"
+  },
+  "docs/measurements/app-audit-fixes-2026-10-29/build-final.log": {
+    "bytes": 14695,
+    "sha256": "b18cd8294bb295383d8b148d86797cecc3f51b7eb0b1c35f2871541c48ab9fd2"
+  },
+  "docs/measurements/app-audit-fixes-2026-10-29/build-market-final.log": {
+    "bytes": 142,
+    "sha256": "1c927feba367ff74624915d9cde24c8e2a7c5162b73a0d7a208587e2a671c2f2"
+  },
+  "docs/measurements/app-audit-fixes-2026-10-29/final-check.json": {
+    "bytes": 141,
+    "sha256": "220bbbcd3b37771a915274090bfe79466f1d913b58555d34aa3db6c4d74253d0"
+  },
+  "docs/measurements/app-audit-fixes-2026-10-29/large-portfolio-desktop.json": {
+    "bytes": 140,
+    "sha256": "7a7cb55f2aae0abba25943a1a680f3b47858e2aea45c80c254c7a2a28fc44e85"
+  },
+  "docs/measurements/app-audit-fixes-2026-10-29/large-portfolio-mobile.json": {
+    "bytes": 140,
+    "sha256": "ca23afe441dd9295f3ab641152cf93fb4946bf9bef9e994ec607c8b8a35fbc53"
+  },
+  "docs/measurements/app-audit-fixes-2026-10-29/npm-audit-market.json": {
+    "bytes": 4961,
+    "sha256": "81e3b4ece87acb4daefb2daf08b6f2dcce46dae36e310568fc4790b57b64ded0"
+  },
+  "docs/measurements/app-audit-fixes-2026-10-29/npm-audit-root.json": {
+    "bytes": 36181,
+    "sha256": "79d2e7f5cc3777d994af885a2ad25ce3080954c5d67aa0cb082a16cbc82083e6"
+  },
+  "docs/measurements/app-audit-fixes-2026-10-29/paid-performance.log": {
+    "bytes": 235,
+    "sha256": "162b0528be485ac82f6dec29ee193d0dc4fd68956cf291cd843edf7a1c1404a2"
+  },
+  "docs/measurements/app-audit-fixes-2026-10-29/paid-runtime.json": {
+    "bytes": 99188,
+    "sha256": "cb15f01940be06a3c97f513b13162a8d69cf80c218921a36d188b6913c569778"
+  },
+  "docs/measurements/app-audit-fixes-2026-10-29/parser-regressions.log": {
+    "bytes": 231,
+    "sha256": "a50c7b7cf87d0c2a5da3593fe4f01dcb1da9aeacdb61ecbad6ec8ce5d71c8bcd"
+  },
+  "docs/measurements/app-audit-fixes-2026-10-29/preservation.json": {
+    "bytes": 1832,
+    "sha256": "7db84a882f0bcf2eac489e1165019fc2033997351651556ec35b9885d38fdcab"
+  },
+  "docs/measurements/app-audit-fixes-2026-10-29/private-cache-final.log": {
+    "bytes": 2021,
+    "sha256": "7c85e9e48cf9d2b2bfc8c85ff84dbc9d43d31636b9324809b8e1385b151ebb2d"
+  },
+  "docs/measurements/app-audit-fixes-2026-10-29/private-final.log": {
+    "bytes": 8295,
+    "sha256": "0cc743b361af5026c4da472d7d2650f4d0fc8e0b1517b775deeb5febfb85130a"
+  },
+  "docs/measurements/app-audit-fixes-2026-10-29/public-final.log": {
+    "bytes": 8841,
+    "sha256": "f65e3800151f183a1874f6df96818adfbbb144281a52d616a6b3baa943c7b6f1"
+  },
+  "docs/measurements/app-audit-fixes-2026-10-29/queued-runtime.json": {
+    "bytes": 394,
+    "sha256": "730876cf88df50e19e661a9997cb621ea5b81cf2cbc2c597abb50ed19a0f989d"
+  },
+  "docs/measurements/app-audit-fixes-2026-10-29/retry-final.log": {
+    "bytes": 1709,
+    "sha256": "6757405935b35d3f8e2b740d5b557bc501ebe7e671aba93edce5a1d30e06241e"
+  },
+  "docs/measurements/app-audit-fixes-2026-10-29/rules-final.log": {
+    "bytes": 1165,
+    "sha256": "45a79e1733c4f2cace72b1a6ac62f0c93519bdfcb56decaf10a6e3bca18b68e6"
+  },
+  "docs/measurements/app-audit-fixes-2026-10-29/unit-final.log": {
+    "bytes": 312,
+    "sha256": "c28231fa1f70158b68dcac1be2e36903586b945c1418f030b50e593a021591ca"
+  }
+}

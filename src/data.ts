@@ -9,6 +9,7 @@ import {
   type User,
 } from "firebase/auth";
 import { localWorkspace } from "./local-workspace";
+import { reportSessionError, watchSessionErrors } from './session-token';
 const env = import.meta.env;
 const values = [
   env.VITE_FIREBASE_API_KEY,
@@ -45,5 +46,44 @@ if (localWorkspace && auth) {
 export const login = () =>
   auth && signInWithPopup(auth, new GoogleAuthProvider());
 export const logout = () => auth && signOut(auth);
-export const watchAuth = (callback: (user: User | null) => void) =>
-  auth ? onAuthStateChanged(auth, callback) : () => {};
+export function watchAuth(callback: (user: User | null, reason?: string) => void) {
+  if (!auth) return () => {};
+  const instance = auth;
+  let closed = false, expired = false, checking = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const reason = () => expired ? 'Your session expired. Sign in again to continue.' : undefined;
+  const stopErrors = watchSessionErrors((user) => {
+    if (closed || instance.currentUser !== user) return;
+    expired = true;
+    clearTimeout(timer);
+    callback(null, reason());
+    void signOut(instance).catch(() => {});
+  });
+  // Inspect the cached expiry, refreshing only near its deadline. Offline
+  // failures keep the session and back off; confirmed invalid tokens clear it.
+  const check = async () => {
+    clearTimeout(timer);
+    const user = instance.currentUser;
+    if (closed || checking || !user || document.visibilityState === 'hidden') return;
+    checking = true;
+    let next = 60_000;
+    try {
+      const token = await user.getIdTokenResult();
+      next = Math.max(60_000, Date.parse(token.expirationTime) - Date.now() - 240_000);
+    } catch (error) { reportSessionError(user, error); }
+    finally {
+      checking = false;
+      if (!closed && instance.currentUser === user && !expired)
+        timer = setTimeout(check, Number.isFinite(next) ? Math.min(next, 3_600_000) : 60_000);
+      else if (!closed && instance.currentUser && instance.currentUser !== user) void check();
+    }
+  };
+  const visible = () => { if (document.visibilityState !== 'hidden') void check(); };
+  const stopAuth = onAuthStateChanged(instance, user => {
+    if (user) expired = false;
+    callback(user, reason());
+    void check();
+  });
+  document.addEventListener('visibilitychange', visible);
+  return () => { closed = true; clearTimeout(timer); stopErrors(); stopAuth(); document.removeEventListener('visibilitychange', visible); };
+}

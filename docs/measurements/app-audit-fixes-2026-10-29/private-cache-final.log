@@ -1,0 +1,28 @@
+i  emulators: Starting emulators: auth, firestore
+i  emulators: Detected demo project ID "demo-bazaar-watch", emulated services will use a demo configuration and attempts to access non-emulated services for this project will fail.
+i  firestore: Firestore Emulator logging to firestore-debug.log
++  firestore: Firestore Emulator was started in standard edition.
++  firestore: Firestore Emulator UI websocket is running on 9150.
+i  Running script: node .local/audit-fixes-2026-10-29/run-cache.cjs
+[WebServer] (node:73888) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+(node:36336) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 1 [desktop] › tests\audit-2026-10-29\private\journeys.spec.ts:73:1 › retains partial-refresh quotes and recovers with bounded backoff (7.4s)
+  ok 2 [desktop] › tests\audit-2026-10-29\private\journeys.spec.ts:92:1 › defers cross-tab invalidation while editing and refreshes old private data on focus (3.0s)
+(node:40332) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 3 [mobile] › tests\audit-2026-10-29\private\journeys.spec.ts:73:1 › retains partial-refresh quotes and recovers with bounded backoff (2.2s)
+  ok 4 [mobile] › tests\audit-2026-10-29\private\journeys.spec.ts:92:1 › defers cross-tab invalidation while editing and refreshes old private data on focus (2.8s)
+
+  4 passed (17.6s)
++  Script exited successfully (code 0)
+i  emulators: Shutting down emulators.
+i  firestore: Stopping Firestore Emulator
+!  Firestore Emulator has exited upon receiving signal: SIGINT
+i  auth: Stopping Authentication Emulator
+i  hub: Stopping emulator hub
+i  logging: Stopping Logging Emulator

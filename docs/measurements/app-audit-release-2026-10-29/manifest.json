@@ -1,0 +1,70 @@
+{
+  "docs\\measurements\\app-audit-release-2026-10-29\\final-check.json": {
+    "bytes": 143,
+    "sha256": "13d85d3935e7d09576f45af6640452f34870adc2050846b3c5b62b96c50fc93b"
+  },
+  "docs\\measurements\\app-audit-release-2026-10-29\\image-receipt.json": {
+    "bytes": 1452,
+    "sha256": "5dbeed4fc957d614cefd3ef20190c9eeda35f3716c54928dabb6fcddfbac52b4"
+  },
+  "docs\\measurements\\app-audit-release-2026-10-29\\live-browser-fonts.json": {
+    "bytes": 9817,
+    "sha256": "d461344c6c4ebabd1a8f870434a28a042e248efc82e3c45ab286b593e9f4809a"
+  },
+  "docs\\measurements\\app-audit-release-2026-10-29\\live-browser.json": {
+    "bytes": 9282,
+    "sha256": "53a6db15b7455f7ed19732952c2a9fd382e10709f8e3f2f7e8e7ad87852ad9ca"
+  },
+  "docs\\measurements\\app-audit-release-2026-10-29\\live-rejections.json": {
+    "bytes": 870,
+    "sha256": "5ba040472129419b2d37af81e8d8483f151047f57f79d6b221b39a2361c1ca5f"
+  },
+  "docs\\measurements\\app-audit-release-2026-10-29\\natural-proof.json": {
+    "bytes": 1788,
+    "sha256": "67628bfd8eecf313f5635f4837035cdf71f5241ca51788ca99970cae4dbb38fa"
+  },
+  "docs\\measurements\\app-audit-release-2026-10-29\\reconciliation-tests.json": {
+    "bytes": 2067,
+    "sha256": "f2a90049db77723068e0cf0eb92feaf0f63d749dc86978f3e59cd2743db74325"
+  },
+  "docs\\measurements\\app-audit-release-2026-10-29\\release-logs-before-natural.json": {
+    "bytes": 3647,
+    "sha256": "be451fd6abb1015a3f44a97ccbf0c1dcdd6b5ebf1fb744ccf67a1bcf9c63dbd2"
+  },
+  "docs\\measurements\\app-audit-release-2026-10-29\\release-regressions.log": {
+    "bytes": 235,
+    "sha256": "dff992d75c8b93700c5dd09fc0480a117c6d01e8a61823a06cd1b35573cc2a10"
+  },
+  "docs\\measurements\\app-audit-release-2026-10-29\\release-tool-tests.json": {
+    "bytes": 569,
+    "sha256": "63efb83f0c9975b7284de84556ba6b420954156c960602959120545eab25318a"
+  },
+  "docs\\measurements\\app-audit-release-2026-10-29\\source-provenance.json": {
+    "bytes": 24247,
+    "sha256": "827e2a3acbd0b6898736ffc95c12011c514c062a5fb5e07568429283412eb58c"
+  },
+  "docs\\measurements\\app-audit-release-2026-10-29\\verification-after.json": {
+    "bytes": 4402,
+    "sha256": "a75fcb7cb05701daf4902bd9f26d385a70fdabaadb9a1be36419c90ea84fb619"
+  },
+  "docs\\measurements\\app-audit-release-2026-10-29\\verification-final.json": {
+    "bytes": 4515,
+    "sha256": "2890152553d01ead69e1578509697e4b90ddf1efebb319b87e2f8e53b05b2449"
+  },
+  "docs\\measurements\\app-audit-release-2026-10-29\\worker-after.json": {
+    "bytes": 273,
+    "sha256": "cb62d1fe5ae730c6714235cba0dd47d0b992590ba2f7c6bf050bf67316709493"
+  },
+  "docs\\measurements\\app-audit-release-2026-10-29\\worker-before.json": {
+    "bytes": 273,
+    "sha256": "585f1c2a694497132eb41b3ee7dc7b0bc21e8daad175c7659df2250a254ec866"
+  },
+  "docs\\measurements\\app-audit-release-2026-10-29\\workspace-preserved.json": {
+    "bytes": 79,
+    "sha256": "eaf62d4851bbd00fb43fd22140b68ec2719cc363c69aa1a7a276fb56898c45c1"
+  },
+  "docs/APP-AUDIT-RELEASE-2026-10-29.md": {
+    "bytes": 10675,
+    "sha256": "df34962c5d3bd0894f89730a2bf567f4caced7643b75254a8dd15e8d520aef19"
+  }
+}

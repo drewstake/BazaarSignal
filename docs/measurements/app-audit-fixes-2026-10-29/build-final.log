@@ -1,0 +1,146 @@
+
+> bazaar-watch@1.0.0 build
+> tsc --noEmit && vite build && npm run build:backend
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./server/companion" without a file extension (vite.config.ts:4:33). Add the file extension
+  - import "../collector/http" without a file extension (server/companion.ts:2:48). Add the file extension
+  - import "./local-workspace" without a file extension (server/companion.ts:3:39). Add the file extension
+  - import "../collector/engine" without a file extension (server/companion.ts:5:33). Add the file extension
+  - import "../collector/cache-store" without a file extension (server/companion.ts:6:29). Add the file extension
+  - import "./shared-market" without a file extension (server/companion.ts:7:37). Add the file extension
+  - import "../collector/history-store" without a file extension (server/companion.ts:8:30). Add the file extension
+  - import "../collector/daily-close-collector" without a file extension (server/companion.ts:9:37). Add the file extension
+  - import "./price-history" without a file extension (server/companion.ts:10:63). Add the file extension
+  - import "./local-usage" without a file extension (server/local-workspace.ts:2:40). Add the file extension
+  - import "./engine" without a file extension (collector/http.ts:1:33). Add the file extension
+  - import "../shared/companion/bazaar" without a file extension (collector/engine.ts:2:33). Add the file extension
+  - import "./history-store" without a file extension (collector/daily-close-collector.ts:1:30). Add the file extension
+  - import "../shared/paid-pilot" without a file extension (server/shared-market.ts:2:67). Add the file extension
+  - import "../collector/history-store" without a file extension (server/price-history.ts:4:30). Add the file extension
+  - import "../shared/daily-price-history" without a file extension (collector/history-store.ts:4:45). Add the file extension
+  - import "./cache-store" without a file extension (collector/http.ts:2:33). Add the file extension
+  - import "./local-admin" without a file extension (server/local-workspace.ts:3:32). Add the file extension
+  - import "../shared/daily-price-history" without a file extension (server/price-history.ts:5:34). Add the file extension
+  - import "./history-download" without a file extension (collector/daily-close-collector.ts:2:33). Add the file extension
+  - import "../shared/companion/types" without a file extension (collector/engine.ts:3:45). Add the file extension
+  - import "./policy" without a file extension (collector/http.ts:3:34). Add the file extension
+  - import "../shared/paid-pilot" without a file extension (server/price-history.ts:6:52). Add the file extension
+  - import "./routes" without a file extension (collector/http.ts:4:31). Add the file extension
+  - import "./history-sources" without a file extension (collector/daily-close-collector.ts:3:30). Add the file extension
+  - import "../apps-script/core" without a file extension (server/local-workspace.ts:4:41). Add the file extension
+  - import "./fee-context" without a file extension (collector/engine.ts:4:40). Add the file extension
+  - import "../shared/daily-price-history" without a file extension (collector/daily-close-collector.ts:8:8). Add the file extension
+  - import "../apps-script/store" without a file extension (server/local-workspace.ts:5:26). Add the file extension
+  - import "../shared/market" without a file extension (collector/engine.ts:9:25). Add the file extension
+  - import "../shared/market" without a file extension (collector/daily-close-collector.ts:9:27). Add the file extension
+  - import "./cache-store" without a file extension (collector/engine.ts:10:33). Add the file extension
+  - import "../apps-script/portfolio-backend" without a file extension (server/local-workspace.ts:10:8). Add the file extension
+  - import "./engine" without a file extension (collector/routes.ts:3:42). Add the file extension
+  - import "../apps-script/core" without a file extension (collector/routes.ts:4:36). Add the file extension
+  - import "./coordinator" without a file extension (collector/engine.ts:17:8). Add the file extension
+  - import "./policy" without a file extension (collector/engine.ts:18:59). Add the file extension
+  - import "../collector/usage-dashboard" without a file extension (server/local-workspace.ts:11:33). Add the file extension
+  - import "./trial" without a file extension (collector/engine.ts:19:30). Add the file extension
+  - import "../shared/usage-dashboard" without a file extension (server/local-workspace.ts:12:39). Add the file extension
+  - import "../shared/daily-price-history" without a file extension (collector/history-sources.ts:7:8). Add the file extension
+  - import "./snapshot-read-cache" without a file extension (collector/engine.ts:20:35). Add the file extension
+  - import "../shared/market" without a file extension (apps-script/core.ts:1:61). Add the file extension
+  - import "./cache-store" without a file extension (collector/usage-dashboard.ts:3:33). Add the file extension
+  - import "../shared/companion/notifications" without a file extension (apps-script/portfolio-backend.ts:9:8). Add the file extension
+  - import "./core" without a file extension (apps-script/store.ts:1:41). Add the file extension
+  - import "../shared/admin" without a file extension (server/local-admin.ts:3:52). Add the file extension
+  - import "../collector/cache-store" without a file extension (server/local-usage.ts:4:29). Add the file extension
+  - import "./core" without a file extension (apps-script/store.ts:2:28). Add the file extension
+  - import "../collector/usage-dashboard" without a file extension (server/local-usage.ts:5:64). Add the file extension
+  - import "../shared/usage-dashboard" without a file extension (server/local-usage.ts:6:60). Add the file extension
+  - import "./diagnostics" without a file extension (collector/engine.ts:21:58). Add the file extension
+  - import "../shared/price-alert" without a file extension (apps-script/core.ts:2:51). Add the file extension
+  - import "./allowance-live" without a file extension (collector/usage-dashboard.ts:4:106). Add the file extension
+  - import "../shared/companion/portfolio" without a file extension (apps-script/portfolio-backend.ts:17:8). Add the file extension
+  - import "../shared/published-usage" without a file extension (server/local-admin.ts:4:53). Add the file extension
+  - import "../shared/model" without a file extension (apps-script/core.ts:3:68). Add the file extension
+  - import "../shared/companion/portfolio-policy" without a file extension (apps-script/portfolio-backend.ts:18:46). Add the file extension
+  - import "../shared/hourly-trial" without a file extension (collector/usage-dashboard.ts:5:53). Add the file extension
+  - import "../shared/usage-dashboard" without a file extension (collector/usage-dashboard.ts:6:47). Add the file extension
+  - import "../shared/automation-policy" without a file extension (apps-script/portfolio-backend.ts:19:40). Add the file extension
+  - import "../shared/usage-dashboard" without a file extension (collector/usage-dashboard.ts:7:39). Add the file extension
+  - import "../shared/companion/types" without a file extension (apps-script/portfolio-backend.ts:20:33). Add the file extension
+  - import "../shared/app-budget-policy" without a file extension (collector/usage-dashboard.ts:8:46). Add the file extension
+  - import "./published-usage" without a file extension (shared/admin.ts:1:35). Add the file extension
+  - import "./usage-dashboard" without a file extension (shared/published-usage.ts:1:60). Add the file extension
+  - import "./core" without a file extension (apps-script/portfolio-backend.ts:21:60). Add the file extension
+  - import "./paid-spending" without a file extension (shared/admin.ts:2:34). Add the file extension
+  - import "./store" without a file extension (apps-script/portfolio-backend.ts:32:8). Add the file extension
+  - import "../market" without a file extension (shared/companion/bazaar.ts:1:51). Add the file extension
+  - import "./cache-store" without a file extension (collector/coordinator.ts:2:33). Add the file extension
+  - import "./cache-store" without a file extension (collector/trial.ts:1:33). Add the file extension
+  - import "../shared/companion/types" without a file extension (collector/fee-context.ts:1:33). Add the file extension
+  - import "./engine" without a file extension (collector/snapshot-read-cache.ts:1:31). Add the file extension
+  - import "./paid-pilot" without a file extension (shared/admin.ts:3:63). Add the file extension
+  - import "../model" without a file extension (shared/companion/bazaar.ts:2:28). Add the file extension
+  - import "./policy" without a file extension (collector/coordinator.ts:3:70). Add the file extension
+  - import "./companion" without a file extension (apps-script/portfolio-backend.ts:33:30). Add the file extension
+  - import "./usage" without a file extension (collector/trial.ts:2:60). Add the file extension
+  - import "./types" without a file extension (shared/companion/bazaar.ts:3:33). Add the file extension
+  - import "../shared/paid-pilot" without a file extension (apps-script/portfolio-backend.ts:34:33). Add the file extension
+  - import "./cache-store" without a file extension (collector/allowance-live.ts:4:33). Add the file extension
+  - import "./engine" without a file extension (collector/allowance-live.ts:5:33). Add the file extension
+  - import "./routes" without a file extension (collector/allowance-live.ts:6:53). Add the file extension
+  - import "./policy" without a file extension (collector/allowance-live.ts:7:31). Add the file extension
+  - import "./trial" without a file extension (collector/allowance-live.ts:8:79). Add the file extension
+  - import "../shared/hourly-trial" without a file extension (collector/allowance-live.ts:9:53). Add the file extension
+  - import "./snapshot-read-cache" without a file extension (collector/allowance-live.ts:10:35). Add the file extension
+  - import "../shared/market-schedule" without a file extension (collector/allowance-live.ts:11:48). Add the file extension
+  - import "./cache-store" without a file extension (collector/usage.ts:1:33). Add the file extension
+  - import "./positions" without a file extension (shared/companion/portfolio.ts:3:88). Add the file extension
+  - import "./store" without a file extension (apps-script/companion.ts:1:27). Add the file extension
+  - import "../market" without a file extension (shared/companion/notifications.ts:1:25). Add the file extension
+  - import "./types" without a file extension (shared/companion/portfolio.ts:4:52). Add the file extension
+  - import "../shared/market-schedule" without a file extension (apps-script/companion.ts:2:54). Add the file extension
+  - import "./portfolio" without a file extension (shared/companion/notifications.ts:6:8). Add the file extension
+  - import "./capacity-plan" without a file extension (collector/allowance-live.ts:12:89). Add the file extension
+  - import "../shared/companion/portfolio-policy" without a file extension (apps-script/companion.ts:3:46). Add the file extension
+  - import "../shared/paid-pilot" without a file extension (apps-script/companion.ts:4:33). Add the file extension
+  - import "./visible-demand" without a file extension (collector/allowance-live.ts:13:72). Add the file extension
+  - import "../shared/app-budget-policy" without a file extension (collector/allowance-live.ts:14:99). Add the file extension
+  - import "./inline-snapshot" without a file extension (collector/allowance-live.ts:15:44). Add the file extension
+  - import "./portfolio-demand" without a file extension (collector/allowance-live.ts:256:41). Add the file extension
+  - import "../market" without a file extension (shared/companion/positions.ts:1:38). Add the file extension
+  - import "./bazaar" without a file extension (shared/companion/positions.ts:2:49). Add the file extension
+  - import "./fees" without a file extension (shared/companion/positions.ts:3:69). Add the file extension
+  - import "./types" without a file extension (shared/companion/positions.ts:4:33). Add the file extension
+  - import "./types" without a file extension (shared/companion/fees.ts:3:33). Add the file extension
+  - import "./portfolio-demand" without a file extension (collector/visible-demand.ts:2:29). Add the file extension
+  - import "../shared/companion/portfolio" without a file extension (collector/portfolio-demand.ts:4:8). Add the file extension
+  - import "./trial" without a file extension (collector/capacity-plan.ts:1:31). Add the file extension
+  - import "../market" without a file extension (shared/companion/fees.ts:4:31). Add the file extension
+  - import "../shared/companion/portfolio-policy" without a file extension (collector/portfolio-demand.ts:5:46). Add the file extension
+  - import "../shared/app-budget-policy" without a file extension (collector/capacity-plan.ts:2:43). Add the file extension
+  - import "./engine" without a file extension (collector/portfolio-demand.ts:6:38). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+vite v8.3.1 building client environment for production...
+transforming...
+✓ 1825 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                           0.59 kB │ gzip:   0.39 kB
+dist/assets/Workspace-DK7-hSD-.css       21.83 kB │ gzip:   4.69 kB
+dist/assets/app-C_4kQh20.css             67.56 kB │ gzip:  15.32 kB
+dist/assets/fixtures-CpzAd295.js          1.42 kB │ gzip:   0.77 kB
+dist/assets/bazaar-CXa6or1u.js            1.62 kB │ gzip:   0.95 kB
+dist/assets/AdminDashboard-CYaD-Lko.js   16.15 kB │ gzip:   5.39 kB
+dist/assets/app-N_eIa-tX.js             458.56 kB │ gzip: 143.40 kB
+dist/assets/Workspace-B442L4pH.js       505.97 kB │ gzip: 150.26 kB
+
+✓ built in 362ms
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+
+> bazaar-watch@1.0.0 build:backend
+> tsc --noEmit --project apps-script/tsconfig.json && node scripts/build-apps-script.mjs
+
+Apps Script bundle built (no credentials).

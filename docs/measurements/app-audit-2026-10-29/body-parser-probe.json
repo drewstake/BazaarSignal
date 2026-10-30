@@ -1,0 +1,10 @@
+{
+  "dependency": "body-parser",
+  "version": "2.3.0",
+  "localOnly": true,
+  "sent": true,
+  "responseStatus": 400,
+  "exitCode": 0,
+  "signal": null,
+  "stderr": ""
+}

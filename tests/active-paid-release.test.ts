@@ -150,6 +150,17 @@ it('a concurrent owner stop or persistent contention prevents upload admission',
   expect(calls).toBe(3); expect(state.reservedUsd).toBe(1.03);
 });
 
+it('pins an inspected 15-minute schedule without accepting cadence or target drift', () => {
+  const s = { ...schedule(), schedule: '*/15 * * * *' };
+  const p = { ...plan(), paidSchedule: s.schedule, scheduleSha256: hash(JSON.stringify(scheduleConfiguration(s))) };
+  expect(() => verifySchedule(p, s)).not.toThrow();
+  expect(() => verifySchedule(p, schedule())).toThrow();
+  for (const cron of ['*/5 * * * *','* * * * *']) {
+    const changed = { ...s, schedule: cron };
+    expect(() => verifySchedule({ ...p, paidSchedule: cron, scheduleSha256: hash(JSON.stringify(scheduleConfiguration(changed))) }, changed)).toThrow();
+  }
+});
+
 it('preserves the exact hourly target, no retries and service runtime limits', () => {
   const p = plan(), s = schedule(); p.scheduleSha256 = hash(JSON.stringify(scheduleConfiguration(s)));
   expect(() => verifySchedule(p, s)).not.toThrow();
@@ -184,4 +195,13 @@ it('requires fresh complete scope, original legacy accounting, rollback and shut
     const bad = structuredClone(evidence); change(bad.resources); expect(() => verifyPaidPreflight(p, bad, now)).toThrow();
   }
   expect(() => verifyPaidPreflight(p, evidence, now + 1800001)).toThrow();
+});
+it('counts separate paid receipts during release preflight and preserves monotonic format/count transitions', () => {
+  const before = budget(), after = structuredClone(before) as any;
+  after.version = 2; after.admissionCount = Object.keys(before.admissions).length + 1;
+  expect(() => verifyPaidContinuity(before,after)).not.toThrow();
+  expect(() => verifyPaidReleaseBudget(plan(),after,now)).not.toThrow();
+  expect(() => verifyPaidContinuity(after,before)).toThrow();
+  expect(() => verifyPaidReleaseBudget(plan(),{...after,admissionCount:4000},now)).toThrow();
+  expect(() => verifyPaidReleaseBudget(plan(),{...after,admissionCount:undefined},now)).toThrow();
 });

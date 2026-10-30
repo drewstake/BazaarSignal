@@ -1,0 +1,323 @@
+{
+  "at": "2026-10-29T17:47:59.207Z",
+  "mode": "static-live plus management-snapshot replay; no runtime API requests",
+  "results": [
+    {
+      "width": 1440,
+      "landingMs": 1639.383,
+      "invalidRequests": 0,
+      "overflow": false,
+      "smallTargets": [
+        {
+          "label": "Explore item price history",
+          "width": 2,
+          "height": 2
+        }
+      ],
+      "resources": [
+        {
+          "name": "/assets/app-fx7oRO0E.js",
+          "transferSize": 119325,
+          "decodedBodySize": 456167
+        },
+        {
+          "name": "/assets/app-C_4kQh20.css",
+          "transferSize": 13619,
+          "decodedBodySize": 67566
+        },
+        {
+          "name": "/css2",
+          "transferSize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "name": "/assets/items/booster_cookie.webp",
+          "transferSize": 13240,
+          "decodedBodySize": 12940
+        },
+        {
+          "name": "/assets/items/enchanted_diamond_block.webp",
+          "transferSize": 18516,
+          "decodedBodySize": 18216
+        },
+        {
+          "name": "/assets/sky-island-v1/web/ui-watchlist-chest-64.png",
+          "transferSize": 5785,
+          "decodedBodySize": 5485
+        },
+        {
+          "name": "/assets/items/summoning_eye.webp",
+          "transferSize": 17354,
+          "decodedBodySize": 17054
+        },
+        {
+          "name": "/assets/night-market/scene-only.webp",
+          "transferSize": 1335444,
+          "decodedBodySize": 1335144
+        },
+        {
+          "name": "/assets/night-market/reference.webp",
+          "transferSize": 1310498,
+          "decodedBodySize": 1310198
+        },
+        {
+          "name": "/art/ui/wood-dark.png",
+          "transferSize": 2268,
+          "decodedBodySize": 1968
+        },
+        {
+          "name": "/assets/night-market/pixelify-sans-700.ttf",
+          "transferSize": 17627,
+          "decodedBodySize": 49396
+        },
+        {
+          "name": "/assets/sky-island-v1/web/ui-emerald-128.png",
+          "transferSize": 15329,
+          "decodedBodySize": 15029
+        },
+        {
+          "name": "/api/companion/portfolio-prices",
+          "transferSize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "name": "/api/price-history",
+          "transferSize": 0,
+          "decodedBodySize": 0
+        }
+      ],
+      "requests": [
+        {
+          "url": "/",
+          "status": 200
+        },
+        {
+          "url": "/assets/app-C_4kQh20.css",
+          "status": 200
+        },
+        {
+          "url": "/assets/app-fx7oRO0E.js",
+          "status": 200
+        },
+        {
+          "url": "/assets/items/booster_cookie.webp",
+          "status": 200
+        },
+        {
+          "url": "/assets/items/enchanted_diamond_block.webp",
+          "status": 200
+        },
+        {
+          "url": "/assets/items/summoning_eye.webp",
+          "status": 200
+        },
+        {
+          "url": "/assets/sky-island-v1/web/ui-watchlist-chest-64.png",
+          "status": 200
+        },
+        {
+          "url": "/assets/night-market/reference.webp",
+          "status": 200
+        },
+        {
+          "url": "/assets/night-market/scene-only.webp",
+          "status": 200
+        },
+        {
+          "url": "/api/companion/portfolio-prices",
+          "status": 200
+        },
+        {
+          "url": "/art/ui/wood-dark.png",
+          "status": 200
+        },
+        {
+          "url": "/assets/sky-island-v1/web/ui-emerald-128.png",
+          "status": 200
+        },
+        {
+          "url": "/assets/night-market/pixelify-sans-700.ttf",
+          "status": 200
+        },
+        {
+          "url": "/api/price-history",
+          "status": 200
+        }
+      ],
+      "errors": [],
+      "console": [
+        "Failed to load resource: net::ERR_FAILED"
+      ],
+      "blocked": [
+        "https://fonts.googleapis.com/css2"
+      ],
+      "replayed": [
+        "book",
+        "history"
+      ]
+    },
+    {
+      "width": 390,
+      "landingMs": 673.9686999999999,
+      "invalidRequests": 0,
+      "overflow": false,
+      "smallTargets": [
+        {
+          "label": "Explore item price history",
+          "width": 2,
+          "height": 2
+        }
+      ],
+      "resources": [
+        {
+          "name": "/assets/app-fx7oRO0E.js",
+          "transferSize": 119325,
+          "decodedBodySize": 456167
+        },
+        {
+          "name": "/assets/app-C_4kQh20.css",
+          "transferSize": 13619,
+          "decodedBodySize": 67566
+        },
+        {
+          "name": "/css2",
+          "transferSize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "name": "/assets/sky-island-v1/web/ui-watchlist-chest-64.png",
+          "transferSize": 5785,
+          "decodedBodySize": 5485
+        },
+        {
+          "name": "/assets/items/enchanted_diamond_block.webp",
+          "transferSize": 18516,
+          "decodedBodySize": 18216
+        },
+        {
+          "name": "/assets/items/summoning_eye.webp",
+          "transferSize": 17354,
+          "decodedBodySize": 17054
+        },
+        {
+          "name": "/assets/items/booster_cookie.webp",
+          "transferSize": 13240,
+          "decodedBodySize": 12940
+        },
+        {
+          "name": "/assets/night-market/reference.webp",
+          "transferSize": 1310498,
+          "decodedBodySize": 1310198
+        },
+        {
+          "name": "/assets/night-market/scene-only.webp",
+          "transferSize": 1335444,
+          "decodedBodySize": 1335144
+        },
+        {
+          "name": "/assets/night-market/workspace-courtyard.webp",
+          "transferSize": 1480518,
+          "decodedBodySize": 1480218
+        },
+        {
+          "name": "/art/ui/wood-dark.png",
+          "transferSize": 2268,
+          "decodedBodySize": 1968
+        },
+        {
+          "name": "/assets/night-market/pixelify-sans-700.ttf",
+          "transferSize": 17627,
+          "decodedBodySize": 49396
+        },
+        {
+          "name": "/assets/sky-island-v1/web/ui-emerald-128.png",
+          "transferSize": 15329,
+          "decodedBodySize": 15029
+        },
+        {
+          "name": "/api/companion/portfolio-prices",
+          "transferSize": 0,
+          "decodedBodySize": 0
+        },
+        {
+          "name": "/api/price-history",
+          "transferSize": 0,
+          "decodedBodySize": 0
+        }
+      ],
+      "requests": [
+        {
+          "url": "/",
+          "status": 200
+        },
+        {
+          "url": "/assets/app-C_4kQh20.css",
+          "status": 200
+        },
+        {
+          "url": "/assets/app-fx7oRO0E.js",
+          "status": 200
+        },
+        {
+          "url": "/assets/sky-island-v1/web/ui-watchlist-chest-64.png",
+          "status": 200
+        },
+        {
+          "url": "/assets/items/enchanted_diamond_block.webp",
+          "status": 200
+        },
+        {
+          "url": "/assets/items/summoning_eye.webp",
+          "status": 200
+        },
+        {
+          "url": "/assets/items/booster_cookie.webp",
+          "status": 200
+        },
+        {
+          "url": "/assets/night-market/reference.webp",
+          "status": 200
+        },
+        {
+          "url": "/assets/night-market/scene-only.webp",
+          "status": 200
+        },
+        {
+          "url": "/api/companion/portfolio-prices",
+          "status": 200
+        },
+        {
+          "url": "/art/ui/wood-dark.png",
+          "status": 200
+        },
+        {
+          "url": "/assets/sky-island-v1/web/ui-emerald-128.png",
+          "status": 200
+        },
+        {
+          "url": "/assets/night-market/workspace-courtyard.webp",
+          "status": 200
+        },
+        {
+          "url": "/assets/night-market/pixelify-sans-700.ttf",
+          "status": 200
+        },
+        {
+          "url": "/api/price-history",
+          "status": 200
+        }
+      ],
+      "errors": [],
+      "console": [
+        "Failed to load resource: net::ERR_FAILED"
+      ],
+      "blocked": [
+        "https://fonts.googleapis.com/css2"
+      ],
+      "replayed": [
+        "book",
+        "history"
+      ]
+    }
+  ]
+}

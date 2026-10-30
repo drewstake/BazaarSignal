@@ -11,7 +11,7 @@ import {
   type SearchMarketDetail,
 } from "./bazaar-search-data";
 import { pollingDirective, visiblePoll } from "./polling";
-import { MARKET_HOUR } from "../../shared/market-schedule";
+import { PAID_PILOT_INTERVAL } from "../../shared/paid-pilot";
 import SearchOrderBook from "./SearchOrderBook";
 import BazaarPriceChart from "./BazaarPriceChart";
 import "./bazaar-item-page.css";
@@ -42,7 +42,7 @@ export default function BazaarItemPage({ itemId }: { itemId: string }) {
       if (active) {
         setDetail(result);
       }
-    }, MARKET_HOUR);
+    }, PAID_PILOT_INTERVAL);
     return () => {
       active = false;
       stopPolling();
@@ -128,7 +128,7 @@ export default function BazaarItemPage({ itemId }: { itemId: string }) {
                     ? "No orders in saved snapshot"
                     : stale
                       ? "Stale data"
-                      : "Hourly snapshot"}
+                      : "Scheduled snapshot"}
               {!detail.fixture && noOrders && stale && " · Stale data"}
               {paused && " · Updates paused"}
             </p>

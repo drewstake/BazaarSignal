@@ -1,0 +1,33 @@
+{
+  "at": "2026-10-29T17:46:47.869Z",
+  "reads": [
+    {
+      "path": "priceHistory/year-2025-18",
+      "wireBytes": 4100,
+      "decodedBytes": 14081
+    },
+    {
+      "path": "priceHistory/year-2026-18",
+      "wireBytes": 151060,
+      "decodedBytes": 596531
+    },
+    {
+      "path": "marketCache/bazaar",
+      "wireBytes": 881477,
+      "decodedBytes": 7843180
+    }
+  ],
+  "itemCount": 2201,
+  "points": 190,
+  "lastPoint": [
+    20753,
+    1793163542798,
+    14394594.2,
+    14050003.4,
+    "bazaarsignal"
+  ],
+  "bookTime": "2026-10-29T17:45:02.822Z",
+  "selectedBookBytes": 3564,
+  "selectedHistoryBytes": 10587,
+  "historyGzipBytes": 3431
+}

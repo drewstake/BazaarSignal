@@ -1,5 +1,6 @@
 import { USAGE_OWNER_EMAIL } from "./published-usage";
 import type { PaidBilling } from './paid-spending';
+import { PAID_COLLECTION_SCHEDULE, PAID_PILOT_INTERVAL } from './paid-pilot';
 
 export const ADMIN_CACHE_MS = 24 * 60 * 60_000;
 export const ADMIN_CLOCK_OFFSET = (12 * 60 + 10) * 60_000;
@@ -130,11 +131,11 @@ export function pilotStatus(report: AdminReport, now: number) {
     return "Verification due";
   if (s.state !== "ENABLED") return "Paused";
   if (
-    s.schedule !== "0 * * * *" ||
+    !["0 * * * *", PAID_COLLECTION_SCHEDULE].includes(s.schedule) ||
     s.expiresAt !== p.expiresAt ||
     p.priceError ||
     !p.lastPriceCheck ||
-    p.measuredAt - p.lastPriceCheck > 75 * 60000
+    p.measuredAt - p.lastPriceCheck > (s.schedule === PAID_COLLECTION_SCHEDULE ? PAID_PILOT_INTERVAL + 5 * 60000 : 75 * 60000)
   )
     return "Needs attention";
   return "Active paid pilot";

@@ -86,6 +86,22 @@ it("makes one selected-item GET, coalesces concurrent selections, and reuses unt
   expect(fetcher).toHaveBeenCalledTimes(2);
 });
 
+it("refreshes selected books at each quarter-hour read boundary and shares each response", async () => {
+  const fetcher = vi.fn(async () => Response.json({ bazaar: [item("BOOSTER_COOKIE", Date.now())],
+    usage: { ...usage, pollMs: 900_000 } }));
+  vi.stubGlobal("fetch", fetcher);
+  const { selectedBazaarDetail } = await import("../src/companion/bazaar-search-data");
+  await selectedBazaarDetail("BOOSTER_COOKIE");
+  for (const [index, minute] of [17, 32, 47].entries()) {
+    vi.setSystemTime(Date.parse(`2026-10-13T21:${minute}:00Z`) - 1);
+    await selectedBazaarDetail("BOOSTER_COOKIE");
+    expect(fetcher).toHaveBeenCalledTimes(index + 1);
+    vi.setSystemTime(Date.now() + 1);
+    await Promise.all([selectedBazaarDetail("BOOSTER_COOKIE"), selectedBazaarDetail("BOOSTER_COOKIE")]);
+    expect(fetcher).toHaveBeenCalledTimes(index + 2);
+  }
+});
+
 it("rejects removed API entries before any market or cache request", async () => {
   const fetcher = vi.fn();
   const openCache = vi.fn();
@@ -100,7 +116,7 @@ it("rejects removed API entries before any market or cache request", async () =>
   expect(openCache).not.toHaveBeenCalled();
 });
 
-it("cancels a pending hourly read and retains the last sample without retrying that window", async () => {
+it("cancels a pending hourly read, retains its last sample and permits recovery in that window", async () => {
   const fetcher = vi.fn(async (_url: string, init?: RequestInit) => {
     if (fetcher.mock.calls.length === 2) {
       return new Promise<Response>((_resolve, reject) => {
@@ -122,10 +138,10 @@ it("cancels a pending hourly read and retains the last sample without retrying t
   expect(result.stale).toBe(true);
   expect(result.error).toContain("interrupted");
   await selectedBazaarDetail("BOOSTER_COOKIE");
-  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(fetcher).toHaveBeenCalledTimes(3);
   vi.setSystemTime(fixtureTime + 7200000);
   expect((await selectedBazaarDetail("BOOSTER_COOKIE")).item?.upstreamAt).toBe(Date.now());
-  expect(fetcher).toHaveBeenCalledTimes(3);
+  expect(fetcher).toHaveBeenCalledTimes(4);
 });
 
 it("does not start a network read when hidden during an asynchronous cache lookup", async () => {
@@ -342,20 +358,77 @@ it("the existing selected-item route only reads the paid cache, without upstream
   expect(JSON.stringify(runtime.control.jobs)).toBe(before);
 });
 
-it("uses hourly display age without relaxing trading freshness or hiding failures", async () => {
+it("uses 15-minute display age without relaxing trading freshness or hiding failures", async () => {
   const { searchDetailStale } = await import("../src/companion/bazaar-search-data");
   const { isFresh } = await import("../shared/market");
   const detail = { item: item() };
-  const fortyMinutes = fixtureTime + 40 * 60_000;
-  expect(searchDetailStale(detail, fortyMinutes)).toBe(false);
-  expect(isFresh(fixtureTime, fortyMinutes)).toBe(false);
-  expect(searchDetailStale(detail, fixtureTime + 62 * 60_000 - 1)).toBe(false);
-  expect(searchDetailStale(detail, fixtureTime + 62 * 60_000)).toBe(true);
-  expect(searchDetailStale({ ...detail, error: "Offline" }, fortyMinutes)).toBe(true);
-  expect(searchDetailStale({ ...detail, stale: true }, fortyMinutes)).toBe(true);
-  expect(searchDetailStale({ item: { ...detail.item, observedAt: fortyMinutes } }, fortyMinutes)).toBe(true);
-  for (const invalid of [0, NaN, Infinity, fortyMinutes + 31_000]) {
-    expect(searchDetailStale({ item: { ...detail.item, upstreamAt: invalid } }, fortyMinutes)).toBe(true);
-    expect(searchDetailStale({ item: { ...detail.item, observedAt: invalid } }, fortyMinutes)).toBe(true);
+  const tenMinutes = fixtureTime + 10 * 60_000;
+  expect(searchDetailStale(detail, tenMinutes)).toBe(false);
+  expect(isFresh(fixtureTime, tenMinutes)).toBe(false);
+  expect(searchDetailStale(detail, fixtureTime + 17 * 60_000 - 1)).toBe(false);
+  expect(searchDetailStale(detail, fixtureTime + 17 * 60_000)).toBe(true);
+  expect(searchDetailStale({ ...detail, error: "Offline" }, tenMinutes)).toBe(true);
+  expect(searchDetailStale({ ...detail, stale: true }, tenMinutes)).toBe(true);
+  expect(searchDetailStale({ item: { ...detail.item, observedAt: tenMinutes } }, tenMinutes)).toBe(true);
+  for (const invalid of [0, NaN, Infinity, tenMinutes + 31_000]) {
+    expect(searchDetailStale({ item: { ...detail.item, upstreamAt: invalid } }, tenMinutes)).toBe(true);
+    expect(searchDetailStale({ item: { ...detail.item, observedAt: invalid } }, tenMinutes)).toBe(true);
   }
+});
+it('recovers an item within the same slot once the server retry deadline arrives', async () => {
+  const deadline = fixtureTime + 60000;
+  const fetcher = vi.fn().mockResolvedValueOnce(Response.json({error:'Temporarily busy',usage:{...usage,pollMs:900000,mode:'slow',retryAt:deadline}},{status:503}))
+    .mockImplementation(async () => Response.json({bazaar:[item('BOOSTER_COOKIE',Date.now())],usage:{...usage,pollMs:900000}}));
+  vi.stubGlobal('fetch',fetcher);
+  const {selectedBazaarDetail} = await import('../src/companion/bazaar-search-data');
+  expect((await selectedBazaarDetail('BOOSTER_COOKIE')).error).toBe('Temporarily busy');
+  vi.setSystemTime(deadline - 1); await selectedBazaarDetail('BOOSTER_COOKIE'); expect(fetcher).toHaveBeenCalledTimes(1);
+  vi.setSystemTime(deadline);
+  const results = await Promise.all([selectedBazaarDetail('BOOSTER_COOKIE'),selectedBazaarDetail('BOOSTER_COOKIE')]);
+  expect(results.every(r => r.item?.upstreamAt === deadline && !r.error)).toBe(true);
+  await selectedBazaarDetail('BOOSTER_COOKIE'); expect(fetcher).toHaveBeenCalledTimes(2);
+});
+it('a saved normal snapshot cannot erase backoff or prevent recovery of that same-slot snapshot', async () => {
+  const fetcher = vi.fn(async () => Response.json({bazaar:[item('BOOSTER_COOKIE',Date.now())],usage:{...usage,pollMs:900000}}));
+  vi.stubGlobal('fetch',fetcher);
+  const {selectedBazaarDetail} = await import('../src/companion/bazaar-search-data');
+  const {applyPollingDirective,pollingDirective} = await import('../src/companion/polling');
+  await selectedBazaarDetail('BOOSTER_COOKIE');
+  const deadline = fixtureTime + 60000;
+  applyPollingDirective({...usage,mode:'slow',pollMs:900000,retryAt:deadline});
+  vi.setSystemTime(deadline - 1);
+  expect((await selectedBazaarDetail('BOOSTER_COOKIE')).item?.upstreamAt).toBe(fixtureTime);
+  expect(pollingDirective().retryAt).toBe(deadline); expect(fetcher).toHaveBeenCalledTimes(1);
+  vi.setSystemTime(deadline);
+  expect((await selectedBazaarDetail('BOOSTER_COOKIE')).item?.upstreamAt).toBe(deadline);
+  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(pollingDirective().retryAt).toBeUndefined();
+});
+it('does not loop after a failed recovery without a new server deadline', async () => {
+  const deadline = fixtureTime + 60000;
+  const fetcher = vi.fn().mockResolvedValueOnce(Response.json({error:'Busy',usage:{...usage,pollMs:900000,mode:'slow',retryAt:deadline}},{status:503}))
+    .mockRejectedValue(Error('Offline'));
+  vi.stubGlobal('fetch',fetcher);
+  const {selectedBazaarDetail} = await import('../src/companion/bazaar-search-data');
+  await selectedBazaarDetail('BOOSTER_COOKIE'); vi.setSystemTime(deadline);
+  for (let i=0;i<5;i++) expect((await selectedBazaarDetail('BOOSTER_COOKIE')).error).toBe('Offline');
+  expect(fetcher).toHaveBeenCalledTimes(2);
+});
+it('retries an interrupted recovery when its subscriber returns, without discarding saved prices', async () => {
+  const deadline = fixtureTime + 60000;
+  const fetcher = vi.fn(async (_url:string, init?:RequestInit) => {
+    if(fetcher.mock.calls.length===2) return new Promise<Response>((_,reject) => init?.signal?.addEventListener('abort',()=>reject(init.signal?.reason)));
+    return Response.json({bazaar:[item('BOOSTER_COOKIE',Date.now())],usage:{...usage,pollMs:900000}});
+  });
+  vi.stubGlobal('fetch',fetcher);
+  const {selectedBazaarDetail} = await import('../src/companion/bazaar-search-data');
+  const {applyPollingDirective} = await import('../src/companion/polling');
+  await selectedBazaarDetail('BOOSTER_COOKIE');
+  applyPollingDirective({...usage,mode:'slow',pollMs:900000,retryAt:deadline});
+  vi.setSystemTime(deadline);
+  const controller = new AbortController(), pending = selectedBazaarDetail('BOOSTER_COOKIE',controller.signal);
+  await vi.waitFor(()=>expect(fetcher).toHaveBeenCalledTimes(2)); controller.abort();
+  expect((await pending).item?.upstreamAt).toBe(fixtureTime);
+  expect((await selectedBazaarDetail('BOOSTER_COOKIE')).item?.upstreamAt).toBe(Date.now());
+  expect(fetcher).toHaveBeenCalledTimes(3);
 });

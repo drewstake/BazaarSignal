@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { gzipSync, gunzipSync } from "node:zlib";
+import { setTimeout as delay } from "node:timers/promises";
 import {
   historyDay,
   historyDayLabel,
@@ -10,7 +11,7 @@ import {
 import { historyDownload } from "./history-download";
 import { dailyReducer } from "./history-sources";
 import { parseBook } from "../shared/market";
-import type { TrialSession, Counters } from "./trial";
+import { TrialStopped, type TrialSession, type Counters } from "./trial";
 
 export const HISTORY_JOB = "bazaar-daily-close";
 // Cloud Scheduler's delivered job header can contain its short job ID.
@@ -39,6 +40,7 @@ export type HistoryMeta = {
     items: number;
     closing: boolean;
   } | null;
+  lastError?: { at: number; message: string } | null;
 };
 export const historyYear = (day: number) =>
   Number(historyDayLabel(day).slice(0, 4));
@@ -90,17 +92,36 @@ export function mergeCloudPrice(points: CloudPriceTuple[], row: DailyPrice) {
   if (points.length > 366) throw Error("Annual history exceeds 366 days");
 }
 
-/** Private Firestore documents; browsers can only reach the budgeted selected-item
- * API. Explicit REST calls have bounded bodies/deadlines and no automatic retries. */
+class HistoryStorageError extends Error {
+  constructor(readonly status: number) { super(`History storage HTTP ${status}`); }
+}
+const transient = (error: unknown) => error instanceof HistoryStorageError
+  ? [429, 502, 503, 504].includes(error.status)
+  : error instanceof TypeError || (error instanceof Error && ['TimeoutError', 'AbortError', 'SyntaxError'].includes(error.name));
+
+/** Recovery remains inside the existing 40-read/40-write daily envelope:
+ * 33 normal documents, at most six recovery reads/four repeated writes, and
+ * one final metadata read/write on failure. No new daily admission is created. */
 export class CloudPriceHistory {
+  private capturing = false;
+  private recoveryReads = 6;
+  private recoveryWrites = 4;
   constructor(
     private config: {
       project: string;
       token: () => Promise<string>;
       network?: typeof fetch;
+      wait?: (signal: AbortSignal) => Promise<void>;
     },
     private session?: TrialSession,
   ) {}
+  private async wait() {
+    this.session?.assertOpen();
+    const signal = this.session?.signal(5_000) ?? AbortSignal.timeout(5_000);
+    if (this.config.wait) await this.config.wait(signal);
+    else await delay(1_000, undefined, { signal });
+    this.session?.assertOpen();
+  }
   private get root() {
     return `https://firestore.googleapis.com/v1/projects/${this.config.project}/databases/(default)/documents`;
   }
@@ -137,23 +158,28 @@ export class CloudPriceHistory {
       parts.push(part);
     }
     this.session?.take({ firestoreEgressBytes: length });
+    if (!response.ok) throw new HistoryStorageError(response.status);
     const result = JSON.parse(Buffer.concat(parts).toString());
-    if (!response.ok)
-      throw Error(
-        `History storage HTTP ${response.status}: ${result.error?.status ?? "unknown"}`,
-      );
     return result;
   }
-  async read(ids: string[]) {
+  async read(ids: string[], retry = true) {
     if (ids.length > 32) throw Error("Too many history documents");
     const output = new Map<string, { value: any; updateTime?: string }>();
     for (let offset = 0; offset < ids.length; offset += 8) {
       const batch = ids.slice(offset, offset + 8);
-      const result = await this.request(
+      const load = () => this.request(
         ":batchGet",
         { documents: batch.map((id) => this.name(id)) },
         { firestoreReads: batch.length },
       );
+      let result;
+      try { result = await load(); }
+      catch (error) {
+        if (!this.capturing || !retry || !transient(error) || batch.length > this.recoveryReads) throw error;
+        this.recoveryReads -= batch.length;
+        await this.wait();
+        result = await load();
+      }
       if (!Array.isArray(result) || result.length !== batch.length)
         throw Error("Incomplete history read");
       for (const id of batch) {
@@ -187,19 +213,54 @@ export class CloudPriceHistory {
     }));
     for (let offset = 0; offset < writes.length; offset += 4) {
       const batch = writes.slice(offset, offset + 4);
-      this.session?.take(
-        { firestoreStorageBytes: Buffer.byteLength(JSON.stringify(batch)) },
-        false,
-      );
-      await this.request(
-        ":commit",
-        { writes: batch },
-        { firestoreWrites: batch.length },
-        64 * 1024,
-      );
+      const commit = () => {
+        this.session?.take({ firestoreStorageBytes: Buffer.byteLength(JSON.stringify(batch)) }, false);
+        return this.request(":commit", { writes: batch }, { firestoreWrites: batch.length }, 64 * 1024);
+      };
+      try { await commit(); }
+      catch (error) {
+        if (!this.capturing || !transient(error) || batch.length > this.recoveryWrites) throw error;
+        // 429 is an explicit rejection. A timeout/5xx may follow a completed
+        // atomic commit: reconcile bytes AND original preconditions first.
+        if (!(error instanceof HistoryStorageError && error.status === 429)) {
+          if (batch.length > this.recoveryReads) throw error;
+          this.recoveryReads -= batch.length;
+          const current = await this.read(batch.map(w => w.update.name.split('/').at(-1)!), false);
+          const same = batch.every(w => encodeHistory(current.get(w.update.name.split('/').at(-1)!)?.value) === w.update.fields.packed.stringValue);
+          if (same) continue;
+          const unchanged = batch.every(w => {
+            const doc = current.get(w.update.name.split('/').at(-1)!)!;
+            return w.currentDocument.exists === false ? !doc.value : doc.updateTime === w.currentDocument.updateTime;
+          });
+          if (!unchanged) throw new Error('Daily history changed during an uncertain write');
+        }
+        this.recoveryWrites -= batch.length;
+        await this.wait();
+        await commit();
+      }
     }
   }
   async capture(now = Date.now, network: typeof fetch = fetch) {
+    const startedAt = now();
+    this.capturing = true;
+    try { return await this.captureOnce(now, network); }
+    catch (error) {
+      // A status write is best effort; expiry or a refused reservation must
+      // never authorize additional work. Preserve newer successful captures.
+      if (!(error instanceof TrialStopped)) try {
+        this.session?.assertOpen();
+        const doc = (await this.read(['meta'], false)).get('meta')!;
+        const meta = doc.value as HistoryMeta | null;
+        if (meta && Array.isArray(meta.years) && meta.years.length <= 16 &&
+            (meta.lastSuccess?.checkedAt ?? 0) < startedAt) {
+          await this.write([{ id: 'meta', updateTime: doc.updateTime, value: { ...meta,
+            lastError: { at: now(), message: 'Daily price capture failed. Retained closing prices may be incomplete.' } } }]);
+        }
+      } catch { /* The derived overdue status also covers a failed status write. */ }
+      throw error;
+    } finally { this.capturing = false; }
+  }
+  private async captureOnce(now: () => number, network: typeof fetch) {
     const raw = JSON.parse(
       (
         await historyDownload(
@@ -279,6 +340,7 @@ export class CloudPriceHistory {
           version: 1,
           years: [...new Set([...meta.years, year])].sort(),
           lastSuccess,
+          lastError: null,
         },
       },
     ]);
@@ -316,7 +378,10 @@ export class CloudPriceHistory {
         location: "cloud",
         expiresAt,
         lastSuccess: meta.lastSuccess,
-        lastError: null,
+        lastError: meta.lastError ?? (now < expiresAt && meta.lastSuccess &&
+          historyDay(meta.lastSuccess.at) < historyDay(now) - 1 &&
+          now - (historyDay(now) * 86_400_000 + 5 * 3_600_000) >= 300_000
+          ? { at: now, message: 'Daily closing prices are overdue. Retained prices may be incomplete.' } : null),
       },
     };
   }

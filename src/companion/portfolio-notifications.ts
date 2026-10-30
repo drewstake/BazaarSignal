@@ -5,6 +5,7 @@ import type {
 } from "../../shared/companion/notifications";
 import { requestBackend } from "../backend";
 import { auth } from "../data";
+import { sessionToken } from '../session-token';
 import { portfolioSession } from "./portfolio-store";
 
 export async function loadNotifications(uid: string) {
@@ -26,7 +27,7 @@ export async function changeNotification(
 ) {
   const { check } = portfolioSession(uid),
     user = auth!.currentUser!;
-  const token = await user.getIdToken();
+  const token = await sessionToken(user);
   check();
   const result = await requestBackend<HoldingNotification>(
     {

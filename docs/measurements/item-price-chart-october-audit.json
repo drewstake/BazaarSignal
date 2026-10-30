@@ -1,0 +1,835 @@
+{
+  "summary": {
+    "label": "october-audit",
+    "points": 2160,
+    "synthetic": true,
+    "cpuThrottle": 4,
+    "runs": 5,
+    "plotElements": 12,
+    "savedCharacters": 115787,
+    "updates": 150,
+    "medianCursorRenderMs": 0.6000000238418579
+  },
+  "samples": [
+    {
+      "plotElements": 12,
+      "savedCharacters": 115787,
+      "initialRenders": [
+        {
+          "phase": "mount",
+          "duration": 16.69999998807907
+        },
+        {
+          "phase": "update",
+          "duration": 2.300000011920929
+        },
+        {
+          "phase": "update",
+          "duration": 0
+        },
+        {
+          "phase": "update",
+          "duration": 0.7000000476837158
+        },
+        {
+          "phase": "update",
+          "duration": 0
+        },
+        {
+          "phase": "update",
+          "duration": 4.699999928474426
+        },
+        {
+          "phase": "update",
+          "duration": 0
+        },
+        {
+          "phase": "update",
+          "duration": 9.099999964237213
+        },
+        {
+          "phase": "update",
+          "duration": 0
+        }
+      ],
+      "cursorRenders": [
+        {
+          "phase": "update",
+          "duration": 0.8999999761581421
+        },
+        {
+          "phase": "update",
+          "duration": 0.6000000238418579
+        },
+        {
+          "phase": "update",
+          "duration": 0.800000011920929
+        },
+        {
+          "phase": "update",
+          "duration": 0.5999999642372131
+        },
+        {
+          "phase": "update",
+          "duration": 0.6000000238418579
+        },
+        {
+          "phase": "update",
+          "duration": 0.6000000238418579
+        },
+        {
+          "phase": "update",
+          "duration": 0.699999988079071
+        },
+        {
+          "phase": "update",
+          "duration": 0.6000000238418579
+        },
+        {
+          "phase": "update",
+          "duration": 0.6000000238418579
+        },
+        {
+          "phase": "update",
+          "duration": 0.5999999642372131
+        },
+        {
+          "phase": "update",
+          "duration": 0.7999999523162842
+        },
+        {
+          "phase": "update",
+          "duration": 0.7999999523162842
+        },
+        {
+          "phase": "update",
+          "duration": 0.800000011920929
+        },
+        {
+          "phase": "update",
+          "duration": 0.7000000476837158
+        },
+        {
+          "phase": "update",
+          "duration": 0.6000000238418579
+        },
+        {
+          "phase": "update",
+          "duration": 0.800000011920929
+        },
+        {
+          "phase": "update",
+          "duration": 0.3999999761581421
+        },
+        {
+          "phase": "update",
+          "duration": 0.3999999761581421
+        },
+        {
+          "phase": "update",
+          "duration": 0.5999999642372131
+        },
+        {
+          "phase": "update",
+          "duration": 0.800000011920929
+        },
+        {
+          "phase": "update",
+          "duration": 0.5
+        },
+        {
+          "phase": "update",
+          "duration": 0.5999999642372131
+        },
+        {
+          "phase": "update",
+          "duration": 0.4999999403953552
+        },
+        {
+          "phase": "update",
+          "duration": 0.699999988079071
+        },
+        {
+          "phase": "update",
+          "duration": 0.800000011920929
+        },
+        {
+          "phase": "update",
+          "duration": 0.800000011920929
+        },
+        {
+          "phase": "update",
+          "duration": 1
+        },
+        {
+          "phase": "update",
+          "duration": 1
+        },
+        {
+          "phase": "update",
+          "duration": 0.699999988079071
+        },
+        {
+          "phase": "update",
+          "duration": 0.800000011920929
+        }
+      ]
+    },
+    {
+      "plotElements": 12,
+      "savedCharacters": 115787,
+      "initialRenders": [
+        {
+          "phase": "mount",
+          "duration": 20.80000001192093
+        },
+        {
+          "phase": "update",
+          "duration": 2.200000047683716
+        },
+        {
+          "phase": "update",
+          "duration": 0
+        },
+        {
+          "phase": "update",
+          "duration": 0.8999999761581421
+        },
+        {
+          "phase": "update",
+          "duration": 0
+        },
+        {
+          "phase": "update",
+          "duration": 5.900000035762787
+        },
+        {
+          "phase": "update",
+          "duration": 0
+        },
+        {
+          "phase": "update",
+          "duration": 11.800000011920929
+        },
+        {
+          "phase": "update",
+          "duration": 0
+        }
+      ],
+      "cursorRenders": [
+        {
+          "phase": "update",
+          "duration": 0.8999999761581421
+        },
+        {
+          "phase": "update",
+          "duration": 0.5999999642372131
+        },
+        {
+          "phase": "update",
+          "duration": 1.300000011920929
+        },
+        {
+          "phase": "update",
+          "duration": 1
+        },
+        {
+          "phase": "update",
+          "duration": 1.300000011920929
+        },
+        {
+          "phase": "update",
+          "duration": 0.6000000238418579
+        },
+        {
+          "phase": "update",
+          "duration": 1.2999999523162842
+        },
+        {
+          "phase": "update",
+          "duration": 1
+        },
+        {
+          "phase": "update",
+          "duration": 0.8000000715255737
+        },
+        {
+          "phase": "update",
+          "duration": 0.699999988079071
+        },
+        {
+          "phase": "update",
+          "duration": 1.199999988079071
+        },
+        {
+          "phase": "update",
+          "duration": 1.199999988079071
+        },
+        {
+          "phase": "update",
+          "duration": 0.8999999761581421
+        },
+        {
+          "phase": "update",
+          "duration": 1.199999988079071
+        },
+        {
+          "phase": "update",
+          "duration": 1.399999976158142
+        },
+        {
+          "phase": "update",
+          "duration": 1.100000023841858
+        },
+        {
+          "phase": "update",
+          "duration": 1
+        },
+        {
+          "phase": "update",
+          "duration": 1.199999988079071
+        },
+        {
+          "phase": "update",
+          "duration": 0.8999999761581421
+        },
+        {
+          "phase": "update",
+          "duration": 1.0999999642372131
+        },
+        {
+          "phase": "update",
+          "duration": 0.699999988079071
+        },
+        {
+          "phase": "update",
+          "duration": 0.800000011920929
+        },
+        {
+          "phase": "update",
+          "duration": 0.800000011920929
+        },
+        {
+          "phase": "update",
+          "duration": 0.5
+        },
+        {
+          "phase": "update",
+          "duration": 0.5
+        },
+        {
+          "phase": "update",
+          "duration": 0.6000000238418579
+        },
+        {
+          "phase": "update",
+          "duration": 0.6000000238418579
+        },
+        {
+          "phase": "update",
+          "duration": 0.5
+        },
+        {
+          "phase": "update",
+          "duration": 0.8999999761581421
+        },
+        {
+          "phase": "update",
+          "duration": 0.5999999642372131
+        }
+      ]
+    },
+    {
+      "plotElements": 12,
+      "savedCharacters": 115787,
+      "initialRenders": [
+        {
+          "phase": "mount",
+          "duration": 16.19999998807907
+        },
+        {
+          "phase": "update",
+          "duration": 4.100000023841858
+        },
+        {
+          "phase": "update",
+          "duration": 0
+        },
+        {
+          "phase": "update",
+          "duration": 1.300000011920929
+        },
+        {
+          "phase": "update",
+          "duration": 0
+        },
+        {
+          "phase": "update",
+          "duration": 8.899999976158142
+        },
+        {
+          "phase": "update",
+          "duration": 0.19999998807907104
+        },
+        {
+          "phase": "update",
+          "duration": 13.600000023841858
+        },
+        {
+          "phase": "update",
+          "duration": 0
+        }
+      ],
+      "cursorRenders": [
+        {
+          "phase": "update",
+          "duration": 0.5999999642372131
+        },
+        {
+          "phase": "update",
+          "duration": 1.199999988079071
+        },
+        {
+          "phase": "update",
+          "duration": 1
+        },
+        {
+          "phase": "update",
+          "duration": 0.699999988079071
+        },
+        {
+          "phase": "update",
+          "duration": 1
+        },
+        {
+          "phase": "update",
+          "duration": 0.8999999761581421
+        },
+        {
+          "phase": "update",
+          "duration": 0.19999998807907104
+        },
+        {
+          "phase": "update",
+          "duration": 0.800000011920929
+        },
+        {
+          "phase": "update",
+          "duration": 0.5999999642372131
+        },
+        {
+          "phase": "update",
+          "duration": 1.399999976158142
+        },
+        {
+          "phase": "update",
+          "duration": 0.7999999523162842
+        },
+        {
+          "phase": "update",
+          "duration": 0.800000011920929
+        },
+        {
+          "phase": "update",
+          "duration": 0.800000011920929
+        },
+        {
+          "phase": "update",
+          "duration": 0.3999999761581421
+        },
+        {
+          "phase": "update",
+          "duration": 0.5
+        },
+        {
+          "phase": "update",
+          "duration": 0.800000011920929
+        },
+        {
+          "phase": "update",
+          "duration": 0.3999999761581421
+        },
+        {
+          "phase": "update",
+          "duration": 0.699999988079071
+        },
+        {
+          "phase": "update",
+          "duration": 0.699999988079071
+        },
+        {
+          "phase": "update",
+          "duration": 0.800000011920929
+        },
+        {
+          "phase": "update",
+          "duration": 0.3999999761581421
+        },
+        {
+          "phase": "update",
+          "duration": 0.800000011920929
+        },
+        {
+          "phase": "update",
+          "duration": 0.699999988079071
+        },
+        {
+          "phase": "update",
+          "duration": 0.30000001192092896
+        },
+        {
+          "phase": "update",
+          "duration": 0.3999999761581421
+        },
+        {
+          "phase": "update",
+          "duration": 0.5
+        },
+        {
+          "phase": "update",
+          "duration": 0.3999999761581421
+        },
+        {
+          "phase": "update",
+          "duration": 0.5
+        },
+        {
+          "phase": "update",
+          "duration": 0.3999999761581421
+        },
+        {
+          "phase": "update",
+          "duration": 0.40000003576278687
+        }
+      ]
+    },
+    {
+      "plotElements": 12,
+      "savedCharacters": 115787,
+      "initialRenders": [
+        {
+          "phase": "mount",
+          "duration": 23.099999964237213
+        },
+        {
+          "phase": "update",
+          "duration": 2.4000000953674316
+        },
+        {
+          "phase": "update",
+          "duration": 0
+        },
+        {
+          "phase": "update",
+          "duration": 1
+        },
+        {
+          "phase": "update",
+          "duration": 0
+        },
+        {
+          "phase": "update",
+          "duration": 8
+        },
+        {
+          "phase": "update",
+          "duration": 0
+        },
+        {
+          "phase": "update",
+          "duration": 11.099999964237213
+        },
+        {
+          "phase": "update",
+          "duration": 0
+        }
+      ],
+      "cursorRenders": [
+        {
+          "phase": "update",
+          "duration": 1.199999988079071
+        },
+        {
+          "phase": "update",
+          "duration": 1.100000023841858
+        },
+        {
+          "phase": "update",
+          "duration": 1
+        },
+        {
+          "phase": "update",
+          "duration": 0.800000011920929
+        },
+        {
+          "phase": "update",
+          "duration": 0.9000000357627869
+        },
+        {
+          "phase": "update",
+          "duration": 0.8000000715255737
+        },
+        {
+          "phase": "update",
+          "duration": 0.699999988079071
+        },
+        {
+          "phase": "update",
+          "duration": 0.800000011920929
+        },
+        {
+          "phase": "update",
+          "duration": 0.5
+        },
+        {
+          "phase": "update",
+          "duration": 0.5
+        },
+        {
+          "phase": "update",
+          "duration": 0.5999999642372131
+        },
+        {
+          "phase": "update",
+          "duration": 0.7000000476837158
+        },
+        {
+          "phase": "update",
+          "duration": 0.10000002384185791
+        },
+        {
+          "phase": "update",
+          "duration": 0.800000011920929
+        },
+        {
+          "phase": "update",
+          "duration": 0.6000000238418579
+        },
+        {
+          "phase": "update",
+          "duration": 0.8999999761581421
+        },
+        {
+          "phase": "update",
+          "duration": 0.3999999761581421
+        },
+        {
+          "phase": "update",
+          "duration": 0.3999999761581421
+        },
+        {
+          "phase": "update",
+          "duration": 0.5
+        },
+        {
+          "phase": "update",
+          "duration": 0.800000011920929
+        },
+        {
+          "phase": "update",
+          "duration": 0.30000001192092896
+        },
+        {
+          "phase": "update",
+          "duration": 0.6000000238418579
+        },
+        {
+          "phase": "update",
+          "duration": 0.40000003576278687
+        },
+        {
+          "phase": "update",
+          "duration": 0.3999999761581421
+        },
+        {
+          "phase": "update",
+          "duration": 0.5
+        },
+        {
+          "phase": "update",
+          "duration": 0.3999999761581421
+        },
+        {
+          "phase": "update",
+          "duration": 0.6000000238418579
+        },
+        {
+          "phase": "update",
+          "duration": 0.5
+        },
+        {
+          "phase": "update",
+          "duration": 0.5
+        },
+        {
+          "phase": "update",
+          "duration": 0.19999998807907104
+        }
+      ]
+    },
+    {
+      "plotElements": 12,
+      "savedCharacters": 115787,
+      "initialRenders": [
+        {
+          "phase": "mount",
+          "duration": 27.800000071525574
+        },
+        {
+          "phase": "update",
+          "duration": 2.899999976158142
+        },
+        {
+          "phase": "update",
+          "duration": 0
+        },
+        {
+          "phase": "update",
+          "duration": 0.5999999642372131
+        },
+        {
+          "phase": "update",
+          "duration": 0
+        },
+        {
+          "phase": "update",
+          "duration": 7.199999928474426
+        },
+        {
+          "phase": "update",
+          "duration": 0
+        },
+        {
+          "phase": "update",
+          "duration": 10.300000011920929
+        },
+        {
+          "phase": "update",
+          "duration": 0
+        }
+      ],
+      "cursorRenders": [
+        {
+          "phase": "update",
+          "duration": 1
+        },
+        {
+          "phase": "update",
+          "duration": 0.9000000357627869
+        },
+        {
+          "phase": "update",
+          "duration": 0.5
+        },
+        {
+          "phase": "update",
+          "duration": 0.2999999523162842
+        },
+        {
+          "phase": "update",
+          "duration": 1.100000023841858
+        },
+        {
+          "phase": "update",
+          "duration": 0.699999988079071
+        },
+        {
+          "phase": "update",
+          "duration": 0.5999999642372131
+        },
+        {
+          "phase": "update",
+          "duration": 0.6000000238418579
+        },
+        {
+          "phase": "update",
+          "duration": 0.5999999642372131
+        },
+        {
+          "phase": "update",
+          "duration": 0.5
+        },
+        {
+          "phase": "update",
+          "duration": 0.3999999761581421
+        },
+        {
+          "phase": "update",
+          "duration": 0.6000000238418579
+        },
+        {
+          "phase": "update",
+          "duration": 0.6000000238418579
+        },
+        {
+          "phase": "update",
+          "duration": 0.5
+        },
+        {
+          "phase": "update",
+          "duration": 0.3999999761581421
+        },
+        {
+          "phase": "update",
+          "duration": 0.5
+        },
+        {
+          "phase": "update",
+          "duration": 0.3999999761581421
+        },
+        {
+          "phase": "update",
+          "duration": 0.40000003576278687
+        },
+        {
+          "phase": "update",
+          "duration": 0.5
+        },
+        {
+          "phase": "update",
+          "duration": 0.3999999761581421
+        },
+        {
+          "phase": "update",
+          "duration": 0.40000003576278687
+        },
+        {
+          "phase": "update",
+          "duration": 0.40000003576278687
+        },
+        {
+          "phase": "update",
+          "duration": 0.5
+        },
+        {
+          "phase": "update",
+          "duration": 0.19999998807907104
+        },
+        {
+          "phase": "update",
+          "duration": 0.3999999761581421
+        },
+        {
+          "phase": "update",
+          "duration": 0.5
+        },
+        {
+          "phase": "update",
+          "duration": 0.6000000238418579
+        },
+        {
+          "phase": "update",
+          "duration": 0.30000001192092896
+        },
+        {
+          "phase": "update",
+          "duration": 0.3999999761581421
+        },
+        {
+          "phase": "update",
+          "duration": 0.19999998807907104
+        }
+      ]
+    }
+  ]
+}

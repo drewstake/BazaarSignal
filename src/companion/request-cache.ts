@@ -7,6 +7,7 @@ export type SavedBazaarBook = Pick<BazaarItem, 'id' | 'asks' | 'bids' | 'upstrea
 
 type Entry = { at: number; etag: string | null; body: any; bytes?: number };
 const memory = new Map<string, Entry>();
+const partialFailures = new Map<string, number>();
 type Pending = { promise: Promise<any>; controller: AbortController; readers: number; delivering: boolean };
 const pending = new Map<string, Pending>();
 const CACHE = "bazaarsignal-public-market-v1";
@@ -80,12 +81,14 @@ async function save(url: string, entry: Entry) {
     }
   } catch { /* Browser quota/private mode cannot trigger extra network requests. */ }
 }
-function observe(body: any, cached = false) {
+function observe(body: any, cached = false, savedAt?: number) {
   const policy: PollDirective | undefined = body?.status?.usage ?? body?.usage;
   const current = pollingDirective();
   // A previous trial's cached payload is useful data, but cannot revoke or
   // extend a different, explicitly configured trial's current permission.
-  if (cached && current.trialId && policy?.trialId !== current.trialId)
+  // Nor can a pre-recovery snapshot clear a newer server backoff directive.
+  if (cached && ((current.trialId && policy?.trialId !== current.trialId) ||
+      (current.retryAt !== undefined && (savedAt ?? 0) < current.retryAt)))
     return { ...body, usage: current, ...(body?.status ? { status: { ...body.status, usage: current } } : {}) };
   if (policy) applyPollingDirective(policy);
   else if (import.meta.env.PROD) applyPollingDirective({ mode: "paused", pollMs: 0, reason: "Usage accounting is unavailable" });
@@ -134,7 +137,7 @@ export async function savedBazaarBook(baseUrl: string, itemId: string) {
       bestBody = body;
     }
   }
-  if (best) observe(bestBody, true);
+  if (best) observe(bestBody, true, best.at);
   return best;
 }
 
@@ -150,14 +153,15 @@ export async function cachedMarketRequest<T>(url: string, signal?: AbortSignal):
   const pathname = new URL(url).pathname;
   const localPreview = localPreviewMarketRead(url);
   const reusable = /^\/(?:live-market\/)?api\/companion\/(bazaar|snapshot|book|portfolio-prices)$/.test(pathname);
-  const deliver = (body: any, cached = false) => {
+  const deliver = (body: any, cached = false, savedAt?: number) => {
     // A complete reply may itself pause polling. That must stop future I/O
     // without discarding the saved book/error that explains the pause.
     if (entry) entry.delivering = true;
-    return observe(body, cached);
+    return observe(body, cached, savedAt);
   };
   const work = async () => {
     const old = reusable ? await read(url, true) : undefined;
+    if (old && old.at > (partialFailures.get(url) ?? Infinity)) partialFailures.delete(url);
     controller.signal.throwIfAborted();
     const firstRead = !seen.has(url); seen.add(url);
     const policy = pollingDirective();
@@ -181,7 +185,7 @@ export async function cachedMarketRequest<T>(url: string, signal?: AbortSignal):
     // the service recovered. A newer response from another tab can be reused.
     const recoveryDue = policy.retryAt !== undefined && Date.now() >= policy.retryAt &&
       (!old || old.at < policy.retryAt);
-    if (old && sameRelease && Date.now() - old.at >= 0 && sameSlot && !recoveryDue) return deliver(old.body, true);
+    if (old && sameRelease && Date.now() - old.at >= 0 && sameSlot && !recoveryDue && !partialFailures.has(url)) return deliver(old.body, true, old.at);
     const response = await fetch(url, {
       credentials: "omit", signal: AbortSignal.any([
         AbortSignal.timeout(localPreview ? 20_000 : Math.max(1,Math.floor(Math.min(20_000,(policy.expiresAt ?? Infinity)-Date.now())))),
@@ -194,6 +198,7 @@ export async function cachedMarketRequest<T>(url: string, signal?: AbortSignal):
       ...(localPreview ? { redirect: "error" as const } : {}),
     });
     if (response.status === 304 && old) {
+      partialFailures.delete(url);
       if (entry) entry.delivering = true;
       await save(url, { ...old, at: Date.now() });
       return deliver(old.body);
@@ -203,7 +208,16 @@ export async function cachedMarketRequest<T>(url: string, signal?: AbortSignal):
     if((response.status===429||response.status===503)&&old&&pollingDirective().retryAt&&Date.now()<pollingDirective().retryAt!)
       return savedDuringWait(pollingDirective(),body.error??'Waiting for the app budget reset.');
     if (!response.ok) throw new Error(body.error ?? "Market service unavailable");
-    if (reusable) await save(url, { at: Date.now(), etag: response.headers.get("ETag"), body });
+    const requested = pathname.endsWith('/portfolio-prices') ? (new URL(url).searchParams.get('assets') ?? '').split(',') : [];
+    const partialFailure = requested.length > 0 && (body.error || body.stale) &&
+      (!Array.isArray(body.bazaar) || requested.some(id => !body.bazaar.some((item: BazaarItem) => `bz_${item.id}` === id)));
+    if (partialFailure) {
+      partialFailures.delete(url); partialFailures.set(url, Date.now());
+      while (partialFailures.size > LIMIT) partialFailures.delete(partialFailures.keys().next().value!);
+    } else partialFailures.delete(url);
+    // Do not turn a transient partial reply into a same-slot cache hit that
+    // defeats the caller's bounded failure backoff. Retain the prior envelope.
+    if (reusable && !partialFailure) await save(url, { at: Date.now(), etag: response.headers.get("ETag"), body });
     return body;
   };
   const locks = typeof navigator !== "undefined" ? navigator.locks : undefined;

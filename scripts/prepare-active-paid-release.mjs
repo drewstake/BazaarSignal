@@ -6,7 +6,8 @@ import { resolve } from 'node:path';
 import { verifyReleasePlan, verifyPaidPreflight, scheduleConfiguration, observedRepositoryBytes } from './private-trial-release.mjs';
 
 const [directory, releaseId, repair] = process.argv.slice(2);
-if (![4,5].includes(process.argv.length) || (repair !== undefined && repair !== '--repair-write-throttle') || !/^[a-z][a-z0-9-]{1,90}$/.test(releaseId ?? '')) throw Error('Usage: node scripts/prepare-active-paid-release.mjs <image-directory> <new-release-id> [--repair-write-throttle]');
+if (![4,5].includes(process.argv.length) || (repair !== undefined && !['--repair-write-throttle','--both-services'].includes(repair)) || !/^[a-z][a-z0-9-]{1,90}$/.test(releaseId ?? '')) throw Error('Usage: node scripts/prepare-active-paid-release.mjs <image-directory> <new-release-id> [--repair-write-throttle|--both-services]');
+const throttleRepair = repair === '--repair-write-throttle';
 const image = JSON.parse(readFileSync(resolve(directory, 'receipt.json'), 'utf8'));
 if (!image.localRuntimeSmokeVerified || !image.applicationOnly) throw Error('Verify the local image first');
 const project = 'bazaarsignal-510305', root = `projects/${project}/locations/us-central1`;
@@ -28,7 +29,7 @@ try {
     legacy: `https://firestore.googleapis.com/v1/${docs}/live-allowance`,
     control: `https://firestore.googleapis.com/v1/${docs}/control`,
     scheduler: `https://cloudscheduler.googleapis.com/v1/${root}/jobs/firebase-schedule-refreshMarket-us-central1`,
-    ...(repair ? { dailyScheduler: `https://cloudscheduler.googleapis.com/v1/${root}/jobs/bazaar-daily-close` } : {}),
+    ...(throttleRepair ? { dailyScheduler: `https://cloudscheduler.googleapis.com/v1/${root}/jobs/bazaar-daily-close` } : {}),
     marketapi: `https://run.googleapis.com/v2/${root}/services/marketapi`,
     refreshmarket: `https://run.googleapis.com/v2/${root}/services/refreshmarket`,
     marketapiIam: `https://run.googleapis.com/v1/${root}/services/marketapi:getIamPolicy?options.requestedPolicyVersion=3`,
@@ -62,7 +63,7 @@ try {
   const env = Object.fromEntries(r.marketapi.template.containers[0].env.map(e => [e.name, e.value]));
   const plan = { project, activePaidUpdate: true, operatingMode: 'paid-budget', updateExistingLive: true,
     services: repair ? ['marketapi','refreshmarket'] : ['marketapi'], releaseId, id: ledger.id, servicePeriodId: env.MARKET_LIVE_ID,
-    ...(repair ? { paidThrottleRepair: { stoppedAt: ledger.stoppedAt, code: 429, message: ledger.reason },
+    ...(throttleRepair ? { paidThrottleRepair: { stoppedAt: ledger.stoppedAt, code: 429, message: ledger.reason },
       dailyScheduleSha256: hash(JSON.stringify(scheduleConfiguration(r.dailyScheduler))) } : {}),
     startsAt: new Date(ledger.startsAt).toISOString(), expiresAt: new Date(ledger.expiresAt).toISOString(),
     shutdownGrantExpiresAt: '2026-11-01T08:00:00.000Z', legacyLedgerSha256: ledger.legacyLedgerSha256,
@@ -71,6 +72,7 @@ try {
     scopeEvidence: file, capacityEvidence: 'Existing paid budget and retained resources, $0.50 additional nonrefundable rollout hold including Hosting/rollback; no billed-spend claim.',
     counterEvidence: 'Fresh paid ledger admission; old stopped ledger checked only for integrity, never used to admit an active paid release.',
     policySha256: Object.fromEntries(['marketapi','refreshmarket'].map(n => [n, hash(JSON.stringify(r[`${n}Iam`]))])),
+    paidSchedule: r.scheduler.schedule,
     scheduleSha256: hash(JSON.stringify(scheduleConfiguration(r.scheduler))),
     meters: {
       cpuSeconds: { used: ledger.reserved.cpuSeconds ?? 0, hold: 10000, headroom: 0, limit: 180000 },

@@ -1,0 +1,185 @@
+{
+  "at": "2026-10-29T18:07:26.332Z",
+  "files": {
+    "docs/APP-AUDIT-2026-10-29.md": {
+      "bytes": 48977,
+      "sha256": "38cbca7bbbb10e8c370ace766c5a241b9ab61ab3102f48b02865e941f1092055"
+    },
+    "firebase.audit-local.json": {
+      "bytes": 332,
+      "sha256": "d726e235cfe2ccaa3822672751a1bf8cf310f14df3289b10934c4483d936f24d"
+    },
+    "playwright.audit-private.config.ts": {
+      "bytes": 265,
+      "sha256": "6b7071db3b2584cdd8c93119dfe4fc58a815886f7dd34d3cc2b9af728d1ffc6c"
+    },
+    "playwright.audit-public.config.ts": {
+      "bytes": 237,
+      "sha256": "45e16bd30af6e698ce731ede6ad932a74d20de50537e81e8029e71448a1fe9fb"
+    },
+    "tests/audit-reproductions.test.ts": {
+      "bytes": 4570,
+      "sha256": "32c0b905a88f72b8514aa4bdb968068c5f323ca2259f8983415a5ef176dae7bc"
+    },
+    "tests/audit-2026-10-29/private/journeys.spec.ts": {
+      "bytes": 11746,
+      "sha256": "56e6ec1431a5b217a3c2abd0c860a1379307f2842b749510a8120833208f58ef"
+    },
+    "tests/audit-2026-10-29/public/recovery.spec.ts": {
+      "bytes": 4350,
+      "sha256": "6d505cf715fb9b5a0210eb26315d99c2255cafb81758eff97883a6afef21e0cd"
+    },
+    "scripts/audit-2026-10-29-parser.cjs": {
+      "bytes": 2195,
+      "sha256": "3ad0081665af0fc98a11ce0b229528e33caef8320a630b2accd2a9457226e68c"
+    },
+    "scripts/audit-2026-10-29-profile.mjs": {
+      "bytes": 5100,
+      "sha256": "772f2b69526ffa525068dc3bc329414b5fed1ca9c6a131b67652c543df9da723"
+    },
+    "scripts/audit-2026-10-29-production.mjs": {
+      "bytes": 4464,
+      "sha256": "b229420da629b4c9699c5b66403a16a15a21ba85d5acc13c024a2b7be9540ef4"
+    },
+    "docs/measurements/app-audit-2026-10-29/audit-unit.log": {
+      "bytes": 233,
+      "sha256": "d3189abe328cea2e0910fdbd131abc662d6e26779b3c886da1b48875aecedaea"
+    },
+    "docs/measurements/app-audit-2026-10-29/body-parser-probe.json": {
+      "bytes": 168,
+      "sha256": "c77772a1a08e3063e0f6db9e2c0d6ea46e6099cb9465834c9a11d41cb57b55d2"
+    },
+    "docs/measurements/app-audit-2026-10-29/build-collector.log": {
+      "bytes": 121,
+      "sha256": "7a4b5c35271ad158343fc133b97260ac9d304a3e59ae2e8960834c7a8ea6744b"
+    },
+    "docs/measurements/app-audit-2026-10-29/build-market.log": {
+      "bytes": 142,
+      "sha256": "1c927feba367ff74624915d9cde24c8e2a7c5162b73a0d7a208587e2a671c2f2"
+    },
+    "docs/measurements/app-audit-2026-10-29/build.log": {
+      "bytes": 14695,
+      "sha256": "4599c0a37f8ae057f00c7cb4952bca6b185860e372c4db08b891482f44331dd9"
+    },
+    "docs/measurements/app-audit-2026-10-29/exploratory-private.log": {
+      "bytes": 2351,
+      "sha256": "a66028b48749fcae18223d001b841a0c34346ea330389595209301dc780f00af"
+    },
+    "docs/measurements/app-audit-2026-10-29/exploratory-public.log": {
+      "bytes": 1494,
+      "sha256": "bd05895bf590f8b00e47f7f9972162f6d9b5634a47cef1c9e29ee79d18f23826"
+    },
+    "docs/measurements/app-audit-2026-10-29/invalid-route-cost.json": {
+      "bytes": 271,
+      "sha256": "8fa1d22b663a3a9ff1ebe0203c43ca3911661fa6f43d05d0afbecfd89b22c498"
+    },
+    "docs/measurements/app-audit-2026-10-29/item-cancel-mobile.png": {
+      "bytes": 729139,
+      "sha256": "1473db3ecf306365aa81d34003cbceb6407d0d3abe09554aa7d16e315b4315ea"
+    },
+    "docs/measurements/app-audit-2026-10-29/large-browser.log": {
+      "bytes": 1733,
+      "sha256": "4b837b3326842cd32c6161585b27ac63b4d48cfbad1718e5d24b3d0c4e6b4adf"
+    },
+    "docs/measurements/app-audit-2026-10-29/large-portfolio-desktop.json": {
+      "bytes": 140,
+      "sha256": "8cedb84f3e17b371f0d1334071e944e0efeff1c2baa8074294f688b211c8f316"
+    },
+    "docs/measurements/app-audit-2026-10-29/large-portfolio-mobile.json": {
+      "bytes": 140,
+      "sha256": "4dac8bb235232a4f58b7602e133df362fa9fbbb01ab3abb6e6847d2e1fa647d4"
+    },
+    "docs/measurements/app-audit-2026-10-29/local-adapter.log": {
+      "bytes": 979,
+      "sha256": "9d86b61821ec501f2c937a1e8fe76f893655a955633ff998c4bb7afc5bdd4ac4"
+    },
+    "docs/measurements/app-audit-2026-10-29/native-cache-profile.json": {
+      "bytes": 6422,
+      "sha256": "4138e17fbfa4ed40d2d1c6c47b6e9ebcb7296dcf126291dcad2309ce5786c6b0"
+    },
+    "docs/measurements/app-audit-2026-10-29/npm-audit-market.json": {
+      "bytes": 6717,
+      "sha256": "26d7044a22ec850bc21b1e449081aa259890d72805181e01baf84c76bb0e4447"
+    },
+    "docs/measurements/app-audit-2026-10-29/npm-audit.json": {
+      "bytes": 37774,
+      "sha256": "b5db4e01f41e6a54cb6279fcdf2017e13be64aa506a075e40c86ad08bbdd608c"
+    },
+    "docs/measurements/app-audit-2026-10-29/paid-benchmark.log": {
+      "bytes": 233,
+      "sha256": "f3951fa148378b80986fe078e7d51805e2631aa797c720e089e4f343324ee7e9"
+    },
+    "docs/measurements/app-audit-2026-10-29/paid-runtime.json": {
+      "bytes": 99134,
+      "sha256": "e8a413d78eeb361672f4eca7058ffa266db4b7c47cde8b474555264ab40516fb"
+    },
+    "docs/measurements/app-audit-2026-10-29/partial-price-mobile.png": {
+      "bytes": 1317991,
+      "sha256": "302e05347d58b238babb51da3f8b2efa64287fd7aafd5740a155c624136cf09c"
+    },
+    "docs/measurements/app-audit-2026-10-29/preservation.json": {
+      "bytes": 450,
+      "sha256": "9a7fea3a08f6c717177aaf0b44d0bee0e1fba8c385f1b0fb59decf7fc3fed5b2"
+    },
+    "docs/measurements/app-audit-2026-10-29/private-browser-rerun.log": {
+      "bytes": 9138,
+      "sha256": "f17f26d215e204743da37d6ae5ca8e88df44b06a9596c95d857240cfc52a7d40"
+    },
+    "docs/measurements/app-audit-2026-10-29/production-browser.json": {
+      "bytes": 8182,
+      "sha256": "877bd3c0a83d9669d14bd407b9e41c5d8fc6bfda90eff8bac2718db1992f87b2"
+    },
+    "docs/measurements/app-audit-2026-10-29/production-item-replay-1440.png": {
+      "bytes": 438031,
+      "sha256": "b688def1be29d7fb88424648fc3bcd6c9523ee05bf010971721e9ab2b901a0ad"
+    },
+    "docs/measurements/app-audit-2026-10-29/production-item-replay-390.png": {
+      "bytes": 202781,
+      "sha256": "cfe7e86f1ece1094051c1c8626cdb2f10148d9af947f9d6c6a591f36a017139b"
+    },
+    "docs/measurements/app-audit-2026-10-29/production-observations.json": {
+      "bytes": 8135,
+      "sha256": "cb67f1442911d8f96f441c536818ff458225feba0879f1edd529dcaa8573473c"
+    },
+    "docs/measurements/app-audit-2026-10-29/public-browser-rerun.log": {
+      "bytes": 8839,
+      "sha256": "f4d604f874d5bc1f55fcdd769fdcff99cc4e2689c35940b78a613baeddf5bbcd"
+    },
+    "docs/measurements/app-audit-2026-10-29/public-snapshots-summary.json": {
+      "bytes": 689,
+      "sha256": "3208ee8c3b2d0754ab647c52a134959f1a12e919f2fae2f4ef2f595f644bc5dd"
+    },
+    "docs/measurements/app-audit-2026-10-29/queued-runtime.json": {
+      "bytes": 412,
+      "sha256": "b4a6958e58911c741e6142312f556a8650f9b9edd35f81b2c3ea41682c8c2dcc"
+    },
+    "docs/measurements/app-audit-2026-10-29/retry-browser-rerun.log": {
+      "bytes": 2532,
+      "sha256": "2551d94446bcff41b02b147ab56617c1f0d6ec91e28db2f3ea72ed11f873eed3"
+    },
+    "docs/measurements/app-audit-2026-10-29/rules.log": {
+      "bytes": 1165,
+      "sha256": "2f069e678b7807c50fa77670d8ee194f732ba3f9f8011a6389931728815f719d"
+    },
+    "docs/measurements/app-audit-2026-10-29/secret-scan-summary.json": {
+      "bytes": 145,
+      "sha256": "f7365f20e6efa7be311fb62ab810d49bc3df02382a027e032672e6d1a2a154c3"
+    },
+    "docs/measurements/app-audit-2026-10-29/session-duplicate-rerun.log": {
+      "bytes": 6875,
+      "sha256": "b02b717246d9a324ebd3cb7a45ef7528cc01e080afe3d1f592c07d372cc6e80c"
+    },
+    "docs/measurements/app-audit-2026-10-29/stale-tab-mobile.png": {
+      "bytes": 1252838,
+      "sha256": "780c5962ad5b544580d6fdd7afb5bda06a77ba7845b8dea7ae06a4a205a91e73"
+    },
+    "docs/measurements/app-audit-2026-10-29/unit-final.log": {
+      "bytes": 312,
+      "sha256": "8593f2302bb025b34d7dfb4b1414de8f081f87703cddd30caca30b590dde3176"
+    },
+    "docs/measurements/item-price-chart-october-audit.json": {
+      "bytes": 17852,
+      "sha256": "2d3dbdba381f8c2edf1c612adc26adb79ff20a55b930985b606a72ffc4945979"
+    }
+  }
+}

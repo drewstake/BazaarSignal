@@ -51,11 +51,11 @@ export default function PortfolioApp() {
     [error, setError] = useState("");
   useEffect(
     () =>
-      watchAuth((u) => {
+      watchAuth((u, reason) => {
         setUser(u);
         setAuthReady(true);
         setEpoch((e) => e + 1);
-        setError("");
+        setError(reason ?? "");
       }),
     [],
   );

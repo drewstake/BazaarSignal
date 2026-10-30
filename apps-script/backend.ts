@@ -7,7 +7,7 @@ import type { UserRecord } from './store';
 import { sharedMarket } from './companion';
 import { PORTFOLIO_EVALUATION_ENABLED } from '../shared/companion/portfolio-policy';
 import { BACKGROUND_JOBS_ENABLED, EMAIL_DELIVERY_ENABLED } from '../shared/automation-policy';
-import { paidPilotActive, paidPilotAlertWindow } from '../shared/paid-pilot';
+import { paidPilotActive, paidPilotAlertWindow, PAID_PILOT_INTERVAL } from '../shared/paid-pilot';
 import { MARKET_HOUR, MARKET_REFRESH_MS, marketAlertWindow } from '../shared/market-schedule';
 import { portfolioNotificationRequest, runPortfolioNotifications } from './portfolio-backend';
 import { readOwnerUsageReport } from './usage-report';
@@ -232,8 +232,10 @@ export function scheduledPaidMinuteTick() {
   try {
     settings();
     return locked(()=>{
-      const slot=String(Math.floor(Date.now()/MARKET_HOUR));
-      if(properties.getProperty('PAID_LAST_MAIL_SLOT')===slot)return {ok:true,skipped:true};
+      const at=Date.now(),slot=String(Math.floor(at/PAID_PILOT_INTERVAL));
+      const previous=properties.getProperty('PAID_LAST_MAIL_SLOT');
+      // An hourly worker may already have checked :02 before this rollout.
+      if(previous===slot || (at%MARKET_HOUR<PAID_PILOT_INTERVAL && previous===String(Math.floor(at/MARKET_HOUR))))return {ok:true,skipped:true};
       const control=loadControl(),c=control.state,started=Date.now();
       if(started-c.runtimeWindow>=86400000){c.runtimeWindow=started;c.runtimeMs=0;}
       if(c.runtimeMs>=70*60000)return {ok:false,paused:true};
@@ -244,8 +246,13 @@ export function scheduledPaidMinuteTick() {
       const result=runPortfolioNotifications(started,true);
       c.runtimeMs+=Date.now()-started+2000-47000;
       c.monitor.enabled=true;c.monitor.lastAttempt=started;c.monitor.quota=MailApp.getRemainingDailyQuota();
-      if(!('paused' in result && result.paused)){c.paidLastSuccess=Date.now();c.paidError=null;}
-      else c.paidError='Email checks paused because market evidence is unavailable.';
+      c.paidLastProcessed='processed' in result ? result.processed : 0;
+      c.paidLastFailed='failed' in result ? result.failed : 0;
+      c.paidLastComplete='complete' in result && result.complete;
+      if('paused' in result && result.paused)c.paidError='Email checks paused because market evidence is unavailable.';
+      else if(c.paidLastFailed)c.paidError=`Email checks failed for ${c.paidLastFailed} account(s).`;
+      else if(!c.paidLastComplete)c.paidError='Email checks reached the work limit; remaining accounts will resume next interval.';
+      else {if(c.paidLastProcessed)c.paidLastSuccess=Date.now();c.paidError=null;}
       saveControl(control);return {ok:true,...result};
     },100);
   } catch {return {ok:false,error:'Paid notification worker did not complete.'};}
@@ -263,7 +270,7 @@ export function configurePaidPilot() {
   if(!triggers.some((t:any)=>t.getHandlerFunction()==='scheduledPaidMinuteTick'))
     ScriptApp.newTrigger('scheduledPaidMinuteTick').timeBased().everyMinutes(1).create();
   for(const t of triggers.filter((t:any)=>['scheduledPoll','scheduledMinuteTick'].includes(t.getHandlerFunction())))ScriptApp.deleteTrigger(t);
-  return {configured:true,checks:'Hourly at :02',expiresAt:'2026-11-01T07:00:00.000Z',sender:SENDER};
+  return {configured:true,checks:'Every 15 minutes at :02, :17, :32 and :47',expiresAt:'2026-11-01T07:00:00.000Z',sender:SENDER};
 }
 export function installTrigger() {
   if(!BACKGROUND_JOBS_ENABLED)throw new Error('Background services remain paused');

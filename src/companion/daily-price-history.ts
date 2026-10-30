@@ -4,6 +4,7 @@ import {
   type HistorySource,
 } from "../../shared/daily-price-history";
 import type { BazaarPricePoint } from "./bazaar-price-history";
+import { pollingDirective } from "./polling";
 
 export type ChartPricePoint = BazaarPricePoint & {
   day?: number;
@@ -22,8 +23,11 @@ export type DailyHistory = {
 };
 const cache = new Map<
   string,
-  { expires: number; promise: Promise<DailyHistory> }
+  { expires: number; promise: Promise<DailyHistory>; value?: DailyHistory }
 >();
+export class HistoryPaused extends Error {
+  constructor() { super('Daily history updates are paused. Saved device observations remain available.'); }
+}
 /** Share one bounded read across StrictMode mounts and navigation. Period changes
  * never read storage again. Keep failures briefly too, avoiding immediate retries. */
 export function loadDailyHistory(
@@ -32,18 +36,43 @@ export function loadDailyHistory(
 ): Promise<DailyHistory> {
   const key = `${item}:${historyDay(now)}`;
   const prior = cache.get(key);
-  if (prior && prior.expires > now) return prior.promise;
   const endpoint = import.meta.env.VITE_PRICE_HISTORY_URL || "/api/price-history";
+  const url = new URL(endpoint, location.origin);
+  const offline = import.meta.env.DEV && !import.meta.env.PROD && import.meta.env.VITE_LOCAL_MARKET_PREVIEW === 'true' &&
+    url.origin === location.origin && ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname) && url.pathname === '/api/price-history';
+  const blocked = () => {
+    const policy = pollingDirective();
+    return !offline && (policy.mode === 'paused' || (policy.retryAt ?? 0) > Date.now());
+  };
+  if (blocked()) {
+    const retained = [...cache].reverse().find(([id, entry]) => id.startsWith(`${item}:`) && entry.value)?.[1].value;
+    return retained ? Promise.resolve(retained) : Promise.reject(new HistoryPaused());
+  }
+  if (prior && prior.expires > now) return prior.promise;
+  const controller = new AbortController();
+  const policyChanged = () => { if (blocked()) controller.abort(new HistoryPaused()); };
+  window.addEventListener('market-usage-policy', policyChanged);
+  const entry = { expires: now + 300_000, promise: undefined! as Promise<DailyHistory>, value: prior?.value };
   const promise = fetch(`${endpoint}?item=${encodeURIComponent(item)}`, {
-    signal: AbortSignal.timeout(15_000),
+    signal: AbortSignal.any([AbortSignal.timeout(15_000), controller.signal]),
+    ...(offline ? { redirect: 'error' as const } : {}),
   }).then(async (response) => {
     if (!response.ok) throw new Error("Daily archive unavailable");
     const text = await response.text();
     if (text.length > 1024 ** 2) throw new Error("History response too large");
-    return parseDailyHistory(JSON.parse(text), item);
-  });
+    const data = parseDailyHistory(JSON.parse(text), item);
+    entry.value = data;
+    return data;
+  }).catch(error => {
+    if (controller.signal.aborted && cache.get(key) === entry) {
+      if (entry.value) { entry.expires = 0; entry.promise = Promise.resolve(entry.value); }
+      else cache.delete(key);
+    }
+    throw error;
+  }).finally(() => window.removeEventListener('market-usage-policy', policyChanged));
   cache.delete(key);
-  cache.set(key, { expires: now + 300_000, promise });
+  entry.promise = promise;
+  cache.set(key, entry);
   if (cache.size > 32) cache.delete(cache.keys().next().value!);
   return promise;
 }

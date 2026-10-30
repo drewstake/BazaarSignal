@@ -1,0 +1,142 @@
+{
+  "at": "2026-10-29T19:18:50.153Z",
+  "services": {
+    "marketapi": {
+      "revision": "marketapi-00031-sc4",
+      "image": "us-central1-docker.pkg.dev/bazaarsignal-510305/gcf-artifacts/market-trial@sha256:52c2ba960b5d6a5bf30f5f549a71f0c175dc8380f8fd8a9381ddecac650f7847",
+      "runtimeConfigurationPreserved": true,
+      "iamPreserved": true,
+      "trafficPinPreserved": true
+    },
+    "refreshmarket": {
+      "revision": "refreshmarket-00028-2fn",
+      "image": "us-central1-docker.pkg.dev/bazaarsignal-510305/gcf-artifacts/market-trial@sha256:52c2ba960b5d6a5bf30f5f549a71f0c175dc8380f8fd8a9381ddecac650f7847",
+      "runtimeConfigurationPreserved": true,
+      "iamPreserved": true,
+      "trafficPinPreserved": true
+    }
+  },
+  "preserved": {
+    "legacyLedger": true,
+    "all1188InlineReceipts": true,
+    "allPreviousReservations": true,
+    "budgetAndExpiry": true,
+    "collectorPolicy": true,
+    "schedules": true,
+    "hostingConfiguration": true,
+    "runtimeSettings": true,
+    "permissions": true
+  },
+  "schedules": {
+    "quarterHour": {
+      "state": "ENABLED",
+      "schedule": "*/15 * * * *",
+      "timeZone": "Etc/UTC",
+      "lastAttemptTime": "2026-10-29T19:15:12.593414Z",
+      "status": {}
+    },
+    "dailyClose": {
+      "state": "ENABLED",
+      "schedule": "59 4 * * *",
+      "timeZone": "Etc/UTC",
+      "lastAttemptTime": "2026-10-29T04:59:03.042644Z",
+      "status": {
+        "code": 13
+      }
+    }
+  },
+  "ledger": {
+    "version": 2,
+    "admissions": 1471,
+    "inlineReceipts": 1188,
+    "limitUsd": 5,
+    "stopUsd": 4.5,
+    "expiresAt": "2026-11-01T07:00:00.000Z",
+    "reservedUsd": 10.065640048000276,
+    "reserved": {
+      "runRequests": 1471,
+      "cpuSeconds": 229180,
+      "memoryGiBSeconds": 229180,
+      "firestoreReads": 106184,
+      "firestoreWrites": 62968,
+      "firestoreDeletes": 0,
+      "storageClassA": 0,
+      "storageClassB": 4413,
+      "snapshotUploads": 0,
+      "storageListPages": 0,
+      "cleanupRuns": 0,
+      "hypixelRequests": 8877,
+      "sellerRequests": 0,
+      "upstreamResponseBytes": 66907537408,
+      "firestoreEgressBytes": 598879502336,
+      "firestoreStorageBytes": 4291952640,
+      "storageEgressBytes": 37018927104,
+      "egressBytes": 73105408,
+      "logBytes": 339771392,
+      "artifactBytes": 1002460409
+    },
+    "rolloutHold": {
+      "at": 1793300187596,
+      "reservedUsd": 0.5,
+      "imageDigest": "sha256:52c2ba960b5d6a5bf30f5f549a71f0c175dc8380f8fd8a9381ddecac650f7847"
+    },
+    "latestReportedNetUsd": 0,
+    "billingPublishedAt": 1793300715171,
+    "stopped": false
+  },
+  "hosting": {
+    "version": "sites/bazaarsignal/versions/ec64884a3b8e67fa",
+    "releaseTime": "2026-10-29T19:04:55.237Z",
+    "allFileHashesMatch": true,
+    "fileCount": 111,
+    "configurationPreserved": true,
+    "downloadedFiles": [
+      {
+        "path": "/assets/AdminDashboard-B7d3XqvB.js",
+        "bytes": 16145,
+        "sha256": "6e4584b09c149137bc5beeebff33fb4b131a48255040a7d633ccc142667602de"
+      },
+      {
+        "path": "/assets/Workspace-DK7-hSD-.css",
+        "bytes": 21834,
+        "sha256": "4bfd545f7e9a6dedd4a79fa54f14843e8d5e575477e488c694cdc68c4462f4eb"
+      },
+      {
+        "path": "/assets/Workspace-DYUGp4JO.js",
+        "bytes": 504982,
+        "sha256": "82e863df2015166aa5ae48cebccd9ab9926441cf3d61ebc9f1f8b7952c8851ae"
+      },
+      {
+        "path": "/assets/app-C_4kQh20.css",
+        "bytes": 67566,
+        "sha256": "3d70912d11fcdb27399cedf259a57774544dbc99548c12cf3e88d7d13515f16c"
+      },
+      {
+        "path": "/assets/app-DA73zRPU.js",
+        "bytes": 458721,
+        "sha256": "dd2dc9861c56bf794bb9360ba1290a0294b8589992d71333d7b89fcab5424340"
+      },
+      {
+        "path": "/assets/bazaar-DFJa3HO8.js",
+        "bytes": 1621,
+        "sha256": "804a994a02dccd5a04029fcc733e9e8da9b5106206b4f4340efecf2498edad55"
+      },
+      {
+        "path": "/assets/fixtures-CFaWnstq.js",
+        "bytes": 1422,
+        "sha256": "4d7c791d79bd166a4815d587fd8024a8989b5d018e98ce1464c5893ee19f96a2"
+      },
+      {
+        "path": "/assets/sky-island-v1/icons.css",
+        "bytes": 309,
+        "sha256": "a2c39479428396a42153fb055dcc8c777d2ce847bd0059b0d488d9b907263300"
+      },
+      {
+        "path": "/index.html",
+        "bytes": 594,
+        "sha256": "fbc53a81cf84d4532b4dfa80eb4a5e86f1081655b9f32511ad3704bf1b67c1e4"
+      }
+    ],
+    "staticDownloadEvidence": "verification-after.json; current version and all provider file hashes rechecked"
+  }
+}

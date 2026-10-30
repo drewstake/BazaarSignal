@@ -1,6 +1,7 @@
 import type { User } from 'firebase/auth';
 import type { AppData, Workflow } from '../shared/model';
 import { requestBackend } from './backend';
+import { sessionToken } from './session-token';
 
 type Account = Partial<AppData> & { workflows: Workflow[] };
 type Reader = Pick<User, 'uid' | 'getIdToken'>;
@@ -24,7 +25,7 @@ export function readAccount(user: Reader, signal?: AbortSignal): Promise<Account
     const controller = new AbortController();
     entry = {
       controller, readers: 0,
-      promise: user.getIdToken().then(token => {
+      promise: sessionToken(user).then(token => {
         controller.signal.throwIfAborted();
         return requestBackend<Account>({ action: 'account' }, token, controller.signal);
       }),

@@ -21,7 +21,7 @@ export function parseBudgetMessage(item: BudgetMessage, billing: PaidBilling, no
   } catch { return null; }
 }
 
-/** One bounded pull per hourly collector; no browser request polls billing. */
+/** One bounded pull per scheduled collector; no browser request polls billing. */
 export function googleBillingFeed(token: () => Promise<string>, network: typeof fetch = fetch, clock = Date.now) {
   async function call(subscription: string, action: 'pull' | 'acknowledge', body: unknown) {
     const r = await network(`https://pubsub.googleapis.com/v1/${subscription}:${action}`, {

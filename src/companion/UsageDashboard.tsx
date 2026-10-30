@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { User } from "firebase/auth";
 import { auth } from "../data";
+import { sessionToken } from '../session-token';
 import { formatEstDateTime } from "../time";
 import { readPublishedUsage } from "./usage-report";
 import { localWorkspace } from "../local-workspace";
@@ -430,7 +431,7 @@ export default function UsageDashboard({ user }: { user: User | null }) {
     setBusy(true);
     setError("");
     try {
-      const token = await user.getIdToken();
+      const token = await sessionToken(user);
       const requestSignal = signal
         ? AbortSignal.any([signal, AbortSignal.timeout(20000)])
         : AbortSignal.timeout(20000);
@@ -558,7 +559,7 @@ export default function UsageDashboard({ user }: { user: User | null }) {
       </div>
       {import.meta.env.VITE_MARKET_OPERATING_MODE === "paid-budget" && (
         <p className="notice">
-          October paid trial: $5 monthly target, with hourly price and email
+          October paid trial: $5 monthly target, with 15-minute price and email
           checks. Market work stops at $4.50 in estimated reservations,
           including $1 reserved for overhead, or November 1. This is not a cap
           on Google's final bill. The previous free-tier report below does not

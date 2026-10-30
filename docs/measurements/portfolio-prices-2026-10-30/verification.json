@@ -1,0 +1,27 @@
+{
+  "at": "2026-10-30T11:16:42.823Z",
+  "services": {
+    "marketapi": {
+      "revision": "projects/bazaarsignal-510305/locations/us-central1/services/marketapi/revisions/marketapi-00032-zhg",
+      "image": "us-central1-docker.pkg.dev/bazaarsignal-510305/gcf-artifacts/market-trial@sha256:9765d01f02d77eb6a8bce15660c059a0200a9a04f02595fedb0c8290b29e7c9a"
+    },
+    "refreshmarket": {
+      "revision": "projects/bazaarsignal-510305/locations/us-central1/services/refreshmarket/revisions/refreshmarket-00029-jct",
+      "image": "us-central1-docker.pkg.dev/bazaarsignal-510305/gcf-artifacts/market-trial@sha256:9765d01f02d77eb6a8bce15660c059a0200a9a04f02595fedb0c8290b29e7c9a"
+    }
+  },
+  "admissionCount": 1502,
+  "reservedUsd": 10.649156664000277,
+  "expiry": "2026-11-01T07:00:00.000Z",
+  "budgetUsd": 5,
+  "preserved": {
+    "runtime": true,
+    "scheduleConfiguration": true,
+    "originalAccess": true,
+    "legacyLedger": true,
+    "reservations": true,
+    "inlineReceipts": true,
+    "budgetAndExpiry": true,
+    "hosting": true
+  }
+}

@@ -1,0 +1,9 @@
+
+ RUN  v4.1.11 C:/Users/drews/Development/BazaarSignal
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  13:43:55
+   Duration  9.76s (transform 161ms, setup 0ms, import 193ms, tests 9.45s, environment 0ms)
+

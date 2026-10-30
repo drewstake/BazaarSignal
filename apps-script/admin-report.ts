@@ -53,7 +53,7 @@ export function measureAdmin(
     );
     const control = JSON.parse(get(docUrl("control")).fields.value.stringValue);
     if (
-      budget.version !== 1 ||
+      ![1, 2].includes(budget.version) ||
       budget.id !== "paid-202610" ||
       budget.limitUsd !== 5 ||
       budget.stopUsd !== 4.5 ||

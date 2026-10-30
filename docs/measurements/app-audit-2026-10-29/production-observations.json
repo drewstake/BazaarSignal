@@ -1,0 +1,274 @@
+{
+  "at": "2026-10-29T17:37:16.640Z",
+  "hosting": {
+    "version": "sites/bazaarsignal/versions/df75d5a80c0d3ce1",
+    "released": "2026-10-27T13:43:01.021Z"
+  },
+  "api": {
+    "revision": "projects/bazaarsignal-510305/locations/us-central1/services/marketapi/revisions/marketapi-00030-84n",
+    "uri": "https://marketapi-k5a64sgi2q-uc.a.run.app",
+    "image": "us-central1-docker.pkg.dev/bazaarsignal-510305/gcf-artifacts/market-trial@sha256:f13f47ff6e4c1377a8add1dc81e85829b47e868c7ba8879df8c6e2848ae26fb0",
+    "scaling": {
+      "maxInstanceCount": 1
+    },
+    "timeout": "15s"
+  },
+  "collector": {
+    "revision": "projects/bazaarsignal-510305/locations/us-central1/services/refreshmarket/revisions/refreshmarket-00027-m5s",
+    "uri": "https://refreshmarket-k5a64sgi2q-uc.a.run.app",
+    "image": "us-central1-docker.pkg.dev/bazaarsignal-510305/gcf-artifacts/market-trial@sha256:f13f47ff6e4c1377a8add1dc81e85829b47e868c7ba8879df8c6e2848ae26fb0",
+    "scaling": {
+      "maxInstanceCount": 1
+    },
+    "timeout": "90s"
+  },
+  "quarterHour": {
+    "state": "ENABLED",
+    "schedule": "*/15 * * * *",
+    "timeZone": "Etc/UTC",
+    "lastAttemptTime": "2026-10-29T17:30:08.046327Z",
+    "status": {},
+    "retryConfig": {
+      "maxRetryDuration": "0s",
+      "minBackoffDuration": "5s",
+      "maxBackoffDuration": "3600s",
+      "maxDoublings": 5
+    }
+  },
+  "dailyClose": {
+    "state": "ENABLED",
+    "schedule": "59 4 * * *",
+    "timeZone": "Etc/UTC",
+    "lastAttemptTime": "2026-10-29T04:59:03.042644Z",
+    "status": {
+      "code": 13
+    },
+    "retryConfig": {
+      "maxRetryDuration": "0s",
+      "minBackoffDuration": "5s",
+      "maxBackoffDuration": "3600s",
+      "maxDoublings": 5
+    }
+  },
+  "ledger": {
+    "version": 2,
+    "admissionCount": 1460,
+    "inlineReceipts": 1188,
+    "storedValueBytes": 124655,
+    "reservedUsd": 9.543359810000275,
+    "stopUsd": 4.5,
+    "expiresAt": 1793516400000,
+    "observed": {
+      "firestoreReads": 13188,
+      "googleResponseBytes": 1245656078,
+      "firestoreWrites": 7471,
+      "collectorLeasesAcquired": 978,
+      "hypixelRequests": 1383,
+      "upstreamHttp200": 1383,
+      "upstreamResponseBytes": 3626652591,
+      "electionRefreshesCompleted": 375,
+      "electionSnapshotsUnchanged": 372,
+      "bazaarRefreshesCompleted": 971,
+      "bazaarSnapshotsPublished": 971,
+      "observedHandlerMs": 3659314,
+      "bazaarRefreshesFailed": 7,
+      "catalogRefreshesCompleted": 16,
+      "catalogSnapshotsUnchanged": 15,
+      "electionSnapshotsPublished": 3,
+      "firestoreEgressBytes": 53926933,
+      "egressBytes": 65504,
+      "catalogSnapshotsPublished": 1
+    },
+    "legacyLedgerSha256": "ccffd2bc86b26e55bb53f3a22fcc1abfbb5597a4c137db6a9d78c390e6f28413"
+  },
+  "legacyUnchanged": true,
+  "rules": [
+    {
+      "name": "firestore.rules",
+      "sha256": "771ddd5fe6f9475550427182c05c948b2325932d2e95ea533add39e787aee604",
+      "localMatches": true
+    }
+  ],
+  "hostedFiles": [
+    {
+      "path": "assets/AdminDashboard-BxMHCfx6.js",
+      "status": 200,
+      "bytes": 16163,
+      "matchesOctober27": true
+    },
+    {
+      "path": "assets/app-C_4kQh20.css",
+      "status": 200,
+      "bytes": 67566,
+      "matchesOctober27": true
+    },
+    {
+      "path": "assets/app-fx7oRO0E.js",
+      "status": 200,
+      "bytes": 456167,
+      "matchesOctober27": true
+    },
+    {
+      "path": "assets/bazaar-XSsC2uih.js",
+      "status": 200,
+      "bytes": 1621,
+      "matchesOctober27": true
+    },
+    {
+      "path": "assets/fixtures-4VO-jTJU.js",
+      "status": 200,
+      "bytes": 1422,
+      "matchesOctober27": true
+    },
+    {
+      "path": "assets/sky-island-v1/icons.css",
+      "status": 200,
+      "bytes": 312,
+      "matchesOctober27": true
+    },
+    {
+      "path": "assets/Workspace-DK7-hSD-.css",
+      "status": 200,
+      "bytes": 21834,
+      "matchesOctober27": true
+    },
+    {
+      "path": "assets/Workspace-H47F7Gl-.js",
+      "status": 200,
+      "bytes": 503182,
+      "matchesOctober27": true
+    },
+    {
+      "path": "index.html",
+      "status": 200,
+      "bytes": 594,
+      "matchesOctober27": true
+    }
+  ],
+  "status": {
+    "at": "2026-10-29T17:50:43.250Z",
+    "adminStatus": 200,
+    "admin": {
+      "checkedAt": 1793275813760,
+      "nextRefreshAt": 1793362200000,
+      "schedule": "daily",
+      "failures": [
+        "Scheduler and deployed expiration: refresh unavailable; any displayed measurement retains its original time.",
+        "Account totals: refresh unavailable; any displayed measurement retains its original time.",
+        "Hosting traffic: refresh unavailable; any displayed measurement retains its original time."
+      ],
+      "pilot": {
+        "measuredAt": 1793275813760,
+        "expiresAt": 1793516400000,
+        "reservedUsd": 9.479711252000275,
+        "stoppedAt": null,
+        "reason": null
+      },
+      "billing": {
+        "actualUsd": 0,
+        "measuredAt": 1793274428745,
+        "reason": "BazaarSignal market project · all services · after credits. Google-reported net cost; updates can arrive hours late. "
+      },
+      "scheduler": {
+        "measuredAt": 1791929526693,
+        "state": "ENABLED",
+        "schedule": "0 * * * *",
+        "expiresAt": 1793516400000
+      }
+    },
+    "script": {
+      "status": 403,
+      "error": "PERMISSION_DENIED"
+    },
+    "snapshot": {
+      "status": 200,
+      "encodedValueBytes": 881146,
+      "bound": 917504
+    }
+  },
+  "historyMeta": {
+    "version": 1,
+    "years": [
+      2025,
+      2026
+    ],
+    "lastSuccess": {
+      "at": 1793163542798,
+      "checkedAt": 1793163559725,
+      "items": 2201,
+      "closing": true
+    }
+  },
+  "dailyLogs": [
+    {
+      "at": "2026-10-29T04:59:03.064177Z",
+      "revision": "refreshmarket-00027-m5s",
+      "request": {
+        "method": "POST",
+        "status": 500,
+        "latency": "9.764323656s"
+      }
+    },
+    {
+      "at": "2026-10-29T04:59:11.698961Z",
+      "revision": "refreshmarket-00027-m5s",
+      "data": {
+        "delayMs": 1042,
+        "at": 1793249951699,
+        "event": "firestore_retry",
+        "key": "paid-budget-october",
+        "reason": "firestore-write-bandwidth",
+        "operation": "commit",
+        "attempt": 1,
+        "code": 429
+      }
+    },
+    {
+      "at": "2026-10-29T04:59:12.842222Z",
+      "revision": "refreshmarket-00027-m5s",
+      "data": {
+        "event": "daily_history_failed",
+        "at": 1793249952842,
+        "reason": "operation-failed"
+      }
+    },
+    {
+      "at": "2026-10-29T04:59:12.843877Z",
+      "revision": "refreshmarket-00027-m5s",
+      "text": "Error: History storage HTTP 429: RESOURCE_EXHAUSTED\n    at entryFromArgs (/workspace/node_modules/firebase-functions/lib/logger/index.js:120:13)\n    at Object.error (/workspace/node_modules/firebase-functions/lib/logger/index.js:109:8)\n    at httpFunc (/workspace/node_modules/firebase-functions/lib/v2/providers/scheduler.js:65:25)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)"
+    },
+    {
+      "at": "2026-10-29T05:00:01.646036Z",
+      "revision": "refreshmarket-00027-m5s",
+      "request": {
+        "method": "POST",
+        "status": 200,
+        "latency": "6.816419711s"
+      }
+    },
+    {
+      "at": "2026-10-29T05:00:08.481860Z",
+      "revision": "refreshmarket-00027-m5s",
+      "data": {
+        "kind": "collector",
+        "observed": {
+          "catalogRefreshesCompleted": 1,
+          "hypixelRequests": 2,
+          "bazaarSnapshotsPublished": 1,
+          "upstreamResponseBytes": 8342878,
+          "bazaarRefreshesCompleted": 1,
+          "catalogSnapshotsUnchanged": 1,
+          "observedHandlerMs": 2956,
+          "firestoreReads": 14,
+          "upstreamHttp200": 2,
+          "firestoreWrites": 9,
+          "collectorLeasesAcquired": 1,
+          "googleResponseBytes": 911423
+        },
+        "event": "paid_market",
+        "at": 1793250008481
+      }
+    }
+  ],
+  "scope": "Read-only management GETs, Logging entries:list, public Hosting GETs. Runtime endpoints not invoked. No credentials or billing-account identifiers included."
+}

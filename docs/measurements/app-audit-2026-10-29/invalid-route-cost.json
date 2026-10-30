@@ -1,0 +1,13 @@
+{
+  "requests": 1,
+  "responseBytes": 0,
+  "snapshotLoads": 0,
+  "decodedSnapshotBytes": 0,
+  "controlReads": 0,
+  "upstreamCalls": 0,
+  "shutdowns": 0,
+  "firestoreReads": 4,
+  "firestoreWriteAttempts": 4,
+  "firestoreWrites": 4,
+  "reservedUsd": 0.0006030450000000798
+}

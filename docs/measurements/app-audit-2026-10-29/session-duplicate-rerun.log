@@ -1,0 +1,100 @@
+i  emulators: Starting emulators: auth, firestore
+i  emulators: Detected demo project ID "demo-bazaar-watch", emulated services will use a demo configuration and attempts to access non-emulated services for this project will fail.
+i  firestore: Firestore Emulator logging to firestore-debug.log
++  firestore: Firestore Emulator was started in standard edition.
++  firestore: Firestore Emulator UI websocket is running on 9150.
+i  Running script: playwright test --config playwright.audit-private.config.ts --grep "deleted emulator|physical double"
+[WebServer] (node:7176) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+(node:57136) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  1 [desktop] › tests\audit-2026-10-29\private\journeys.spec.ts:113:1 › a deleted emulator account clears the private workspace when its token refresh fails (12.0s)
+(node:47972) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 2 [desktop] › tests\audit-2026-10-29\private\journeys.spec.ts:131:1 › a physical double click records one purchase and persists the weighted cost (2.9s)
+(node:5900) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  3 [mobile] › tests\audit-2026-10-29\private\journeys.spec.ts:113:1 › a deleted emulator account clears the private workspace when its token refresh fails (7.0s)
+(node:26568) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 4 [mobile] › tests\audit-2026-10-29\private\journeys.spec.ts:131:1 › a physical double click records one purchase and persists the weighted cost (2.9s)
+
+
+  1) [desktop] › tests\audit-2026-10-29\private\journeys.spec.ts:113:1 › a deleted emulator account clears the private workspace when its token refresh fails 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  getByRole('button', { name: 'Sign out', exact: true })
+    Expected: 0
+    Received: 1
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" getByRole('button', { name: 'Sign out', exact: true }) with timeout 5000ms
+      - waiting for getByRole('button', { name: 'Sign out', exact: true })
+        14 × locator resolved to 1 element
+           - unexpected value "1"
+
+
+      125 |   });
+      126 |   expect(error).toMatch(/user-token-expired|user-not-found|invalid-refresh-token/);
+    > 127 |   await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toHaveCount(0);
+          |                                                                             ^
+      128 |   await expect(page.getByRole('rowgroup', { name: 'Booster Cookie holding' })).toHaveCount(0);
+      129 | });
+      130 |
+        at C:\Users\drews\Development\BazaarSignal\tests\audit-2026-10-29\private\journeys.spec.ts:127:77
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\audit-2026-10-29-private\journeys-a-deleted-emulato-a678b-hen-its-token-refresh-fails-desktop\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\audit-2026-10-29-private\journeys-a-deleted-emulato-a678b-hen-its-token-refresh-fails-desktop\error-context.md
+
+  2) [mobile] › tests\audit-2026-10-29\private\journeys.spec.ts:113:1 › a deleted emulator account clears the private workspace when its token refresh fails 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  getByRole('button', { name: 'Sign out', exact: true })
+    Expected: 0
+    Received: 1
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" getByRole('button', { name: 'Sign out', exact: true }) with timeout 5000ms
+      - waiting for getByRole('button', { name: 'Sign out', exact: true })
+        14 × locator resolved to 1 element
+           - unexpected value "1"
+
+
+      125 |   });
+      126 |   expect(error).toMatch(/user-token-expired|user-not-found|invalid-refresh-token/);
+    > 127 |   await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toHaveCount(0);
+          |                                                                             ^
+      128 |   await expect(page.getByRole('rowgroup', { name: 'Booster Cookie holding' })).toHaveCount(0);
+      129 | });
+      130 |
+        at C:\Users\drews\Development\BazaarSignal\tests\audit-2026-10-29\private\journeys.spec.ts:127:77
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\audit-2026-10-29-private\journeys-a-deleted-emulato-a678b-hen-its-token-refresh-fails-mobile\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\audit-2026-10-29-private\journeys-a-deleted-emulato-a678b-hen-its-token-refresh-fails-mobile\error-context.md
+
+  2 failed
+    [desktop] › tests\audit-2026-10-29\private\journeys.spec.ts:113:1 › a deleted emulator account clears the private workspace when its token refresh fails 
+    [mobile] › tests\audit-2026-10-29\private\journeys.spec.ts:113:1 › a deleted emulator account clears the private workspace when its token refresh fails 
+  2 passed (27.8s)
+!  Script exited unsuccessfully (code 1)
+i  emulators: Shutting down emulators.
+i  firestore: Stopping Firestore Emulator
+!  Firestore Emulator has exited upon receiving signal: SIGINT
+i  auth: Stopping Authentication Emulator
+i  hub: Stopping emulator hub
+i  logging: Stopping Logging Emulator
+
+Error: Script "playwright test --config playwright.audit-private.config.ts --grep "deleted emulator|physical double"" exited with code 1

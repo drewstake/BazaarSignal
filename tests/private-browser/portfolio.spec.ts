@@ -247,8 +247,8 @@ test("notification controls persist, respect revisions and stay retired after ho
       holdingId: request.holdingId,
       holdingName: "Booster Cookie",
       source: "bazaar-ask-v1",
-      capturedPrice: null,
-      capturedAt: null,
+      capturedPrice: (request.input?.baseline ?? current?.baseline) === "sample" ? 14000000 : null,
+      capturedAt: (request.input?.baseline ?? current?.baseline) === "sample" ? Date.now() : null,
       enabled: ["save", "resume"].includes(request.operation),
       deleted: request.operation === "delete",
       revision: storedRevision + 1,
@@ -301,14 +301,21 @@ test("notification controls persist, respect revisions and stay retired after ho
   await expect(form).toHaveCount(0);
   await expect(card).toContainText("Enabled · ↑ 10% ↓ 5%");
   await page.getByRole("link", { name: "Settings", exact: true }).click();
-  await page.getByRole("article", { name: "Booster Cookie notification" }).scrollIntoViewIfNeeded();
+  const alert = page.getByRole("article", { name: "Booster Cookie notification" });
+  await expect(alert.locator(".upward .notification-trigger-price")).toHaveText("13,420,000 coins");
+  await expect(alert.locator(".downward .notification-trigger-price")).toHaveText("11,590,000 coins");
+  await expect(alert.locator(".notification-baseline")).toHaveText("Average buy price 12,200,000 coins");
+  await alert.scrollIntoViewIfNeeded();
   await noOverflow(page);
-  await page.screenshot({ path: `.local/settings-alert-row-${info.project.name}.png` });
+  for (const price of await alert.locator(".notification-trigger-price").all())
+    await expect(price).toBeInViewport({ ratio: 1 });
+  await page.screenshot({ path: `.local/settings-alert-card-both-${info.project.name}.png` });
   await page.getByRole("button", { name: "Pause", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Resume", exact: true }),
   ).toBeVisible();
   await page.reload();
+  await expect(alert.locator(".upward .notification-trigger-price")).toHaveText("13,420,000 coins");
   await page.getByRole("button", { name: "Resume", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Pause", exact: true }),
@@ -331,6 +338,7 @@ test("notification controls persist, respect revisions and stay retired after ho
   await expect(form).toHaveCount(0);
   await expect(page).toHaveURL(/#view=settings$/);
   await expect(page.getByRole("article", { name: "Booster Cookie notification" })).toContainText("+15%");
+  await expect(alert.locator(".upward .notification-trigger-price")).toHaveText("14,030,000 coins");
   await page.reload();
   await settingsEdit.click();
   await expect(form.getByLabel("Price rises by (%)")).toHaveValue("15");
@@ -338,16 +346,35 @@ test("notification controls persist, respect revisions and stay retired after ho
   await expect(form).toHaveCount(0);
   await page.getByRole("link", { name: "Portfolio", exact: true }).click();
   await expect(card).toContainText("↑ 15%");
+  await card.getByRole("button", { name: "Edit", exact: true }).click();
+  const holdingForm = page.getByRole("form", { name: "Edit holding" });
+  await holdingForm.getByLabel(/ · coins$/).fill("2870M");
+  await holdingForm.getByRole("button", { name: "Save holding", exact: true }).click();
+  await expect(holdingForm).toHaveCount(0);
   await page.getByRole("link", { name: "Settings", exact: true }).click();
+  await expect(alert.locator(".upward .notification-trigger-price")).toHaveText("11,500,000 coins");
+  await expect(alert.locator(".downward .notification-trigger-price")).toHaveText("9,500,000 coins");
   await page.getByRole("button", { name: "Delete notification" }).click();
   await expect(
     page.getByText("No holding notifications yet.", { exact: false }),
   ).toBeVisible();
   await page.getByRole("link", { name: "Portfolio", exact: true }).click();
   await card.getByRole("button", { name: "Set notification" }).click();
-  await form.getByLabel("Price rises by (%)").fill("20");
+  await form.getByLabel("Compare with").selectOption("sample");
+  await form.getByLabel("Price rises by (%)").fill("14");
+  await form.getByLabel("Price falls by (%)").fill("");
   await form.getByRole("button", { name: "Save and enable" }).click();
   await expect(form).toHaveCount(0);
+  await page.getByRole("link", { name: "Settings", exact: true }).click();
+  await expect(alert.locator(".upward .notification-trigger-price")).toHaveText("15,960,000 coins");
+  await expect(alert.locator(".downward")).toHaveCount(0);
+  await expect(alert.locator(".notification-baseline")).toHaveText("Price when enabled 14,000,000 coins");
+  await alert.scrollIntoViewIfNeeded();
+  await noOverflow(page);
+  await alert.screenshot({ path: `.local/settings-alert-card-single-${info.project.name}.png` });
+  await page.reload();
+  await expect(alert.locator(".upward .notification-trigger-price")).toHaveText("15,960,000 coins");
+  await page.getByRole("link", { name: "Portfolio", exact: true }).click();
   await card.getByRole("button", { name: "Delete", exact: true }).click();
   await page.getByRole("button", { name: "Confirm delete" }).click();
   await expect(card).toHaveCount(0);

@@ -297,7 +297,7 @@ export function portfolioNotificationRequest(
     jsonWrite(`portfolioDelivery/${uid}`, ledger.value, ledger.version),
     write(
       `portfolioSubscribers/${uid}`,
-      { active: true },
+      { active: [next, ...all.filter(n => n.id !== id)].some(n => n.enabled && !n.deleted) },
       subscriber?.updateTime ?? null,
     ),
     ...(p.document ? [verify(p.document)] : []),
@@ -418,6 +418,12 @@ export function portfolioMailText(mail: Mail, name: string) {
     ].join("\n"),
   };
 }
+export interface PortfolioRunResult {
+  processed: number;
+  failed: number;
+  complete: boolean;
+  paused?: boolean;
+}
 /** Bounded shared worker; disabled before ANY I/O in the portfolio release. */
 export function runPortfolioNotifications(
   started: number,
@@ -427,39 +433,83 @@ export function runPortfolioNotifications(
   const props = PropertiesService.getScriptProperties();
   if (props.getProperty("MARKET_UPDATES_PAUSED") !== "false")
     return { paused: true };
-  const cursor = props.getProperty("PORTFOLIO_CURSOR") ?? "";
-  const query: any = {
-    from: [{ collectionId: "portfolioSubscribers" }],
-    where: {
-      fieldFilter: {
-        field: { fieldPath: "active" },
-        op: "EQUAL",
-        value: { booleanValue: true },
-      },
-    },
-    orderBy: [{ field: { fieldPath: "__name__" }, direction: "ASCENDING" }],
-    limit: 5,
-    ...(cursor
-      ? {
-          startAt: {
-            values: [
-              { referenceValue: `${DOCUMENT}/portfolioSubscribers/${cursor}` },
-            ],
-            before: false,
-          },
-        }
-      : {}),
+  let cursor = props.getProperty("PORTFOLIO_CURSOR") ?? "";
+  const initialCursor = cursor;
+  let wrapped = !cursor;
+  const seen = new Set<string>();
+  const priceBundles = new Map<string, PriceEvidence>();
+  const pricesFor = (assets: string[]) => {
+    const key = [...assets].sort().join(',');
+    let prices = priceBundles.get(key);
+    if (!prices) { prices = evidence(assets); priceBundles.set(key, prices); }
+    return prices;
   };
-  const users = firestore(":runQuery", "post", { structuredQuery: query })
-    .filter((r: any) => r.document)
-    .map((r: any) => r.document.name.split("/").pop());
-  if (!users.length) {
-    props.setProperty("PORTFOLIO_CURSOR", "");
-    return { processed: 0 };
+  const result: PortfolioRunResult = { processed: 0, failed: 0, complete: false };
+  // Walk one complete cycle, at most 100 accounts / 40 seconds. A saved cursor
+  // resumes an interrupted pass; crossing the end never consumes an idle tick.
+  while (Date.now() - started <= 40000) {
+    const query: any = {
+      from: [{ collectionId: "portfolioSubscribers" }],
+      where: {
+        fieldFilter: {
+          field: { fieldPath: "active" },
+          op: "EQUAL",
+          value: { booleanValue: true },
+        },
+      },
+      orderBy: [{ field: { fieldPath: "__name__" }, direction: "ASCENDING" }],
+      limit: 5,
+      ...(cursor
+        ? {
+            startAt: {
+              values: [
+                { referenceValue: `${DOCUMENT}/portfolioSubscribers/${cursor}` },
+              ],
+              before: false,
+            },
+          }
+        : {}),
+    };
+    const users: string[] = firestore(":runQuery", "post", { structuredQuery: query })
+      .filter((r: any) => r.document)
+      .map((r: any) => r.document.name.split("/").pop());
+    if (!users.length) {
+      if (!wrapped) { wrapped = true; cursor = ""; continue; }
+      props.setProperty("PORTFOLIO_CURSOR", "");
+      return { ...result, complete: true };
+    }
+    // On wrap, stop at the original cursor even if its subscriber was deleted.
+    const page = users.filter(uid => !seen.has(uid) && (!wrapped || !initialCursor || uid <= initialCursor));
+    if (!page.length) {
+      props.setProperty("PORTFOLIO_CURSOR", "");
+      return { ...result, complete: true };
+    }
+    if (seen.size >= 100) return result;
+    const batch = processPortfolioNotifications(page.slice(0, 100 - seen.size), started, pricesFor);
+    result.processed += batch.processed;
+    result.failed += batch.failed;
+    for (const uid of batch.attempted) seen.add(uid);
+    if (batch.attempted.length) {
+      cursor = batch.attempted[batch.attempted.length - 1];
+      props.setProperty("PORTFOLIO_CURSOR", cursor);
+    }
+    if (batch.paused || batch.attempted.length < page.length)
+      return { ...result, ...(batch.paused ? { paused: true } : {}) };
+    if (page.length < users.length) {
+      props.setProperty("PORTFOLIO_CURSOR", "");
+      return { ...result, complete: true };
+    }
   }
+  return result;
+}
+
+function processPortfolioNotifications(users: string[], started: number, pricesFor: (assets: string[]) => PriceEvidence) {
+  const props = PropertiesService.getScriptProperties();
+  const result = { processed: 0, failed: 0, attempted: [] as string[], paused: false };
   let prices: PriceEvidence | null = null;
   const configurations = new Map<string, HoldingNotification[]>();
   for (const uid of users) {
+    if (Date.now() - started > 40000) return result;
     try {
       configurations.set(uid, listNotifications(uid));
     } catch {
@@ -474,21 +524,22 @@ export function runPortfolioNotifications(
         .map((n) => n.holdingId),
     ),
   ];
-  // One required shared snapshot bundle per bounded worker tick; never per user/holding.
+  if (Date.now() - started > 40000) return result;
+  // At most 100 keys per page; identical bundles are reused within this pass.
   try {
-    if (assets.length) prices = evidence(assets);
+    if (assets.length) prices = pricesFor(assets);
   } catch {
     /* Missing data must prime the next valid observation. */
   }
   // A paid service stop must also stop queued portfolio sends. Keep the queue
   // untouched until an operator restores pricing; do not deliver stale events.
-  if (assets.length && !prices && paidPilotActive(props.getProperty('MARKET_OPERATING_MODE'))) return {paused:true};
-  let processed = 0;
+  if (assets.length && !prices && paidPilotActive(props.getProperty('MARKET_OPERATING_MODE'))) return { ...result, paused: true };
   for (const uid of users) {
     if (Date.now() - started > 40000) break;
+    result.attempted.push(uid);
     try {
       const notifications = configurations.get(uid);
-      if (!notifications) continue;
+      if (!notifications) { result.failed++; continue; }
       const ledger = loadLedger(uid),
         prefs = read(`users/${uid}/portfolioPreferences/main`),
         emailEnabled = prefs.data?.emailEnabled === true;
@@ -555,13 +606,13 @@ export function runPortfolioNotifications(
         ]);
         ledger.version = result.writeResults[0].updateTime;
       };
-      const result = commit([
+      const committed = commit([
         jsonWrite(`portfolioDelivery/${uid}`, ledger.value, ledger.version),
         ...Array.from(
           new Map(preconditions.map((w) => [w.verify, w])).values(),
         ),
       ]);
-      ledger.version = result.writeResults[0].updateTime;
+      ledger.version = committed.writeResults[0].updateTime;
       const prefix = `portfolio-sent:${uid}:`;
       deliver(ledger.value.state, {
         now: Date.now,
@@ -623,11 +674,18 @@ export function runPortfolioNotifications(
       // deliver() durably saves each state transition itself. Only pruning
       // changes anything here; an unchanged final write consumes quota twice.
       if (ledger.value.state.mail.length !== mailCount || ledger.value.state.alerts.length !== alertCount) save();
-      processed++;
+      if (!notifications.some(n => n.enabled && !n.deleted)) {
+        const subscriber = readDoc(`portfolioSubscribers/${uid}`);
+        // Recheck after reading the subscriber version: an edit during this
+        // pass may have re-enabled it. Later edits are fenced by this CAS.
+        if (subscriber && !listNotifications(uid).some(n => n.enabled && !n.deleted))
+          commit([write(`portfolioSubscribers/${uid}`, { active: false }, subscriber.updateTime)]);
+      }
+      result.processed++;
     } catch {
       /* Isolate account failures; existing CAS versions make retries safe. */
+      result.failed++;
     }
-    props.setProperty("PORTFOLIO_CURSOR", uid);
   }
-  return { processed };
+  return result;
 }

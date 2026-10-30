@@ -51,7 +51,7 @@ export function verifyPaidReleaseBudget(plan, ledger, now = Date.now()) {
       throw Error('Inspected Firestore throttle stop changed');
     ledger = { ...ledger }; delete ledger.stoppedAt; delete ledger.reason;
   }
-  if (!ledger || ledger.version !== 1 || ledger.id !== plan.id ||
+  if (!ledger || ![1, 2].includes(ledger.version) || ledger.id !== plan.id ||
       !Number.isFinite(ledger.startsAt) || ledger.startsAt !== Date.parse(plan.startsAt) || ledger.startsAt > now ||
       ledger.expiresAt !== Date.parse(paidEnd) || now >= ledger.expiresAt || ledger.expiresAt <= ledger.startsAt ||
       ledger.expiresAt - ledger.startsAt > 32 * 86400000 || ledger.stoppedAt !== undefined || ledger.reason !== undefined ||
@@ -60,7 +60,10 @@ export function verifyPaidReleaseBudget(plan, ledger, now = Date.now()) {
       (ledger.billing?.latest ? ledger.billing.latest.actualUsd >= 4.5 : ledger.reservedUsd > 4.5) ||
       !counters(ledger.reserved) || !counters(ledger.observed) ||
       !ledger.admissions || Array.isArray(ledger.admissions) || typeof ledger.admissions !== 'object' ||
-      Object.keys(ledger.admissions).length >= 4000 || !/^[a-f0-9]{64}$/.test(ledger.legacyLedgerSha256) ||
+      (ledger.version === 2 && ledger.admissionCount === undefined) ||
+      !Number.isSafeInteger(ledger.admissionCount ?? Object.keys(ledger.admissions).length) ||
+      (ledger.admissionCount ?? Object.keys(ledger.admissions).length) < Object.keys(ledger.admissions).length ||
+      (ledger.admissionCount ?? Object.keys(ledger.admissions).length) >= 4000 || !/^[a-f0-9]{64}$/.test(ledger.legacyLedgerSha256) ||
       ledger.legacyLedgerSha256 !== plan.legacyLedgerSha256)
     throw new Error('Paid budget is missing, changed, stopped, exhausted or expired');
   const deployments = ledger.deployments ?? {};
@@ -75,7 +78,17 @@ export function verifyPaidReleaseBudget(plan, ledger, now = Date.now()) {
 /** Normal hourly/browser work can advance accounting during a rollout. It can
  * never remove an admission, shrink a counter or replace a retained hold. */
 export function verifyPaidContinuity(before, after) {
-  for (const key of ['version','id','startsAt','expiresAt','limitUsd','stopUsd','legacyLedgerSha256'])
+  for (const ledger of [before, after]) {
+    const count = ledger.admissionCount ?? Object.keys(ledger.admissions).length;
+    if (![1, 2].includes(ledger.version) || (ledger.version === 2 && ledger.admissionCount === undefined) ||
+        !Number.isSafeInteger(count) || count < Object.keys(ledger.admissions).length || count > 4000)
+      throw new Error('Invalid paid admission count or format');
+  }
+  if (after.version !== before.version && !(before.version === 1 && after.version === 2))
+    throw new Error('Paid ledger format moved backwards or is unknown');
+  if ((after.admissionCount ?? Object.keys(after.admissions).length) <
+      (before.admissionCount ?? Object.keys(before.admissions).length)) throw new Error('Paid admission count moved backwards');
+  for (const key of ['id','startsAt','expiresAt','limitUsd','stopUsd','legacyLedgerSha256'])
     if (after[key] !== before[key]) throw new Error(`Paid identity changed: ${key}`);
   if (after.reservedUsd < before.reservedUsd || (after.lastCollectorAt ?? 0) < (before.lastCollectorAt ?? 0))
     throw new Error('Paid counters moved backwards');
@@ -284,14 +297,16 @@ export function verifyLiveUpdate(plan, ledger, service, now = Date.now()) {
 export function verifySchedule(plan, schedule) {
   if (plan.activePaidUpdate) {
     verifyActivePaidPlan(plan);
-    if (schedule.state !== (plan.paidThrottleRepair ? 'PAUSED' : 'ENABLED') || schedule.schedule !== '0 * * * *' || schedule.timeZone !== 'Etc/UTC' ||
+    const expected = plan.paidSchedule ?? '0 * * * *';
+    if (!['0 * * * *', '*/15 * * * *'].includes(expected) ||
+        schedule.state !== (plan.paidThrottleRepair ? 'PAUSED' : 'ENABLED') || schedule.schedule !== expected || schedule.timeZone !== 'Etc/UTC' ||
         (schedule.retryConfig?.retryCount ?? 0) !== 0 || (schedule.retryConfig?.maxRetryDuration ?? '0s') !== '0s' ||
         schedule.httpTarget?.httpMethod !== 'POST' ||
         schedule.httpTarget?.uri !== 'https://refreshmarket-k5a64sgi2q-uc.a.run.app/' ||
         schedule.httpTarget?.oidcToken?.audience !== schedule.httpTarget.uri ||
         schedule.httpTarget?.oidcToken?.serviceAccountEmail !== `market-collector@${project}.iam.gserviceaccount.com` ||
         sha(JSON.stringify(scheduleConfiguration(schedule))) !== plan.scheduleSha256)
-      throw new Error('Active paid hourly schedule or target changed');
+      throw new Error('Active paid schedule or target changed');
     return;
   }
   const paused = plan.recoverStopped === true || plan.keepCollectionPaused === true;

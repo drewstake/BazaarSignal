@@ -1,0 +1,13 @@
+
+> bazaar-watch@1.0.0 test
+> vitest run
+
+
+ RUN  v4.1.11 C:/Users/drews/Development/BazaarSignal
+
+
+ Test Files  78 passed | 1 skipped (79)
+      Tests  870 passed | 1 skipped (871)
+   Start at  13:59:22
+   Duration  27.03s (transform 5.25s, setup 0ms, import 20.13s, tests 116.69s, environment 7ms)
+

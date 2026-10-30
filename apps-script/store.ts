@@ -57,6 +57,7 @@ export function linkWrite(tokenHash:string,uid:string,alertId:string) {
 }
 export interface Control {
   paidLastSuccess?:number;paidLastAttempt?:number;paidError?:string|null;
+  paidLastProcessed?:number;paidLastFailed?:number;paidLastComplete?:boolean;
   monitor:State['monitor'];cursor:string;runtimeWindow:number;runtimeMs:number;
   admissionWindow:number;admissions:number;
 }

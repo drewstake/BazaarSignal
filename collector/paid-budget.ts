@@ -5,15 +5,17 @@ import type { CacheStore } from './cache-store';
 import { TrialSession, TrialStopped, type Counters } from './trial';
 import { MarketCollector } from './engine';
 import { livePolicy } from './allowance-live';
-import { marketHandler } from './routes';
+import { marketHandler, retiredMarketRoute } from './routes';
 import { SnapshotReadCache } from './snapshot-read-cache';
 import { type PaidBilling, type GoogleSpend, validPaidBilling, validGoogleSpend } from '../shared/paid-spending';
-import { errorDiagnostic, isFirestoreWriteThrottle, type DiagnosticReporter } from './diagnostics';
+import { errorDiagnostic, isTransientFirestoreFailure, type DiagnosticReporter } from './diagnostics';
 import { LedgerWriteQueue } from './ledger-write-queue';
 import { historyDay, validHistoryItem } from '../shared/daily-price-history';
+import { PAID_PILOT_INTERVAL } from '../shared/paid-pilot';
+import { PAID_BUDGET_KEY, PAID_ADMISSION_LIMIT, paidReceiptKey, type PaidReceipt } from './paid-ledger-storage';
+export { PAID_BUDGET_KEY } from './paid-ledger-storage';
 
-export const PAID_INTERVAL_MS = 3_600_000;
-export const PAID_BUDGET_KEY = 'paid-budget-october';
+export const PAID_INTERVAL_MS = PAID_PILOT_INTERVAL;
 // Gross on-demand USD prices, deliberately taking no free-tier credit.
 // us-central1 Firestore, Run and Storage are co-located; internal transfer is free.
 // Prices checked October 13, 2026. These are reservations, not a provider bill.
@@ -24,11 +26,14 @@ export const paidRates: Counters = {
   logBytes: .5 / 1024 ** 3, storageClassA: .005 / 1000, storageClassB: .0004 / 1000,
 };
 export interface PaidBudget {
-  version: 1; id: string; startsAt: number; expiresAt: number;
+  version: 1 | 2; id: string; startsAt: number; expiresAt: number;
   limitUsd: number; stopUsd: number; reservedUsd: number;
   reserved: Counters; observed: Counters; legacyLedgerSha256: string;
   stoppedAt?: number; reason?: string; lastCollectorAt?: number;
   admissions: Record<string, { at: number; finished?: boolean }>;
+  // Total includes retained inline admissions AND separately stored receipts.
+  // Missing means an older ledger containing only inline admissions.
+  admissionCount?: number;
   billing?: PaidBilling;
 }
 export const paidEnvelope = (kind: 'collector' | 'browser' | 'history'): Counters => kind === 'history' ? ({
@@ -57,19 +62,23 @@ export function paidCost(costs: Counters) {
   return Math.ceil(Object.entries(paidRates).reduce((sum, [key, rate]) => sum + (costs[key] ?? 0) * rate, 0) * 1e9) / 1e9;
 }
 export function validatePaid(s: PaidBudget | null, now: number, billingNow = now) {
-  if (!s || s.version !== 1 || s.id !== 'paid-202610' ||
+  if (!s || ![1, 2].includes(s.version) || s.id !== 'paid-202610' ||
     ![s.startsAt,s.expiresAt,s.reservedUsd,s.limitUsd,s.stopUsd].every(Number.isFinite) ||
     s.startsAt > now || now >= s.expiresAt || s.expiresAt <= s.startsAt || s.expiresAt - s.startsAt > 32 * 86400000 ||
     s.limitUsd !== 5 || s.stopUsd !== 4.5 || s.reservedUsd < 1 ||
     (s.billing && !validPaidBilling(s.billing, billingNow)) ||
     (s.billing?.latest ? s.billing.latest.actualUsd >= s.stopUsd : s.reservedUsd > s.stopUsd) ||
     !/^[a-f0-9]{64}$/.test(s.legacyLedgerSha256) || !s.reserved || !s.observed || !s.admissions ||
+    (s.version === 2 && s.admissionCount === undefined) ||
+    (s.admissionCount !== undefined && (!Number.isSafeInteger(s.admissionCount) ||
+      s.admissionCount < Object.keys(s.admissions).length || s.admissionCount > PAID_ADMISSION_LIMIT)) ||
     s.stoppedAt !== undefined) throw new TrialStopped(s?.reason ?? 'Paid budget is missing, stopped or expired');
 }
 export class PaidLedger {
   constructor(private store: CacheStore, private clock = Date.now, private report?: DiagnosticReporter,
     private writes?: LedgerWriteQueue) {}
-  private async change<T>(fn: (s: PaidBudget, now: number) => T, terminal = false) {
+  private async change<T>(fn: (s: PaidBudget, now: number,
+    publish: (payload: { key: string; value: string }) => void) => T | Promise<T>, terminal = false) {
     for (let attempt = 0; attempt < 4; attempt++) {
       const work = async () => {
       const raw = await this.store.read(PAID_BUDGET_KEY);
@@ -77,8 +86,10 @@ export class PaidLedger {
       const now = this.store.time ? await this.store.time() : this.clock();
       if (!terminal) validatePaid(s, now, this.clock());
       if (!s) throw new TrialStopped('Paid budget missing');
-      const result = fn(s, now);
-      const done = raw === JSON.stringify(s) || await this.store.commit(PAID_BUDGET_KEY, raw, JSON.stringify(s));
+      let payload: { key: string; value: string } | undefined;
+      const result = await fn(s, now, value => { payload = value; });
+      const next = JSON.stringify(s);
+      const done = (!payload && raw === next) || await this.store.commit(PAID_BUDGET_KEY, raw, next, payload);
       return { done, result };
       };
       const outcome = await (this.writes ? this.writes.run(work) : work());
@@ -94,14 +105,22 @@ export class PaidLedger {
   }
   async admit(kind: 'collector' | 'browser' | 'history', id: string, deadline = Infinity) {
     if (!/^[a-zA-Z0-9:_./-]{1,250}$/.test(id) || ['__proto__','constructor','prototype'].includes(id)) throw new TrialStopped('Invalid paid invocation');
-    return this.change((s, now) => {
+    return this.change(async (s, now, publish) => {
       if (Object.hasOwn(s.admissions,id)) return null;
+      const key = paidReceiptKey(s.id, id);
+      if (await this.store.read(key)) return null;
       if (kind === 'collector' && s.lastCollectorAt !== undefined && Math.floor(now / PAID_INTERVAL_MS) <= Math.floor(s.lastCollectorAt / PAID_INTERVAL_MS)) return null;
       // Keep deduplication for this entire fixed trial. No ambiguous holds are refunded.
-      if (Object.keys(s.admissions).length >= 4000) throw new TrialStopped('Paid request limit reached');
+      const count = s.admissionCount ?? Object.keys(s.admissions).length;
+      if (count >= PAID_ADMISSION_LIMIT) throw new TrialStopped('Paid request limit reached');
       const envelope = paidEnvelope(kind);
-      this.reserve(s, {...envelope, firestoreReads: envelope.firestoreReads + 20, firestoreWrites: envelope.firestoreWrites + 8});
-      s.admissions[id] = { at: now };
+      // Ledger + receipt publish atomically at admission and finish. Retain room
+      // for four CAS attempts and the adapter's two explicit resource retries.
+      this.reserve(s, {...envelope, firestoreReads: envelope.firestoreReads + 40, firestoreWrites: envelope.firestoreWrites + 48});
+      s.admissionCount = count + 1;
+      // Older runtimes must fail closed rather than ignore the receipt count.
+      s.version = 2;
+      publish({ key, value: JSON.stringify({ version: 1, budget: s.id, invocation: id, at: now } satisfies PaidReceipt) });
       if (kind === 'collector') s.lastCollectorAt = now;
       return new TrialSession(this, s.id, id, Math.min(s.expiresAt,now + (kind !== 'browser' ? 80000 : 14000), deadline), envelope, this.clock, now - this.clock(), 'normal');
     });
@@ -111,14 +130,21 @@ export class PaidLedger {
     await this.change(s => { if (s.id !== id) throw new TrialStopped('Paid identity changed'); this.reserve(s, {...costs,firestoreReads:8,firestoreWrites:4}); });
   }
   async finish(id: string, invocation: string, observed: Counters) {
-    await this.change(s => {
-      if (s.id !== id || !s.admissions[invocation]) throw new TrialStopped('Unknown paid invocation');
-      if (s.admissions[invocation].finished) return;
+    await this.change(async (s, _now, publish) => {
+      if (s.id !== id) throw new TrialStopped('Unknown paid invocation');
+      const legacy = Object.hasOwn(s.admissions, invocation) ? s.admissions[invocation] : undefined;
+      const key = paidReceiptKey(id, invocation);
+      const raw = legacy ? null : await this.store.read(key);
+      const receipt: PaidReceipt | undefined = raw ? JSON.parse(raw) : undefined;
+      if (!legacy && (!receipt || receipt.version !== 1 || receipt.budget !== id || receipt.invocation !== invocation))
+        throw new TrialStopped('Unknown paid invocation');
+      if ((legacy ?? receipt)!.finished) return;
       for (const [k,n] of Object.entries(observed)) {
         if (!Number.isFinite(n) || n < 0) throw new TrialStopped('Invalid observation');
         s.observed[k] = (s.observed[k] ?? 0) + n;
       }
-      s.admissions[invocation].finished = true;
+      if (legacy) legacy.finished = true;
+      else publish({ key, value: JSON.stringify({ ...receipt, finished: true }) });
     }, true);
   }
   async stop(reason: string) {
@@ -153,6 +179,9 @@ export class PaidLedger {
       }, this.clock());
     } catch (error) {
       this.report?.({ event: 'billing_feed_failed', severity: 'WARNING', at: this.clock(), ...errorDiagnostic(error) });
+      // A failed/ambiguous billing save must not acknowledge the cost message,
+      // attempt another database write, or admit collection with unknown state.
+      if (isTransientFirestoreFailure(error)) throw error;
       // A late/missing feed is unknown, never $0 and never a reservation-based
       // stop after activation. Retain the last actual cost and expose the failure.
       await this.change((current, now) => {
@@ -196,16 +225,16 @@ export function createPaidRuntime(config: {
       await session.finish();
       config.report?.({event:'paid_market',kind,at:now(),observed:session.observed});
     } catch (e) {
-      if (isFirestoreWriteThrottle(e)) {
-        // No retry storm, no uncharged work, and no permanent global shutdown
-        // for a rejected write. Any admitted request retains its full hold.
+      if (isTransientFirestoreFailure(e)) {
+        // End this invocation without replaying an ambiguous write or globally
+        // shutting down for a temporary outage. Retain all admitted holds.
         config.report?.({event:'paid_market_throttled',kind,at:now(),...errorDiagnostic(e)});
         throw e;
       }
       if (session) await session.finish().catch(() => {});
       if (kind === 'history' && !(e instanceof TrialStopped)) {
         // A missed daily snapshot leaves a gap and retains its reservation;
-        // it must not disable otherwise healthy hourly market collection.
+        // it must not disable otherwise healthy scheduled market collection.
         config.report?.({event:'daily_history_failed',at:now(),...errorDiagnostic(e)});
         throw e;
       }
@@ -232,6 +261,29 @@ export function createPaidRuntime(config: {
       // explicitly rejected; the full hold remains in the ledger in that case.
       let reply: (() => void) | undefined;
       const url = new URL(req.url ?? '/', 'http://localhost'), path = url.pathname;
+      const reject = (status: number, error: string) => {
+        res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store',
+          'Access-Control-Allow-Origin': 'https://bazaarsignal.web.app' }).end(JSON.stringify({ error }));
+      };
+      // Reject requests with no admissible market work before touching the
+      // durable allowance. Valid reads still retain admission and expiry gates.
+      const routes = ['/api/price-history', '/api/companion/presence', '/api/companion/bazaar',
+        '/api/companion/portfolio-prices', '/api/companion/raw-bazaar', '/api/companion/book',
+        '/api/market', '/api/companion/snapshot', '/api/companion/status'];
+      if (retiredMarketRoute(path)) { reject(410, 'Auction House support has been removed.'); return; }
+      if (!routes.includes(path)) { reject(404, 'Unknown market route'); return; }
+      if (!(path === '/api/companion/presence' ? ['POST', 'OPTIONS'] : ['GET', 'OPTIONS']).includes(req.method ?? '')) {
+        reject(405, 'Unsupported method'); return;
+      }
+      if ((req.url?.length ?? 0) > 10000 || url.searchParams.has('force') || url.searchParams.has('refresh')) {
+        reject(400, 'Invalid market query'); return;
+      }
+      if (path === '/api/companion/portfolio-prices') {
+        const assets = [...new Set((url.searchParams.get('assets') ?? '').split(',').filter(Boolean))];
+        if (assets.length > 100 || assets.some(id => !/^v1_[a-f0-9]{64}$|^bz_[A-Za-z0-9_:-]{1,100}$/.test(id))) {
+          reject(400, 'Invalid asset keys.'); return;
+        }
+      }
       if (path === '/api/price-history') {
         res.setHeader('Access-Control-Allow-Origin','https://bazaarsignal.web.app');
         res.setHeader('Access-Control-Allow-Methods','GET, OPTIONS');
@@ -260,7 +312,7 @@ export function createPaidRuntime(config: {
               ...(zipped ? {'Content-Encoding':'gzip'} : {}),'Content-Length':bytes.length}).end(bytes); };return;
           }
           if (path === '/api/companion/presence') {
-            // Hourly collection also serves email while browsers are closed.
+            // Scheduled collection also serves email while browsers are closed.
             // Even this no-op consumes admission budget; it cannot evade the stop.
             res.setHeader('Access-Control-Allow-Origin','https://bazaarsignal.web.app');
             res.setHeader('Access-Control-Allow-Headers','Authorization, Content-Type');
@@ -286,11 +338,11 @@ export function createPaidRuntime(config: {
         });
         reply?.();
       } catch (error) {
-        if (reply && isFirestoreWriteThrottle(error)) { reply(); return; }
+        if (reply && isTransientFirestoreFailure(error)) { reply(); return; }
         if (!res.headersSent) {
           res.setHeader('Access-Control-Allow-Origin','https://bazaarsignal.web.app');
           res.setHeader('Content-Type','application/json');
-          if (isFirestoreWriteThrottle(error)) {
+          if (isTransientFirestoreFailure(error)) {
             const message = 'Price service is temporarily busy. Saved prices remain available; retry after one minute.';
             res.setHeader('Retry-After','60');
             res.writeHead(503).end(JSON.stringify({error:message,usage:{mode:'slow',pollMs:PAID_INTERVAL_MS,

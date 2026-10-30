@@ -1,0 +1,17 @@
+{
+  "at": "2026-10-30T11:16:25.232Z",
+  "status": 200,
+  "cors": "https://bazaarsignal.web.app",
+  "price": 1307738.8,
+  "upstreamAt": "2026-10-30T11:15:02.832Z",
+  "quantity": 2785,
+  "estimatedValue": 3642052558,
+  "pnl": -167827442,
+  "usage": {
+    "mode": "normal",
+    "pollMs": 900000,
+    "bazaarMs": 900000,
+    "trialId": "paid-202610",
+    "expiresAt": 1793516400000
+  }
+}

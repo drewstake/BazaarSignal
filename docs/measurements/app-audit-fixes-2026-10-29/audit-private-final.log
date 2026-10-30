@@ -1,0 +1,27 @@
+[WebServer] (node:81144) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 16 tests using 1 worker
+
+(node:79392) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 [desktop] › tests\audit-2026-10-29\private\journeys.spec.ts:42:1 › refreshes other-tab holdings and clears private views on sign-out (8.0s)
+  ok  2 [desktop] › tests\audit-2026-10-29\private\journeys.spec.ts:72:1 › retains partial-refresh quotes and recovers with bounded backoff (1.8s)
+  ok  3 [desktop] › tests\audit-2026-10-29\private\journeys.spec.ts:91:1 › defers cross-tab invalidation while editing and refreshes old private data on focus (2.8s)
+  ok  4 [desktop] › tests\audit-2026-10-29\private\journeys.spec.ts:119:1 › keyboard dialog and offline mutation fail safely then recover without reload (1.8s)
+  ok  5 [desktop] › tests\audit-2026-10-29\private\journeys.spec.ts:144:51 › a deleted emulator account clears the private workspace on operation token refresh (1.7s)
+  ok  6 [desktop] › tests\audit-2026-10-29\private\journeys.spec.ts:144:51 › a deleted emulator account clears the private workspace on automatic token refresh (1.7s)
+  ok  7 [desktop] › tests\audit-2026-10-29\private\journeys.spec.ts:166:1 › a physical double click records one purchase and persists the weighted cost (2.7s)
+  ok  8 [desktop] › tests\audit-2026-10-29\private\journeys.spec.ts:182:1 › 500 distinct holdings render with five sequential bounded price requests (2.9s)
+(node:80528) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  9 [mobile] › tests\audit-2026-10-29\private\journeys.spec.ts:42:1 › refreshes other-tab holdings and clears private views on sign-out (3.7s)
+  ok 10 [mobile] › tests\audit-2026-10-29\private\journeys.spec.ts:72:1 › retains partial-refresh quotes and recovers with bounded backoff (2.5s)
+  ok 11 [mobile] › tests\audit-2026-10-29\private\journeys.spec.ts:91:1 › defers cross-tab invalidation while editing and refreshes old private data on focus (3.2s)
+  ok 12 [mobile] › tests\audit-2026-10-29\private\journeys.spec.ts:119:1 › keyboard dialog and offline mutation fail safely then recover without reload (2.2s)
+  ok 13 [mobile] › tests\audit-2026-10-29\private\journeys.spec.ts:144:51 › a deleted emulator account clears the private workspace on operation token refresh (2.2s)
+  ok 14 [mobile] › tests\audit-2026-10-29\private\journeys.spec.ts:144:51 › a deleted emulator account clears the private workspace on automatic token refresh (2.0s)
+  ok 15 [mobile] › tests\audit-2026-10-29\private\journeys.spec.ts:166:1 › a physical double click records one purchase and persists the weighted cost (3.3s)
+  ok 16 [mobile] › tests\audit-2026-10-29\private\journeys.spec.ts:182:1 › 500 distinct holdings render with five sequential bounded price requests (3.7s)
+
+  16 passed (48.6s)

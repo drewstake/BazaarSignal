@@ -32,7 +32,7 @@ export default function SearchOrderBook({
       <details className="bazaar-book-notes">
         <summary>About this data</summary>
         <p>
-          Checks cached data hourly while visible; prices may have changed. All returned levels are
+          Checks cached data every 15 minutes while visible; prices may have changed. All returned levels are
           shown, best prices first. The full market may have more depth.
         </p>
         <p>

@@ -1,5 +1,6 @@
 import type { User } from "firebase/auth";
 import { requestBackend } from "../backend";
+import { sessionToken } from '../session-token';
 import {
   nextAdminRefresh,
   parseAdminReport,
@@ -18,8 +19,7 @@ const histories = new WeakMap<User, { until: number; value: Promise<UsageDashboa
 export function loadAdminSnapshot(user: User, now = Date.now()) {
   const saved = reports.get(user);
   if (saved && now < saved.until) return saved.value;
-  const value = user
-    .getIdToken()
+  const value = sessionToken(user)
     .then((token) =>
       requestBackend<AdminReport>({ action: "admin-report" }, token),
     )
@@ -44,8 +44,7 @@ export function loadAdminSnapshot(user: User, now = Date.now()) {
 export function loadAdminHistory(user: User, now = Date.now()) {
   const saved = histories.get(user);
   if (saved && now < saved.until) return saved.value;
-  const value = user
-    .getIdToken()
+  const value = sessionToken(user)
     .then((token) =>
       requestBackend<UsageDashboard>({ action: "admin-history" }, token),
     );

@@ -79,6 +79,101 @@ function fakeCloud() {
     config: { project: "fixture", token: async () => "test", network },
   };
 }
+function recoveryFixture() {
+  const fake = fakeCloud();
+  fake.docs.set('meta', { packed: encodeHistory({ version: 1, years: [2026],
+    lastSuccess: { at: now - 86400000, checkedAt: now - 86400000, items: 1, closing: true } }), update: 'seed' });
+  const products = Object.fromEntries(Array.from({ length: 100 }, (_, i) => [`ITEM_${i}`, {
+    buy_summary: [{ pricePerUnit: 12, amount: 10, orders: 1 }],
+    sell_summary: [{ pricePerUnit: 11, amount: 10, orders: 1 }],
+  }]));
+  const fetcher = async () => Response.json({ success: true, lastUpdated: now, products });
+  let time = now;
+  const session = new TrialSession({ add: async () => { throw Error('Unexpected reservation extension'); }, finish: async () => {} },
+    'paid-202610', 'recovery', now + 80000, paidEnvelope('history'), () => time, 0, 'normal');
+  const config = { ...fake.config, wait: async () => {} };
+  return { ...fake, config, fetcher, session, expire: () => { time += 80000; } };
+}
+it.each(Array.from({ length: 8 }, (_, batch) => [batch, 429] as const).concat(
+  Array.from({ length: 8 }, (_, batch) => [batch, 503] as any)))('recovers shard batch %i after HTTP %i within the original envelope', async (target, status) => {
+  const f = recoveryFixture(), actual = f.network.getMockImplementation()!;
+  let batch = 0;
+  f.network.mockImplementation(async (url, init) => {
+    const body = JSON.parse(init.body);
+    if (body.writes && batch++ === target) return Response.json({}, { status });
+    return actual(url, init);
+  });
+  const archive = new CloudPriceHistory(f.config, f.session);
+  await archive.capture(() => now, f.session.network(f.fetcher));
+  expect(f.session.observed.firestoreReads).toBeLessThanOrEqual(40);
+  expect(f.session.observed.firestoreWrites).toBeLessThanOrEqual(40);
+  expect(f.session.observed.hypixelRequests).toBe(1);
+  const result = await new CloudPriceHistory(f.config).item('ITEM_0', now + 60000, now + 86400000);
+  expect(result.points).toHaveLength(1);
+  expect(result.collector.lastError).toBeNull();
+});
+it('reconciles a committed batch whose response was lost without writing it twice', async () => {
+  const f = recoveryFixture(), actual = f.network.getMockImplementation()!;
+  let lost = false;
+  f.network.mockImplementation(async (url, init) => {
+    const result = await actual(url, init);
+    if (JSON.parse(init.body).writes && !lost) { lost = true; throw new TypeError('Connection lost after commit'); }
+    return result;
+  });
+  await new CloudPriceHistory(f.config, f.session).capture(() => now, f.fetcher);
+  expect(f.counts.writes).toBe(33);
+  expect(f.session.observed.firestoreWrites).toBe(33);
+  expect(f.session.observed.firestoreReads).toBe(37);
+});
+it('retains partial points and exposes a persistent rejection without retrying the entire capture', async () => {
+  const f = recoveryFixture(), actual = f.network.getMockImplementation()!;
+  let rejected = 0;
+  f.network.mockImplementation(async (url, init) => {
+    const body = JSON.parse(init.body);
+    if (body.writes?.[0].update.name.endsWith('/year-2026-4')) { rejected++; return Response.json({}, { status: 429 }); }
+    return actual(url, init);
+  });
+  await expect(new CloudPriceHistory(f.config, f.session).capture(() => now, f.fetcher)).rejects.toThrow('429');
+  expect(rejected).toBe(2);
+  const meta = decodeHistory(f.docs.get('meta')!.packed);
+  expect(meta.lastSuccess.at).toBe(now - 86400000);
+  expect(meta.lastError.message).toContain('capture failed');
+  expect((await new CloudPriceHistory(f.config).item('ITEM_0', now + 60000, now + 86400000)).collector.lastError).toEqual(meta.lastError);
+  expect(f.session.observed.firestoreWrites).toBeLessThanOrEqual(40);
+  expect(f.session.observed.firestoreReads).toBeLessThanOrEqual(40);
+});
+it('does not retry or write error metadata after the invocation expires during backoff', async () => {
+  const f = recoveryFixture(), actual = f.network.getMockImplementation()!;
+  let writes = 0;
+  f.network.mockImplementation(async (url, init) => {
+    if (JSON.parse(init.body).writes) { writes++; return Response.json({}, { status: 429 }); }
+    return actual(url, init);
+  });
+  await expect(new CloudPriceHistory({ ...f.config, wait: async () => f.expire() }, f.session)
+    .capture(() => now, f.fetcher)).rejects.toThrow('deadline');
+  expect(writes).toBe(1);
+  expect(decodeHistory(f.docs.get('meta')!.packed).lastError).toBeUndefined();
+});
+it('never overwrites a changed shard while reconciling an uncertain commit', async () => {
+  const f = recoveryFixture(), actual = f.network.getMockImplementation()!;
+  let changed = false;
+  f.network.mockImplementation(async (url, init) => {
+    const body = JSON.parse(init.body);
+    if (body.writes?.[0].update.name.endsWith('/year-2026-0') && !changed) {
+      changed = true;
+      f.docs.set('year-2026-0', { packed: encodeHistory({ version: 1, year: 2026, items: { OTHER: [] } }), update: 'other-writer' });
+      throw new TypeError('Connection lost');
+    }
+    return actual(url, init);
+  });
+  await expect(new CloudPriceHistory(f.config, f.session).capture(() => now, f.fetcher)).rejects.toThrow('changed');
+  expect(f.docs.get('year-2026-0')!.update).toBe('other-writer');
+});
+it('exposes an overdue close even when the failure metadata could not be saved', async () => {
+  const f = recoveryFixture();
+  const result = await new CloudPriceHistory(f.config).item('ITEM_0', now + 86400000 + 600000, now + 3 * 86400000);
+  expect(result.collector.lastError?.message).toContain('overdue');
+});
 it("stores a full all-item close within its reserved reads/writes and preserves imported years and gaps", async () => {
   const fake = fakeCloud();
   fake.docs.set("meta", {

@@ -187,7 +187,7 @@ test("local keyboard search, selected-only network, hourly reuse, layout and nav
   await expect(panel.locator("time")).toHaveAttribute(
     "title", "Oct 14, 2026, 10:03:00 AM EST",
   );
-  await expect(panel).toContainText("Hourly snapshot");
+  await expect(panel).toContainText("Scheduled snapshot");
   expect(requests).toEqual([
     "http://127.0.0.1:5198/live-market/api/companion/portfolio-prices?assets=bz_BOOSTER_COOKIE",
   ]);
@@ -229,7 +229,7 @@ test("local keyboard search, selected-only network, hourly reuse, layout and nav
   await expect(panel).toContainText("14,000,000.5");
   expect(requests).toHaveLength(1);
   await page.clock.fastForward(240000);
-  await expect(panel).toContainText("Hourly snapshot");
+  await expect(panel).toContainText("Scheduled snapshot");
   await expect(panel).not.toContainText("Stale data");
   expect(requests).toHaveLength(1);
   await page
@@ -306,7 +306,7 @@ test("both complete order-book sides are visible without extra requests", async 
   await page.goto("/");
   await select(page);
   const panel = page.getByRole("region", { name: "Booster Cookie" });
-  await expect(panel).toContainText("Hourly snapshot");
+  await expect(panel).toContainText("Scheduled snapshot");
   await expect(panel).toContainText("40m ago");
   await expect(panel).not.toContainText("Stale data");
   const asks = page.getByRole("table", { name: "Sell offers" });

@@ -1,0 +1,4 @@
+
+> bazaar-watch@1.0.0 build:market-functions
+> tsc --noEmit -p market-functions/tsconfig.json && node scripts/build-market-functions.mjs
+

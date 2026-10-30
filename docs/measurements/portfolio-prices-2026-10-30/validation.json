@@ -1,0 +1,19 @@
+{
+  "at": "2026-10-30T11:03:29.422Z",
+  "stagedRegression": {
+    "files": 8,
+    "tests": 79,
+    "passed": true
+  },
+  "additionalRegression": {
+    "file": "tests/paid-firestore-unavailable.test.ts",
+    "tests": 14,
+    "additionalDistinctTests": 5,
+    "passed": true
+  },
+  "distinctTests": 84,
+  "marketFunctionsTypecheck": true,
+  "baselineBundleReproduced": true,
+  "sourceChanges": 3,
+  "outboundBlockedHandlerStartup": true
+}

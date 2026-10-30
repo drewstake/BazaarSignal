@@ -1,0 +1,4 @@
+
+> bazaar-watch@1.0.0 build:collector
+> tsc --noEmit -p collector/tsconfig.json && node scripts/build-collector.mjs
+

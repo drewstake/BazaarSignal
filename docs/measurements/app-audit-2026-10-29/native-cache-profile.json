@@ -1,0 +1,277 @@
+{
+  "mode": "Loopback built frontend; 4x CPU; seven fresh Chromium contexts; native HTTP cache; CSP blocks external connections; real public snapshot replay",
+  "medians": {
+    "coldLandingMs": 320.48920000000044,
+    "itemReadyMs": 196.4991,
+    "navigationMs": 12.907999999999902,
+    "reloadMs": 198.41129999999976
+  },
+  "samples": [
+    {
+      "coldLandingMs": 349.9878,
+      "itemReadyMs": 220.64980000000003,
+      "navigationMs": 13.977300000000014,
+      "reloadMs": 182.4330000000001,
+      "typingRequests": 0,
+      "errors": [],
+      "before": {
+        "books": 0,
+        "history": 0,
+        "bookBytes": 0,
+        "historyBytes": 0
+      },
+      "afterCold": {
+        "books": 1,
+        "history": 1,
+        "bookBytes": 885,
+        "historyBytes": 3524
+      },
+      "afterNavigation": {
+        "books": 1,
+        "history": 1,
+        "bookBytes": 885,
+        "historyBytes": 3524
+      },
+      "afterReload": {
+        "books": 1,
+        "history": 1,
+        "bookBytes": 885,
+        "historyBytes": 3524
+      },
+      "afterSecondTab": {
+        "books": 1,
+        "history": 1,
+        "bookBytes": 885,
+        "historyBytes": 3524
+      }
+    },
+    {
+      "coldLandingMs": 314.1933999999999,
+      "itemReadyMs": 202.6322,
+      "navigationMs": 12.907999999999902,
+      "reloadMs": 198.85109999999986,
+      "typingRequests": 0,
+      "errors": [],
+      "before": {
+        "books": 1,
+        "history": 1,
+        "bookBytes": 885,
+        "historyBytes": 3524
+      },
+      "afterCold": {
+        "books": 2,
+        "history": 2,
+        "bookBytes": 1770,
+        "historyBytes": 7048
+      },
+      "afterNavigation": {
+        "books": 2,
+        "history": 2,
+        "bookBytes": 1770,
+        "historyBytes": 7048
+      },
+      "afterReload": {
+        "books": 2,
+        "history": 2,
+        "bookBytes": 1770,
+        "historyBytes": 7048
+      },
+      "afterSecondTab": {
+        "books": 2,
+        "history": 2,
+        "bookBytes": 1770,
+        "historyBytes": 7048
+      }
+    },
+    {
+      "coldLandingMs": 320.48920000000044,
+      "itemReadyMs": 196.94669999999996,
+      "navigationMs": 13.203599999999824,
+      "reloadMs": 200.66499999999996,
+      "typingRequests": 0,
+      "errors": [],
+      "before": {
+        "books": 2,
+        "history": 2,
+        "bookBytes": 1770,
+        "historyBytes": 7048
+      },
+      "afterCold": {
+        "books": 3,
+        "history": 3,
+        "bookBytes": 2655,
+        "historyBytes": 10572
+      },
+      "afterNavigation": {
+        "books": 3,
+        "history": 3,
+        "bookBytes": 2655,
+        "historyBytes": 10572
+      },
+      "afterReload": {
+        "books": 3,
+        "history": 3,
+        "bookBytes": 2655,
+        "historyBytes": 10572
+      },
+      "afterSecondTab": {
+        "books": 3,
+        "history": 3,
+        "bookBytes": 2655,
+        "historyBytes": 10572
+      }
+    },
+    {
+      "coldLandingMs": 383.93520000000035,
+      "itemReadyMs": 196.4991,
+      "navigationMs": 11.664499999999862,
+      "reloadMs": 197.3804,
+      "typingRequests": 0,
+      "errors": [],
+      "before": {
+        "books": 3,
+        "history": 3,
+        "bookBytes": 2655,
+        "historyBytes": 10572
+      },
+      "afterCold": {
+        "books": 4,
+        "history": 4,
+        "bookBytes": 3540,
+        "historyBytes": 14096
+      },
+      "afterNavigation": {
+        "books": 4,
+        "history": 4,
+        "bookBytes": 3540,
+        "historyBytes": 14096
+      },
+      "afterReload": {
+        "books": 4,
+        "history": 4,
+        "bookBytes": 3540,
+        "historyBytes": 14096
+      },
+      "afterSecondTab": {
+        "books": 4,
+        "history": 4,
+        "bookBytes": 3540,
+        "historyBytes": 14096
+      }
+    },
+    {
+      "coldLandingMs": 307.65040000000045,
+      "itemReadyMs": 190.13810000000012,
+      "navigationMs": 12.291799999999967,
+      "reloadMs": 201.20269999999982,
+      "typingRequests": 0,
+      "errors": [],
+      "before": {
+        "books": 4,
+        "history": 4,
+        "bookBytes": 3540,
+        "historyBytes": 14096
+      },
+      "afterCold": {
+        "books": 5,
+        "history": 5,
+        "bookBytes": 4425,
+        "historyBytes": 17620
+      },
+      "afterNavigation": {
+        "books": 5,
+        "history": 5,
+        "bookBytes": 4425,
+        "historyBytes": 17620
+      },
+      "afterReload": {
+        "books": 5,
+        "history": 5,
+        "bookBytes": 4425,
+        "historyBytes": 17620
+      },
+      "afterSecondTab": {
+        "books": 5,
+        "history": 5,
+        "bookBytes": 4425,
+        "historyBytes": 17620
+      }
+    },
+    {
+      "coldLandingMs": 343.9427000000005,
+      "itemReadyMs": 195.88080000000082,
+      "navigationMs": 12.96520000000055,
+      "reloadMs": 198.41129999999976,
+      "typingRequests": 0,
+      "errors": [],
+      "before": {
+        "books": 5,
+        "history": 5,
+        "bookBytes": 4425,
+        "historyBytes": 17620
+      },
+      "afterCold": {
+        "books": 6,
+        "history": 6,
+        "bookBytes": 5310,
+        "historyBytes": 21144
+      },
+      "afterNavigation": {
+        "books": 6,
+        "history": 6,
+        "bookBytes": 5310,
+        "historyBytes": 21144
+      },
+      "afterReload": {
+        "books": 6,
+        "history": 6,
+        "bookBytes": 5310,
+        "historyBytes": 21144
+      },
+      "afterSecondTab": {
+        "books": 6,
+        "history": 6,
+        "bookBytes": 5310,
+        "historyBytes": 21144
+      }
+    },
+    {
+      "coldLandingMs": 312.9251000000004,
+      "itemReadyMs": 193.17309999999998,
+      "navigationMs": 10.078700000000026,
+      "reloadMs": 191.60469999999987,
+      "typingRequests": 0,
+      "errors": [],
+      "before": {
+        "books": 6,
+        "history": 6,
+        "bookBytes": 5310,
+        "historyBytes": 21144
+      },
+      "afterCold": {
+        "books": 7,
+        "history": 7,
+        "bookBytes": 6195,
+        "historyBytes": 24668
+      },
+      "afterNavigation": {
+        "books": 7,
+        "history": 7,
+        "bookBytes": 6195,
+        "historyBytes": 24668
+      },
+      "afterReload": {
+        "books": 7,
+        "history": 7,
+        "bookBytes": 6195,
+        "historyBytes": 24668
+      },
+      "afterSecondTab": {
+        "books": 7,
+        "history": 7,
+        "bookBytes": 6195,
+        "historyBytes": 24668
+      }
+    }
+  ]
+}

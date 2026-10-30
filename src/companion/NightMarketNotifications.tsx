@@ -17,6 +17,7 @@ import "./night-market-notifications.css";
 type NotificationsProps = {
   notifications: HoldingNotification[];
   portfolios: Portfolio[];
+  baselines: Record<string, number | null>;
   emailEnabled: boolean;
   paused: boolean;
   fixture: boolean;
@@ -32,6 +33,7 @@ type NotificationsProps = {
 export default function NightMarketNotifications({
   notifications,
   portfolios,
+  baselines,
   emailEnabled,
   paused,
   fixture,
@@ -126,7 +128,6 @@ export default function NightMarketNotifications({
               className="notification-card-grid"
               role="region"
               aria-label="Your alerts"
-              tabIndex={0}
             >
               {alerts.map((notification) => {
                 const portfolio = portfolios.find(
@@ -139,9 +140,29 @@ export default function NightMarketNotifications({
                   : notification.enabled
                     ? "enabled"
                     : "paused";
+                const baseline =
+                  notification.baseline === "sample"
+                    ? notification.capturedPrice
+                    : portfolio
+                      ? baselines[notification.id]
+                      : null;
+                const priceAvailable =
+                  typeof baseline === "number" &&
+                  Number.isFinite(baseline) &&
+                  baseline > 0;
+                const baselinePrice = priceAvailable
+                  ? `${exact(baseline)} coins`
+                  : baseline === undefined
+                    ? "Loading price…"
+                    : "Price unavailable";
+                const triggerPrice = (threshold: number, direction: 1 | -1) =>
+                  priceAvailable
+                    ? exact(baseline * (1 + (direction * threshold) / 100))
+                    : baselinePrice;
                 return (
                   <article
                     className="notification-card"
+                    data-state={state}
                     key={notification.id}
                     aria-label={`${notification.holdingName || "Holding"} notification`}
                   >
@@ -157,12 +178,12 @@ export default function NightMarketNotifications({
                         />
                       </div>
                       <div className="notification-item-name">
-                        <p title={portfolio?.name ?? "Deleted portfolio"}>
-                          {portfolio?.name ?? "Deleted portfolio"}
-                        </p>
                         <h3 title={notification.holdingName || "Holding"}>
                           {notification.holdingName || "Holding"}
                         </h3>
+                        <p title={portfolio?.name ?? "Deleted portfolio"}>
+                          {portfolio?.name ?? "Deleted portfolio"}
+                        </p>
                       </div>
                       <span
                         className={`notification-state ${state}`}
@@ -180,73 +201,98 @@ export default function NightMarketNotifications({
                             : "Stopped"}
                       </span>
                     </div>
-                    <div className="notification-thresholds">
-                      <div className="notification-threshold upward">
-                        <span>
-                          <ArrowUpRight size={17} aria-hidden="true" />
-                          <span className="nm-sr-only">Price rises</span>
-                        </span>
-                        <strong>
-                          {notification.up === null
-                            ? "—"
-                            : `+${exact(notification.up)}%`}
-                        </strong>
+                    <div className="notification-card-body">
+                      <div className="notification-thresholds">
+                        {(["up", "down"] as const).map((direction) => {
+                          const threshold = notification[direction];
+                          if (threshold === null) return null;
+                          const upward = direction === "up";
+                          const Arrow = upward ? ArrowUpRight : ArrowDownRight;
+                          return (
+                            <div
+                              className={`notification-threshold ${upward ? "upward" : "downward"}`}
+                              key={direction}
+                            >
+                              <span className="notification-trigger-label">
+                                {upward
+                                  ? "Alert at or above"
+                                  : "Alert at or below"}
+                              </span>
+                              <div className="notification-trigger-row">
+                                <strong
+                                  className={`notification-trigger-price${priceAvailable ? "" : " unavailable"}`}
+                                >
+                                  <span className="notification-price-amount">
+                                    {triggerPrice(threshold, upward ? 1 : -1)}
+                                  </span>
+                                  {priceAvailable && (
+                                    <>
+                                      {" "}
+                                      <span className="notification-price-unit">
+                                        coins
+                                      </span>
+                                    </>
+                                  )}
+                                </strong>
+                                <span className="notification-threshold-percent">
+                                  <Arrow size={18} aria-hidden="true" />
+                                  <span>
+                                    {upward ? "+" : "−"}
+                                    {exact(threshold)}%
+                                  </span>
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                      <div className="notification-threshold downward">
+                      <div className="notification-baseline">
                         <span>
-                          <ArrowDownRight size={17} aria-hidden="true" />
-                          <span className="nm-sr-only">Price falls</span>
-                        </span>
-                        <strong>
-                          {notification.down === null
-                            ? "—"
-                            : `−${exact(notification.down)}%`}
-                        </strong>
+                          {notification.baseline === "acquisition"
+                            ? "Average buy price"
+                            : "Price when enabled"}
+                        </span>{" "}
+                        <b>{baselinePrice}</b>
                       </div>
                     </div>
-                    <div className="notification-baseline">
-                      <span>vs.</span>
-                      <b>
-                        {notification.baseline === "acquisition"
-                          ? "Avg. buy price"
-                          : `${exact(notification.capturedPrice)} coins when enabled`}
-                      </b>
-                    </div>
-                    <div className="notification-card-actions">
-                      <button
-                        aria-label="Edit notification"
-                        title="Edit notification"
-                        disabled={busy || !portfolio}
-                        onClick={() => edit(notification)}
-                      >
-                        <Pencil size={16} aria-hidden="true" />
-                      </button>
-                      <button
-                        aria-label={notification.enabled ? "Pause" : "Resume"}
-                        title={notification.enabled ? "Pause" : "Resume"}
-                        disabled={busy || !portfolio}
-                        onClick={() =>
-                          change(
-                            notification,
-                            notification.enabled ? "pause" : "resume",
-                          )
-                        }
-                      >
-                        {notification.enabled ? (
-                          <Pause size={14} aria-hidden="true" />
-                        ) : (
-                          <Play size={14} aria-hidden="true" />
-                        )}
-                      </button>
-                      <button
-                        className="notification-delete"
-                        aria-label="Delete notification"
-                        title="Delete notification"
-                        disabled={busy}
-                        onClick={() => change(notification, "delete")}
-                      >
-                        <Trash2 size={17} aria-hidden="true" />
-                      </button>
+                    <div className="notification-card-footer">
+                      <span>Per item · before fees</span>
+                      <div className="notification-card-actions">
+                        <button
+                          aria-label="Edit notification"
+                          title="Edit notification"
+                          disabled={busy || !portfolio}
+                          onClick={() => edit(notification)}
+                        >
+                          <Pencil size={18} aria-hidden="true" />
+                        </button>
+                        <button
+                          aria-label={notification.enabled ? "Pause" : "Resume"}
+                          title={notification.enabled ? "Pause" : "Resume"}
+                          disabled={busy || !portfolio}
+                          onClick={() =>
+                            change(
+                              notification,
+                              notification.enabled ? "pause" : "resume",
+                            )
+                          }
+                        >
+                          {notification.enabled ? (
+                            <Pause size={16} aria-hidden="true" />
+                          ) : (
+                            <Play size={16} aria-hidden="true" />
+                          )}
+                        </button>
+                        <button
+                          className="notification-delete"
+                          aria-label="Delete notification"
+                          title="Delete notification"
+                          disabled={busy}
+                          onClick={() => change(notification, "delete")}
+                        >
+                          <Trash2 size={18} aria-hidden="true" />
+                        </button>
+                      </div>
                     </div>
                   </article>
                 );

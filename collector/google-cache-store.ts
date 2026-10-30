@@ -3,6 +3,7 @@ import type { Firestore, DocumentSnapshot } from "firebase-admin/firestore";
 import type { CacheStore } from "./cache-store";
 import { decodeInlineSnapshot, encodeInlineSnapshot, inlineSnapshotLimits } from './inline-snapshot';
 import { errorDiagnostic, type DiagnosticReporter } from './diagnostics';
+import { PAID_BUDGET_KEY, PAID_RECEIPT_LIMIT, isPaidReceiptKey } from './paid-ledger-storage';
 
 export interface GoogleStoreRetries {
   wait?: (ms: number) => Promise<unknown>;
@@ -114,7 +115,9 @@ export class GoogleCacheStore implements CacheStore {
   ) {
     if (key === "auctions" || payload?.key === "auctions") throw new Error("Auction snapshots are retired");
     if (snapshotKeys.has(key)) throw new Error("Snapshots require atomic publication");
-    if (payload && (key !== "control" || !snapshotKeys.has(payload.key)))
+    const receipt = payload && key === PAID_BUDGET_KEY && isPaidReceiptKey(payload.key);
+    if (receipt && Buffer.byteLength(payload.value) > PAID_RECEIPT_LIMIT) throw new Error('Paid receipt exceeds bound');
+    if (payload && !receipt && (key !== "control" || !snapshotKeys.has(payload.key)))
       throw new Error("Invalid snapshot publication");
     let blob: string | null = null;
     try {
@@ -127,7 +130,11 @@ export class GoogleCacheStore implements CacheStore {
       const old = current.data()?.value ?? null;
       if (old !== expected) return false;
       const batch = this.db.batch();
-      if (payload) {
+      if (receipt) {
+        // All receipt changes are fenced by the ledger CAS. No receipt can be
+        // admitted or marked finished without its matching accounting update.
+        batch.set(this.ref(payload.key), { value: payload.value });
+      } else if (payload) {
         const lease = old && JSON.parse(old).lease;
         if (!lease || lease.until <= await this.time()) return false;
         // Reject already-stale candidates BEFORE a paid upload. The batch still
@@ -161,6 +168,7 @@ export class GoogleCacheStore implements CacheStore {
     } finally {
       this.reads.delete(key);
       this.versions.delete(key);
+      if (payload) { this.reads.delete(payload.key); this.versions.delete(payload.key); }
     }
   }
   /** Current blobs are never removed. Ten-minute staging/read grace exceeds leases

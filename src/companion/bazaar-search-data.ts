@@ -1,9 +1,9 @@
 import { isFresh, isValidSample } from "../../shared/market";
 import {
-  MARKET_HOUR,
   MARKET_READ_OFFSET,
   marketReadSlot,
 } from "../../shared/market-schedule";
+import { PAID_PILOT_INTERVAL } from "../../shared/paid-pilot";
 import type { Level } from "../../shared/model";
 import { fixtureMode, marketRequest, marketUrl } from "./api";
 import { holdingCatalogItem } from "./holding-catalog";
@@ -20,10 +20,10 @@ export interface SearchMarketDetail {
 }
 // Retain at most one selection per local catalog item in the current window,
 // including failures/empty replies. Existing persistent cache limits stay intact.
-// No timers, retries, presence leases, refresh parameters or network polling.
+// Recovery deadlines may replace a failed selection once; no independent timers.
 const selections = new Map<
   string,
-  { slot: number; result: Promise<SearchMarketDetail> }
+  { slot: number; retryAt?: number; settled: boolean; result: Promise<SearchMarketDetail> }
 >();
 
 export async function selectedBazaarDetail(
@@ -43,17 +43,19 @@ export async function selectedBazaarDetail(
   const localSnapshot = localPreviewMarketRead(marketUrl(path));
   const saved = await savedBazaarBook(marketUrl("bazaar"), itemId);
   const policy = pollingDirective();
-  const interval = Math.max(MARKET_HOUR, policy.pollMs);
+  const interval = Math.max(PAID_PILOT_INTERVAL, policy.pollMs);
   const slot = marketReadSlot(Date.now(), interval);
-  for (const [id, entry] of selections)
-    if (entry.slot !== slot) selections.delete(id);
   const restricted =
     policy.mode === "paused" || (policy.retryAt ?? 0) > Date.now();
+  const recoveryDue = !restricted && policy.retryAt !== undefined && Date.now() >= policy.retryAt &&
+    (!saved || saved.at < policy.retryAt);
+  if (!restricted) for (const [id, entry] of selections)
+    if (entry.slot !== slot) selections.delete(id);
   const sameRelease = !policy.trialId || saved?.trialId === policy.trialId;
   if (
     saved &&
     (restricted ||
-      (sameRelease &&
+      (!recoveryDue && sameRelease &&
         saved.at <= Date.now() &&
         marketReadSlot(saved.at, interval) === slot))
   ) {
@@ -66,7 +68,7 @@ export async function selectedBazaarDetail(
           ? (policy.reason ?? "Market updates are paused.")
           : saved.error,
     };
-    selections.set(itemId, { slot, result: Promise.resolve(detail) });
+    selections.set(itemId, { slot, settled: true, result: Promise.resolve(detail) });
     return detail;
   }
   const existing = selections.get(itemId);
@@ -81,7 +83,11 @@ export async function selectedBazaarDetail(
           : "Market updates are paused. No saved data is available for this item."),
     };
   }
-  if (existing?.slot === slot) return existing.result;
+  // Pending readers each subscribe to marketRequest with their own signal.
+  // Only settled selections can be reused without coupling cancellations.
+  if (existing?.settled && existing.slot === slot && (!recoveryDue || existing.retryAt === policy.retryAt)) return existing.result;
+  const selection = { slot, settled: false, retryAt: recoveryDue ? policy.retryAt : undefined,
+    result: undefined! as Promise<SearchMarketDetail> };
   const result = (async (): Promise<SearchMarketDetail> => {
     try {
       // Cache lookup may have yielded while the page was hidden or unmounted.
@@ -104,6 +110,9 @@ export async function selectedBazaarDetail(
             localSnapshot,
           };
     } catch (error) {
+      // A hidden page can resume its interrupted recovery. Ordinary failed
+      // attempts still stay cached until a new slot or a new server deadline.
+      if (signal?.aborted && selections.get(itemId) === selection) selections.delete(itemId);
       return {
         item: saved?.item,
         stale: true,
@@ -114,10 +123,13 @@ export async function selectedBazaarDetail(
             ? error.message
             : "Market data is unavailable.",
       };
+    } finally {
+      selection.settled = true;
+      if (signal?.aborted && selections.get(itemId) === selection) selections.delete(itemId);
     }
   })();
-  selections.delete(itemId);
-  selections.set(itemId, { slot, result });
+  selection.result = result;
+  if (!signal?.aborted) selections.set(itemId, selection);
   return result;
 }
 
@@ -153,7 +165,7 @@ export function bookSideSummary(
   };
 }
 
-/** Display age for an hourly snapshot, not eligibility for alerts or trades.
+/** Display age for a scheduled snapshot, not eligibility for alerts or trades.
  * Allow the existing two-minute publication/read offset, but never hide a failed
  * read, invalid time, or a sample that was already stale when collected. */
 export function searchDetailStale(
@@ -167,6 +179,6 @@ export function searchDetailStale(
       !isValidSample(detail.item.observedAt, now) ||
       !isValidSample(detail.item.upstreamAt, now) ||
       !isFresh(detail.item.upstreamAt, detail.item.observedAt) ||
-      now - detail.item.upstreamAt >= MARKET_HOUR + MARKET_READ_OFFSET)
+      now - detail.item.upstreamAt >= Math.max(PAID_PILOT_INTERVAL, pollingDirective().pollMs) + MARKET_READ_OFFSET)
   );
 }

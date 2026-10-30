@@ -53,10 +53,13 @@ export function visiblePoll(
   interval = 20_000,
   initialDelay = 0,
   market = true,
+  options: { retryFailures?: boolean } = {},
 ) {
   const hidden = () => document.visibilityState === "hidden";
   let closed = false, busy = false, completedAt = 0, attempted = false;
   let attemptedRetryAt: number | undefined;
+  let resumePending = false, failures = 0;
+  let failureRetryAt: number | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let controller: AbortController | undefined;
   const paused = () => market && pollingDirective().mode === "paused";
@@ -64,13 +67,17 @@ export function visiblePoll(
   const schedule = () => {
     clearTimeout(timer);
     if (!closed && !hidden() && !busy && !(attempted && paused())) {
-      const retryAt = market ? pollingDirective().retryAt : undefined;
+      const policy = market ? pollingDirective() : undefined;
+      const retryAt = policy?.retryAt;
       // A server recovery deadline replaces the normal clock slot. Consume it
       // once so a failed retry without a new directive cannot create a hot loop.
       const recoveryAt = retryAt !== attemptedRetryAt ? retryAt : undefined;
-      const nextAt = recoveryAt ?? (market && liveMode
-        ? nextMarketRead(completedAt, delay()) : completedAt + delay());
-      timer = setTimeout(run, completedAt ? Math.max(0, nextAt - Date.now()) : initialDelay);
+      const failureAt = failureRetryAt === undefined ? undefined : Math.max(failureRetryAt,
+        policy?.mode === 'slow' && retryAt === undefined ? completedAt + delay() : 0);
+      const nextAt = Math.max(retryAt ?? 0, recoveryAt ?? (resumePending ? Date.now() : failureAt) ??
+        (completedAt ? (market && liveMode
+          ? nextMarketRead(completedAt, delay()) : completedAt + delay()) : Date.now() + initialDelay));
+      timer = setTimeout(run, Math.max(0, nextAt - Date.now()));
     }
   };
   const run = async () => {
@@ -78,18 +85,28 @@ export function visiblePoll(
     if (closed || busy || hidden() || (attempted && paused())) return;
     busy = true;
     attempted = true;
+    resumePending = false;
     const retryAt = market ? pollingDirective().retryAt : undefined;
     if (retryAt !== undefined && retryAt <= Date.now()) attemptedRetryAt = retryAt;
     const current = new AbortController();
     controller = current;
-    const timeout = setTimeout(() => current.abort(), 20_000);
+    let failed = false, timedOut = false;
+    const timeout = setTimeout(() => { timedOut = true; current.abort(new DOMException('Price request timed out.', 'TimeoutError')); }, 20_000);
     try { await task(current.signal); }
-    catch { /* Callers display errors; a rejection must never break cleanup. */ }
+    catch { failed = true; }
     finally {
       clearTimeout(timeout);
-      // A timeout must not form an immediate retry loop. Visibility returns also
-      // retain this attempt's clock slot, even when its request was aborted.
+      // Visibility cancellation leaves a read unfinished. Resume it on return;
+      // actual failures use bounded backoff, never an immediate retry loop.
       completedAt = Date.now();
+      if (!current.signal.aborted || timedOut) {
+        failures = failed || timedOut ? Math.min(failures + 1, 5) : 0;
+        const policy = market ? pollingDirective() : undefined;
+        failureRetryAt = options.retryFailures && failures
+          ? completedAt + Math.max(Math.min(60_000 * 2 ** (failures - 1), delay()),
+            policy?.mode === 'slow' && policy.retryAt === undefined ? policy.pollMs : 0)
+          : undefined;
+      }
       busy = false;
       schedule();
     }
@@ -98,7 +115,10 @@ export function visiblePoll(
     if (hidden()) {
       clearTimeout(timer);
       // An interrupted recovery still needs a read when the user returns.
-      if (busy) attemptedRetryAt = undefined;
+      if (busy && !controller?.signal.aborted) {
+        attemptedRetryAt = undefined;
+        resumePending = true;
+      }
       controller?.abort();
     }
     else schedule();

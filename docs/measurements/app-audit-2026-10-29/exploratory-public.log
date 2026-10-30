@@ -1,0 +1,17 @@
+[WebServer] (node:3764) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 6 tests using 1 worker
+
+(node:54468) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 1 [desktop] › tests\audit-2026-10-29\public\recovery.spec.ts:24:1 › reproduces initial item visibility cancellation cached until the next slot (6.2s)
+  ok 2 [desktop] › tests\audit-2026-10-29\public\recovery.spec.ts:44:1 › reproduces archive request after the configured release expires (617ms)
+  ok 3 [desktop] › tests\audit-2026-10-29\public\recovery.spec.ts:56:1 › measures cross-tab price sharing and separate archive requests (592ms)
+(node:27384) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 4 [mobile] › tests\audit-2026-10-29\public\recovery.spec.ts:24:1 › reproduces initial item visibility cancellation cached until the next slot (801ms)
+  ok 5 [mobile] › tests\audit-2026-10-29\public\recovery.spec.ts:44:1 › reproduces archive request after the configured release expires (1.2s)
+  ok 6 [mobile] › tests\audit-2026-10-29\public\recovery.spec.ts:56:1 › measures cross-tab price sharing and separate archive requests (626ms)
+
+  6 passed (12.3s)

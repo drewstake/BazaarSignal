@@ -4,7 +4,8 @@ import { SqliteCache } from '../collector/cache-store';
 import { trialGoogleStore } from '../collector/trial-google';
 import { offlineGoogle } from './support/offline-google';
 import { livePolicy } from '../collector/allowance-live';
-import { paidPilotActive,paidPilotAlertWindow } from '../shared/paid-pilot';
+import { paidPilotActive,paidPilotAlertWindow,PAID_PILOT_INTERVAL } from '../shared/paid-pilot';
+import { paidReceiptKey } from '../collector/paid-ledger-storage';
 
 const now = Date.parse('2026-10-13T21:00:00Z');
 const state = (): PaidBudget => ({version:1,id:'paid-202610',startsAt:now-1000,expiresAt:Date.parse('2026-11-01T07:00:00Z'),limitUsd:5,stopUsd:4.5,reservedUsd:1,reserved:{},observed:{},legacyLedgerSha256:'a'.repeat(64),admissions:{}});
@@ -45,12 +46,40 @@ it('runs real collector/accounting adapters offline within the paid envelope and
   const runtime=createPaidRuntime({expiresAt:state().expiresAt,store:s=>trialGoogleStore({...f.config,inlineSmallSnapshots:true},s),shutdown,network,now:()=>now});
   await runtime.collect('scheduled-one');expect(network).toHaveBeenCalledTimes(3);expect(shutdown).not.toHaveBeenCalled();
   await runtime.collect('scheduled-duplicate');expect(network).toHaveBeenCalledTimes(3);
-  const budget=JSON.parse(f.read(PAID_BUDGET_KEY)!);expect(budget.observed.hypixelRequests).toBe(3);expect(budget.admissions['scheduled-one'].finished).toBe(true);
+  const budget=JSON.parse(f.read(PAID_BUDGET_KEY)!);expect(budget.observed.hypixelRequests).toBe(3);
+  expect(JSON.parse(f.read(paidReceiptKey(budget.id,'scheduled-one'))!).finished).toBe(true);
   const expired=createPaidRuntime({expiresAt:now,store:s=>trialGoogleStore(f.config,s),shutdown,network,now:()=>now});
   await expect(expired.collect('expired')).rejects.toThrow('expired');expect(shutdown).toHaveBeenCalledTimes(1);
 });
-it('paid notification clock checks hourly and never renews November automatically',()=>{
-  expect(paidPilotAlertWindow(now+120000)).toBe(true);expect(paidPilotAlertWindow(now+420000)).toBe(false);
+it('paid notification clock checks each quarter hour and never renews November automatically',()=>{
+  for (let quarter=0;quarter<4;quarter++) {
+    const at=now+quarter*PAID_PILOT_INTERVAL;
+    expect(paidPilotAlertWindow(at+89_999)).toBe(false);
+    expect(paidPilotAlertWindow(at+90_000)).toBe(true);
+    expect(paidPilotAlertWindow(at+120_000)).toBe(true);
+    expect(paidPilotAlertWindow(at+150_000)).toBe(false);
+  }
   expect(paidPilotActive('paid-budget',now)).toBe(true);expect(paidPilotActive('free-tier',now)).toBe(false);
   expect(paidPilotActive('paid-budget',Date.parse('2026-11-01T07:00:00Z'))).toBe(false);
+});
+it('admits one collection in each quarter-hour slot without resetting previous hourly admissions',async()=>{
+  const store=new SqliteCache(':memory:');
+  const old={...state(),lastCollectorAt:now,admissions:{hourly:{at:now,finished:true}}};
+  await store.commit(PAID_BUDGET_KEY,null,JSON.stringify(old));
+  let at=now+PAID_PILOT_INTERVAL-1;
+  const ledger=new PaidLedger(store,()=>at);
+  expect(await ledger.admit('collector','early')).toBeNull();
+  for(let quarter=1;quarter<=4;quarter++) {
+    at=now+quarter*PAID_PILOT_INTERVAL;
+    const attempts=await Promise.all([ledger.admit('collector',`quarter-${quarter}`),ledger.admit('collector',`duplicate-${quarter}`)]);
+    expect(attempts.filter(Boolean)).toHaveLength(1);
+    await attempts.find(Boolean)!.finish();
+  }
+  const saved=JSON.parse((await store.read(PAID_BUDGET_KEY))!);
+  expect(saved.admissions.hourly).toEqual(old.admissions.hourly);
+  expect(saved.admissionCount).toBe(5);
+  expect(Object.keys(saved.admissions)).toHaveLength(1);
+  expect(saved.reservedUsd).toBeGreaterThan(old.reservedUsd);
+  expect(saved.expiresAt).toBe(old.expiresAt);
+  await store.close();
 });

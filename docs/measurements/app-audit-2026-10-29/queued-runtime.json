@@ -1,0 +1,20 @@
+{
+  "elapsedMs": 3037.7110999999995,
+  "latenciesMs": [
+    2026.8008999999997,
+    3037.2357
+  ],
+  "counts": {
+    "requests": 2,
+    "responseBytes": 2548,
+    "snapshotLoads": 0,
+    "decodedSnapshotBytes": 0,
+    "controlReads": 0,
+    "upstreamCalls": 0,
+    "shutdowns": 0,
+    "firestoreReads": 11,
+    "firestoreWriteAttempts": 8,
+    "firestoreWrites": 8,
+    "reservedUsd": 0.0012060900000001595
+  }
+}

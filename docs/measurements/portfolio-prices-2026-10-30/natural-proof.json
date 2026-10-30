@@ -1,0 +1,54 @@
+{
+  "passed": true,
+  "verifiedAt": 1793358964864,
+  "imageDigest": "sha256:9765d01f02d77eb6a8bce15660c059a0200a9a04f02595fedb0c8290b29e7c9a",
+  "revision": "refreshmarket-00029-jct",
+  "slot": "2026-10-30T11:15:00Z",
+  "schedulerAttempt": "2026-10-30T11:15:00.760187Z",
+  "receipt": {
+    "version": 1,
+    "budget": "paid-202610",
+    "invocation": "firebase-schedule-refreshMarket-us-central1:2026-10-30T04:15:00-07:00",
+    "at": 1793358905520,
+    "finished": true
+  },
+  "items": 2201,
+  "upstreamAt": "2026-10-30T11:15:02.832Z",
+  "eye": {
+    "price": 1307738.8,
+    "upstreamAt": 1793358902832
+  },
+  "admissionsBefore": 1499,
+  "admissionsAfter": 1500,
+  "entries": [
+    {
+      "at": "2026-10-30T11:15:00.782534Z",
+      "status": 200,
+      "method": "POST",
+      "userAgent": "Google-Cloud-Scheduler",
+      "latency": "9.179435183s",
+      "severity": "INFO"
+    },
+    {
+      "at": "2026-10-30T11:15:09.980897Z",
+      "event": "paid_market",
+      "kind": "collector",
+      "observed": {
+        "hypixelRequests": 3,
+        "upstreamResponseBytes": 8369227,
+        "bazaarRefreshesCompleted": 1,
+        "catalogRefreshesCompleted": 1,
+        "electionSnapshotsUnchanged": 1,
+        "collectorLeasesAcquired": 1,
+        "upstreamHttp200": 3,
+        "googleResponseBytes": 1021455,
+        "firestoreReads": 20,
+        "observedHandlerMs": 4121,
+        "bazaarSnapshotsPublished": 1,
+        "firestoreWrites": 12,
+        "electionRefreshesCompleted": 1,
+        "catalogSnapshotsUnchanged": 1
+      }
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "productionFilesCompared": 143,
+  "changes": [
+    "collector/diagnostics.ts",
+    "collector/paid-budget.ts",
+    "collector/trial-google.ts"
+  ]
+}

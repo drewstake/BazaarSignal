@@ -29,12 +29,14 @@ export default function PortfolioValueChart({
   totals,
   loading,
   fixture,
+  incomplete = false,
 }: {
   uid: string;
   portfolioId: string;
   totals: ReturnType<typeof portfolioTotals>;
   loading: boolean;
   fixture: boolean;
+  incomplete?: boolean;
 }) {
   const storageKey = portfolioValueHistoryKey(uid, portfolioId);
   const [history, setHistory] = useState(() => {
@@ -49,8 +51,8 @@ export default function PortfolioValueChart({
   const [active, setActive] = useState<number | null>(null);
   const gradientId = `portfolio-value-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   const snapshot = useMemo(
-    () => (!loading && !fixture ? portfolioValueSnapshot(totals) : null),
-    [loading, fixture, totals],
+    () => (!loading && !fixture && !incomplete ? portfolioValueSnapshot(totals) : null),
+    [loading, fixture, incomplete, totals],
   );
   const signature = snapshot?.signature;
   useEffect(() => {

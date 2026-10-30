@@ -221,6 +221,12 @@ it("daily status describes measurement time while expiration, stops and overdue 
   expect(pilotStatus(r, now + 12 * 3600000)).toBe("Active paid pilot");
   expect(pilotStatus(r, now + 26 * 3600000)).toBe("Verification due");
   expect(pilotStatus(r, r.pilot!.expiresAt)).toBe("Expired");
+  r.scheduler!.schedule = "*/15 * * * *";
+  r.pilot!.lastPriceCheck = now - 20 * 60000;
+  expect(pilotStatus(r, now)).toBe("Active paid pilot");
+  r.pilot!.lastPriceCheck--;
+  expect(pilotStatus(r, now)).toBe("Needs attention");
+  r.scheduler!.schedule = "0 * * * *";
   r.pilot!.lastPriceCheck = now - 76 * 60000;
   expect(pilotStatus(r, now)).toBe("Needs attention");
   r.pilot!.lastPriceCheck = now;

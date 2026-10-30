@@ -1,15 +1,17 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { SessionReads } from "./session-reads";
+import { publishPrivateChange, watchPrivateChanges } from "./private-workspace-sync";
 import type { User } from "firebase/auth";
 import { Bell, Pencil, Plus, Trash2 } from "lucide-react";
 import { auth } from "../data";
 import { localWorkspace } from "../local-workspace";
 import { exact, percent, ItemArt, SkyIcon } from "./components";
 import { fixtureMode } from "./api";
-import { portfolioMarket, visiblePortfolioPresence } from "./portfolio-market";
+import { portfolioMarket, reconcilePortfolioPrices, visiblePortfolioPresence } from "./portfolio-market";
 import { pollingDirective, visiblePoll } from "./polling";
 import { ownerCandidate } from "./usage-access";
 import {
+  loadHolding,
   loadHoldings,
   loadPortfolios,
   saveHolding,
@@ -73,8 +75,10 @@ export default function Workspace({
     [notice, setNotice] = useState(""),
     [reload, setReload] = useState(0);
   const [bazaar, setBazaar] = useState<BazaarItem[]>([]),
+    [partialPrices, setPartialPrices] = useState(false),
     [marketError, setMarketError] = useState(""),
     [emailEnabled, setEmailEnabled] = useState(false);
+  const [buyingPowerEditing, setBuyingPowerEditing] = useState(false);
   const [editor, setEditor] = useState<{
       mode: "create" | "edit";
       holding?: Holding;
@@ -92,7 +96,33 @@ export default function Workspace({
     route.view === "portfolios" && !!holdings.length,
   );
   const [settingsNotification, setSettingsNotification] = useState<HoldingNotification | null>(null);
+  const [notificationBaselines, setNotificationBaselines] = useState<
+    Record<string, number | null>
+  >({});
   useEffect(() => setSettingsNotification(null), [route.view, user]);
+  const privateRefresh = useRef({ at: Date.now(), dirty: false });
+  useEffect(() => {
+    const refresh = () => {
+      if (auth?.currentUser !== user || document.visibilityState === 'hidden' ||
+          !['portfolios', 'settings'].includes(route.view) || busy || editor ||
+          notificationEditor || settingsNotification || portfolioEditor || removal ||
+          buyingPowerEditing) return;
+      if (!privateRefresh.current.dirty && Date.now() - privateRefresh.current.at < 60_000) return;
+      privateRefresh.current = { at: Date.now(), dirty: false };
+      reads.invalidate();
+      setReload(v => v + 1);
+    };
+    const changed = () => { privateRefresh.current.dirty = true; refresh(); };
+    const stop = watchPrivateChanges(user.uid, changed);
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    refresh(); // Apply deferred changes after an editor closes or private navigation.
+    return () => {
+      stop();
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, [user, route.view, busy, editor, notificationEditor, settingsNotification, portfolioEditor, removal, buyingPowerEditing, reads]);
   const selected =
     portfolios.find((p) => p.id === route.portfolioId) ??
     (!route.portfolioId ? portfolios[0] : undefined);
@@ -136,6 +166,45 @@ export default function Workspace({
       alive = false;
     };
   }, [user, reload, route.view]);
+  useEffect(() => {
+    let alive = true;
+    setNotificationBaselines({});
+    if (loading || route.view !== "settings") return;
+    const acquisitionAlerts = notifications.filter(
+      (notification) =>
+        !notification.deleted &&
+        notification.baseline === "acquisition" &&
+        portfolios.some(
+          (portfolio) =>
+            portfolio.id === notification.portfolioId && !portfolio.deleted,
+        ),
+    );
+    void Promise.allSettled(
+      acquisitionAlerts.map(async (notification) => {
+        const holding = await reads.read(
+          `holdings/${notification.portfolioId}/${notification.holdingId}`,
+          () =>
+            loadHolding(user.uid, notification.portfolioId, notification.holdingId),
+        );
+        return notificationBaseline(notification, holding);
+      }),
+    ).then((results) => {
+      if (!alive || auth?.currentUser !== user) return;
+      setNotificationBaselines(
+        Object.fromEntries(
+          results.map((result, index) => [
+            acquisitionAlerts[index].id,
+            result.status === "fulfilled" ? result.value : null,
+          ]),
+        ),
+      );
+      if (results.some((result) => result.status === "rejected"))
+        setError("Some alert prices could not load. Reload saved data to retry.");
+    });
+    return () => {
+      alive = false;
+    };
+  }, [user, notifications, portfolios, loading, reload, route.view]);
   useEffect(() => {
     let alive = true;
     setHoldings([]);
@@ -184,15 +253,19 @@ export default function Workspace({
       try {
         const r = await portfolioMarket(priceAssets.split(","), signal);
         if (!signal.aborted) {
-          setBazaar(r.bazaar);
+          setBazaar(previous => reconcilePortfolioPrices(previous, r, priceAssets.split(',')));
+          setPartialPrices(!!r.retryable);
           setMarketError(
             r.error ?? (r.stale ? "The saved market snapshot is stale." : ""),
           );
+          if (r.retryable) throw new Error(r.error || 'Some prices are unavailable. Retrying automatically.');
         }
       } catch (e) {
-        if (!signal.aborted) setMarketError((e as Error).message);
+        if (!signal.aborted || signal.reason?.name === 'TimeoutError')
+          setMarketError(signal.aborted ? 'Prices are taking too long to load. Retrying automatically.' : (e as Error).message);
+        throw e;
       }
-    });
+    }, 20_000, 0, true, { retryFailures: true });
   }, [priceAssets, route.view]);
   const paused = pollingDirective().mode === "paused";
   const totals = useMemo(
@@ -219,6 +292,7 @@ export default function Workspace({
       await work();
       if (auth?.currentUser !== user) return false;
       reads.invalidate(changed);
+      publishPrivateChange(user.uid);
       setNotice(message);
       setReload((v) => v + 1);
       setEditor(null);
@@ -411,6 +485,7 @@ export default function Workspace({
             <NightMarketNotifications
               notifications={notifications}
               portfolios={portfolios}
+              baselines={notificationBaselines}
               emailEnabled={emailEnabled}
               paused={paused}
               fixture={fixtureMode}
@@ -631,6 +706,7 @@ export default function Workspace({
                     )}
                     <dl className="summary portfolio-balances">
                       <BuyingPower
+                        onEditingChange={setBuyingPowerEditing}
                         key={selected.id}
                         value={selected.buyingPower}
                         busy={busy || loading}
@@ -675,6 +751,7 @@ export default function Workspace({
                       totals={totals}
                       loading={loading || holdingLoading}
                       fixture={fixtureMode}
+                      incomplete={partialPrices}
                     />
                     {!!totals.missing && (
                       <details className="coverage">
@@ -692,7 +769,7 @@ export default function Workspace({
                     {!!holdings.length && marketError && (
                       <details className="market-detail">
                         <summary>
-                          Market data unavailable · Holdings are editable
+                          {partialPrices ? 'Some prices are unavailable · Retaining previous estimates' : 'Market data unavailable · Holdings are editable'}
                         </summary>
                         <p>{marketError}</p>
                       </details>

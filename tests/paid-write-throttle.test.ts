@@ -64,8 +64,8 @@ it.each(throttles)('a throttled finish retains the entire admitted hold and neve
   expect((await f.request()).status).toBe(200);
   const budget = JSON.parse(f.f.read(PAID_BUDGET_KEY)!);
   expect(budget.reservedUsd).toBeGreaterThan(1);
-  expect(Object.values(budget.admissions)).toHaveLength(1);
-  expect(Object.values(budget.admissions)[0]).not.toHaveProperty('finished');
+  expect(f.receipts()).toHaveLength(1);
+  expect(f.receipts()[0]).not.toHaveProperty('finished');
   expect(budget.stoppedAt).toBeUndefined();
   expect(f.metrics.shutdowns).toBe(0);
 }, 15000);
@@ -74,7 +74,7 @@ it('finishes accounting before ending the HTTP response, keeping Cloud Run CPU a
   const f = paidRuntimeFixture(snapshotFixture('one',fixtureTime,30));
   let finishedAtEnd = false;
   const res = { headersSent:false, setHeader() {}, writeHead() { this.headersSent=true; return this; },
-    end() { finishedAtEnd = Object.values(JSON.parse(f.f.read(PAID_BUDGET_KEY)!).admissions).every((a:any)=>a.finished); } };
+    end() { finishedAtEnd = f.receipts().length === 1 && f.receipts().every(a => a.finished); } };
   await f.runtime.handle({url:'/api/companion/portfolio-prices?assets=bz_ITEM_0',method:'GET',headers:{}} as any,res as any);
   expect(finishedAtEnd).toBe(true);
   expect(f.metrics.shutdowns).toBe(0);

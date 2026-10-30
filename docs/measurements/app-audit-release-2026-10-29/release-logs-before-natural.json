@@ -1,0 +1,144 @@
+{
+  "at": "2026-10-29T19:10:19.561Z",
+  "entries": [
+    {
+      "at": "2026-10-29T18:57:39.745285Z",
+      "revision": "marketapi-00031-sc4",
+      "severity": "INFO"
+    },
+    {
+      "at": "2026-10-29T18:59:58.286881Z",
+      "revision": "marketapi-00031-sc4",
+      "severity": "INFO"
+    },
+    {
+      "at": "2026-10-29T19:00:00.635802Z",
+      "revision": "marketapi-00031-sc4",
+      "severity": "INFO"
+    },
+    {
+      "at": "2026-10-29T19:00:00.730153Z",
+      "revision": "marketapi-00031-sc4",
+      "severity": "INFO"
+    },
+    {
+      "at": "2026-10-29T19:02:24.679264Z",
+      "revision": "refreshmarket-00028-2fn",
+      "severity": "INFO"
+    },
+    {
+      "at": "2026-10-29T19:03:22.665801Z",
+      "revision": "refreshmarket-00028-2fn",
+      "severity": "INFO"
+    },
+    {
+      "at": "2026-10-29T19:03:28.244995Z",
+      "revision": "refreshmarket-00028-2fn",
+      "severity": "INFO"
+    },
+    {
+      "at": "2026-10-29T19:04:03.427989Z",
+      "revision": "refreshmarket-00028-2fn",
+      "severity": "INFO"
+    },
+    {
+      "at": "2026-10-29T19:04:37.073195Z",
+      "revision": "marketapi-00031-sc4",
+      "severity": "WARNING",
+      "status": 404,
+      "method": "GET",
+      "path": "/api/audit-invalid-route",
+      "latency": "0.032453076s"
+    },
+    {
+      "at": "2026-10-29T19:04:37.201107Z",
+      "revision": "marketapi-00031-sc4",
+      "severity": "WARNING",
+      "status": 400,
+      "method": "GET",
+      "path": "/api/companion/portfolio-prices",
+      "latency": "0.006801750s"
+    },
+    {
+      "at": "2026-10-29T19:04:37.247630Z",
+      "revision": "marketapi-00031-sc4",
+      "severity": "WARNING",
+      "status": 400,
+      "method": "GET",
+      "path": "/api/companion/portfolio-prices",
+      "latency": "0.003524680s"
+    },
+    {
+      "at": "2026-10-29T19:05:06.964704Z",
+      "revision": "marketapi-00031-sc4",
+      "severity": "INFO",
+      "status": 200,
+      "method": "GET",
+      "path": "/api/companion/portfolio-prices",
+      "latency": "2.027198970s"
+    },
+    {
+      "at": "2026-10-29T19:05:08.992735Z",
+      "revision": "marketapi-00031-sc4",
+      "event": "paid_market",
+      "kind": "browser"
+    },
+    {
+      "at": "2026-10-29T19:05:09.056101Z",
+      "revision": "marketapi-00031-sc4",
+      "severity": "INFO",
+      "status": 200,
+      "method": "GET",
+      "path": "/api/price-history",
+      "latency": "2.341159133s"
+    },
+    {
+      "at": "2026-10-29T19:05:11.398115Z",
+      "revision": "marketapi-00031-sc4",
+      "event": "paid_market",
+      "kind": "browser"
+    },
+    {
+      "at": "2026-10-29T19:05:13.314550Z",
+      "revision": "marketapi-00031-sc4",
+      "severity": "INFO",
+      "status": 200,
+      "method": "GET",
+      "path": "/api/companion/portfolio-prices",
+      "latency": "1.376923312s"
+    },
+    {
+      "at": "2026-10-29T19:05:14.692270Z",
+      "revision": "marketapi-00031-sc4",
+      "event": "paid_market",
+      "kind": "browser"
+    },
+    {
+      "at": "2026-10-29T19:05:14.736411Z",
+      "revision": "marketapi-00031-sc4",
+      "severity": "INFO",
+      "status": 200,
+      "method": "GET",
+      "path": "/api/price-history",
+      "latency": "2.201966384s"
+    },
+    {
+      "at": "2026-10-29T19:05:16.939706Z",
+      "revision": "marketapi-00031-sc4",
+      "event": "paid_market",
+      "kind": "browser"
+    },
+    {
+      "at": "2026-10-29T19:06:52.469952Z",
+      "revision": "marketapi-00031-sc4",
+      "severity": "INFO"
+    },
+    {
+      "at": "2026-10-29T19:06:58.228439Z",
+      "revision": "marketapi-00031-sc4",
+      "severity": "INFO"
+    }
+  ],
+  "failures": [],
+  "complete": true
+}

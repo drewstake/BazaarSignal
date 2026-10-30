@@ -1,0 +1,65 @@
+[WebServer] (node:79444) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 38 tests using 1 worker
+
+(node:28716) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 [desktop] › tests\private-browser\admin.spec.ts:61:1 › actual Google spending drives the budget display even above the old reserve stop (6.8s)
+  ok  2 [desktop] › tests\private-browser\admin.spec.ts:87:1 › owner-only Admin, legacy Usage redirect, private response lifecycle and mobile layout (1.5s)
+[WebServer] 2:36:29 PM [vite] (client) [console.error] [2026-10-30T06:36:29.003Z]  @firebase/firestore: Firestore (12.19.0): Could not reach Cloud Firestore backend. Backend didn't respond within 10 seconds.
+[WebServer] This typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend.
+[WebServer] 2:36:29 PM [vite] (client) [console.warn] [2026-10-30T06:36:29.003Z]  @firebase/firestore: Firestore (12.19.0): WebChannelConnection RPC 'Listen' stream 0x1b3ccab7 transport errored. Name: undefined Message: undefined
+[WebServer] 2:36:29 PM [vite] (client) [console.warn] [2026-10-30T20:36:29.004Z]  @firebase/firestore: Firestore (12.19.0): WebChannelConnection RPC 'Listen' stream 0x1b3ccab8 transport errored. Name: undefined Message: undefined
+  ok  3 [desktop] › tests\private-browser\admin.spec.ts:171:1 › daily snapshot has no manual refresh or background scans and retains measured status until overdue (1.1s)
+  ok  4 [desktop] › tests\private-browser\admin.spec.ts:229:1 › Settings legacy links select the corresponding section and unsubscribe stays explicit (1.1s)
+  ok  5 [desktop] › tests\private-browser\admin.spec.ts:269:1 › failed Admin history can recover on reopening after the cooldown without background requests (1.4s)
+  ok  6 [desktop] › tests\private-browser\portfolio.spec.ts:111:1 › header search reuses portfolio data and preserves holdings and navigation (2.3s)
+  ok  7 [desktop] › tests\private-browser\portfolio.spec.ts:146:1 › refresh restores a saved session before choosing the landing page (2.7s)
+  ok  8 [desktop] › tests\private-browser\portfolio.spec.ts:191:1 › signing in on a direct item link defers private code and reads until Portfolio is opened (1.4s)
+[WebServer] 2:36:38 PM [vite] (client) [console.error] TypeError: Failed to fetch dynamically imported module: http://127.0.0.1:5199/src/companion/Workspace.tsx
+[WebServer] 
+[WebServer] The above error occurred in one of your React components.
+[WebServer] 
+[WebServer] React will try to recreate this component tree from scratch using the error boundary you provided, ViewBoundary.
+[WebServer] 
+  ok  9 [desktop] › tests\private-browser\portfolio.spec.ts:207:1 › a failed workspace module leaves a clear reload action (641ms)
+  ok 10 [desktop] › tests\private-browser\portfolio.spec.ts:214:1 › notification controls persist, respect revisions and stay retired after holding deletion (6.5s)
+  ok 11 [desktop] › tests\private-browser\portfolio.spec.ts:394:1 › signed-out introduction and obsolete routes redirect without market requests (858ms)
+  ok 12 [desktop] › tests\private-browser\portfolio.spec.ts:429:1 › portfolio CRUD, cost calculation, purchases, unavailable prices, identity switching and deletion (4.2s)
+  ok 13 [desktop] › tests\private-browser\portfolio.spec.ts:551:1 › Bazaar holdings share one portfolio and notification baseline form stays useful offline (3.4s)
+  ok 14 [desktop] › tests\private-browser\portfolio.spec.ts:643:1 › a stale creation form opens the existing portfolio instead of creating another (1.4s)
+  ok 15 [desktop] › tests\private-browser\portfolio.spec.ts:672:1 › Bazaar search rejects auction and unlisted items and never saves a stale selection (1.9s)
+  ok 16 [desktop] › tests\private-browser\portfolio.spec.ts:718:1 › legacy positions migrate once on login and persist through reload (2.4s)
+  ok 17 [desktop] › tests\private-browser\portfolio.spec.ts:756:1 › portfolio value chart records real totals, survives reloads and excludes partial valuations (3.4s)
+  ok 18 [desktop] › tests\private-browser\portfolio.spec.ts:805:1 › a 101-holding portfolio renders every record and reuses a full saved snapshot without market reads (2.4s)
+  ok 19 [desktop] › tests\private-browser\portfolio.spec.ts:838:1 › buying power persists and the holding ticket stays compact (3.2s)
+(node:80688) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 20 [mobile] › tests\private-browser\admin.spec.ts:61:1 › actual Google spending drives the budget display even above the old reserve stop (1.6s)
+  ok 21 [mobile] › tests\private-browser\admin.spec.ts:87:1 › owner-only Admin, legacy Usage redirect, private response lifecycle and mobile layout (2.0s)
+  ok 22 [mobile] › tests\private-browser\admin.spec.ts:171:1 › daily snapshot has no manual refresh or background scans and retains measured status until overdue (1.5s)
+  ok 23 [mobile] › tests\private-browser\admin.spec.ts:229:1 › Settings legacy links select the corresponding section and unsubscribe stays explicit (1.5s)
+  ok 24 [mobile] › tests\private-browser\admin.spec.ts:269:1 › failed Admin history can recover on reopening after the cooldown without background requests (1.9s)
+  ok 25 [mobile] › tests\private-browser\portfolio.spec.ts:111:1 › header search reuses portfolio data and preserves holdings and navigation (2.3s)
+  ok 26 [mobile] › tests\private-browser\portfolio.spec.ts:146:1 › refresh restores a saved session before choosing the landing page (3.3s)
+  ok 27 [mobile] › tests\private-browser\portfolio.spec.ts:191:1 › signing in on a direct item link defers private code and reads until Portfolio is opened (1.7s)
+[WebServer] 2:37:25 PM [vite] (client) [console.error] TypeError: Failed to fetch dynamically imported module: http://127.0.0.1:5199/src/companion/Workspace.tsx
+[WebServer] 
+[WebServer] The above error occurred in one of your React components.
+[WebServer] 
+[WebServer] React will try to recreate this component tree from scratch using the error boundary you provided, ViewBoundary.
+[WebServer] 
+  ok 28 [mobile] › tests\private-browser\portfolio.spec.ts:207:1 › a failed workspace module leaves a clear reload action (1.0s)
+  ok 29 [mobile] › tests\private-browser\portfolio.spec.ts:214:1 › notification controls persist, respect revisions and stay retired after holding deletion (6.6s)
+  ok 30 [mobile] › tests\private-browser\portfolio.spec.ts:394:1 › signed-out introduction and obsolete routes redirect without market requests (1.0s)
+  ok 31 [mobile] › tests\private-browser\portfolio.spec.ts:429:1 › portfolio CRUD, cost calculation, purchases, unavailable prices, identity switching and deletion (5.7s)
+  ok 32 [mobile] › tests\private-browser\portfolio.spec.ts:551:1 › Bazaar holdings share one portfolio and notification baseline form stays useful offline (4.1s)
+  ok 33 [mobile] › tests\private-browser\portfolio.spec.ts:643:1 › a stale creation form opens the existing portfolio instead of creating another (1.8s)
+  ok 34 [mobile] › tests\private-browser\portfolio.spec.ts:672:1 › Bazaar search rejects auction and unlisted items and never saves a stale selection (2.6s)
+  ok 35 [mobile] › tests\private-browser\portfolio.spec.ts:718:1 › legacy positions migrate once on login and persist through reload (1.8s)
+  ok 36 [mobile] › tests\private-browser\portfolio.spec.ts:756:1 › portfolio value chart records real totals, survives reloads and excludes partial valuations (4.0s)
+  ok 37 [mobile] › tests\private-browser\portfolio.spec.ts:805:1 › a 101-holding portfolio renders every record and reuses a full saved snapshot without market reads (2.5s)
+  ok 38 [mobile] › tests\private-browser\portfolio.spec.ts:838:1 › buying power persists and the holding ticket stays compact (3.9s)
+
+  38 passed (1.7m)

@@ -24,6 +24,7 @@ import {
 } from "../../shared/daily-price-history";
 import {
   loadDailyHistory,
+  HistoryPaused,
   type DailyHistory,
   type ChartPricePoint,
 } from "./daily-price-history";
@@ -89,10 +90,10 @@ export default function BazaarPriceChart({
           );
         }
       })
-      .catch(() => {
+      .catch((error) => {
         if (!cancelled)
           setArchiveStatus(
-            "Daily archive unavailable. Device observations are still available.",
+            error instanceof HistoryPaused ? error.message : "Daily archive unavailable. Device observations are still available.",
           );
       });
     return () => {
@@ -309,6 +310,9 @@ export default function BazaarPriceChart({
       <p className="item-chart-caption">
         Coins per item · Before fees{daily && " · Daily closing prices (EST)"}
       </p>
+      {daily && archive?.collector.lastError && (
+        <p className="item-chart-caption" role="status">{archive.collector.lastError.message}</p>
+      )}
       <div className="item-chart-readout">
         {series.map(({ side, label }) => (
           <div key={side} className={`item-chart-${side}`}>
@@ -452,10 +456,10 @@ export default function BazaarPriceChart({
             {fixtureMode
               ? "Demo snapshot · Not saved"
               : history.length === 1
-                ? "First price point. New hourly snapshots build the chart."
+                ? "First price point. New price snapshots build the chart."
                 : points.length === 1
                   ? "One saved price point in this period."
-                  : "Saved hourly snapshots · Gaps mark unrecorded prices"}
+                  : "Saved price snapshots · Gaps mark unrecorded prices"}
           </p>
           <p>
             {fixtureMode

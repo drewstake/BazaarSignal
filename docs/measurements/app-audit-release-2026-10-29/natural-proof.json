@@ -1,0 +1,60 @@
+{
+  "at": "2026-10-29T19:18:41.054Z",
+  "plannedSlot": "2026-10-29T19:15:00.000Z",
+  "schedulerAttempt": "2026-10-29T19:15:12.593414Z",
+  "revision": "refreshmarket-00028-2fn",
+  "receipt": {
+    "version": 1,
+    "budget": "paid-202610",
+    "invocation": "firebase-schedule-refreshMarket-us-central1:2026-10-29T12:15:00.827718-07:00",
+    "at": 1793301316640,
+    "finished": true
+  },
+  "snapshot": {
+    "version": "1793301302797:4250a809602b2df6257a55fe0eb7ddb7d03ff6e5d186dbf0ef66bc037b398eca:435027d9c22c94f641efd721c837993e0ae9635858103fc9d709f4dbfea128cf",
+    "upstreamAt": "2026-10-29T19:15:02.797Z",
+    "checkedAt": "2026-10-29T19:15:21.379Z",
+    "items": 2201,
+    "encodedBytes": 878262
+  },
+  "ledger": {
+    "version": 2,
+    "admissions": 1471,
+    "beforeAdmissions": 1470,
+    "reservedUsd": 10.065640048000276,
+    "stopUsd": 4.5,
+    "expiresAt": "2026-11-01T07:00:00.000Z",
+    "stopped": false
+  },
+  "entries": [
+    {
+      "at": "2026-10-29T19:15:12.612679Z",
+      "revision": "refreshmarket-00028-2fn",
+      "status": 200,
+      "method": "POST",
+      "userAgent": "Google-Cloud-Scheduler",
+      "latency": "10.573042647s",
+      "severity": "INFO"
+    },
+    {
+      "at": "2026-10-29T19:15:23.204583Z",
+      "revision": "refreshmarket-00028-2fn",
+      "event": "paid_market",
+      "kind": "collector",
+      "observed": {
+        "firestoreReads": 12,
+        "upstreamHttp200": 1,
+        "hypixelRequests": 1,
+        "googleResponseBytes": 996154,
+        "collectorLeasesAcquired": 1,
+        "upstreamResponseBytes": 3543662,
+        "bazaarRefreshesCompleted": 1,
+        "observedHandlerMs": 5490,
+        "firestoreWrites": 6,
+        "bazaarSnapshotsPublished": 1
+      }
+    }
+  ],
+  "manualCollectionRequests": 0,
+  "emailInvocations": 0
+}

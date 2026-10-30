@@ -80,5 +80,7 @@ export function paidRuntimeFixture(rawSnapshot: string, blob = false) {
   }
   const totals = () => ({ ...metrics, ...f.counts,
     reservedUsd: JSON.parse(f.read(PAID_BUDGET_KEY)!).reservedUsd - 1 });
-  return { f, control, metrics, request, runtime, makeRuntime, publish, totals, setNow: (at: number) => { now = at; } };
+  const receipts = () => [...f.documents].filter(([name]) => name.includes('/paid-receipt-'))
+    .map(([, doc]) => JSON.parse(doc.fields.value.stringValue));
+  return { f, control, metrics, request, runtime, makeRuntime, publish, totals, receipts, setNow: (at: number) => { now = at; } };
 }

@@ -1,0 +1,17 @@
+[WebServer] (node:80136) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 6 tests using 1 worker
+
+(node:81692) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 1 [desktop] › tests\audit-2026-10-29\public\recovery.spec.ts:23:1 › resumes an interrupted item immediately on visibility return (5.4s)
+  ok 2 [desktop] › tests\audit-2026-10-29\public\recovery.spec.ts:43:1 › does not request uncached history after the configured release expires (513ms)
+  ok 3 [desktop] › tests\audit-2026-10-29\public\recovery.spec.ts:56:1 › measures cross-tab price sharing and separate archive requests (538ms)
+(node:55624) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 4 [mobile] › tests\audit-2026-10-29\public\recovery.spec.ts:23:1 › resumes an interrupted item immediately on visibility return (598ms)
+  ok 5 [mobile] › tests\audit-2026-10-29\public\recovery.spec.ts:43:1 › does not request uncached history after the configured release expires (546ms)
+  ok 6 [mobile] › tests\audit-2026-10-29\public\recovery.spec.ts:56:1 › measures cross-tab price sharing and separate archive requests (575ms)
+
+  6 passed (10.4s)
