@@ -117,9 +117,9 @@ try {
     updates: durations.length,
     medianCursorRenderMs: durations[Math.floor(durations.length / 2)],
   };
-  await mkdir("docs/measurements", { recursive: true });
+  await mkdir(".local/measurements", { recursive: true });
   await writeFile(
-    `docs/measurements/item-price-chart-${label}.json`,
+    `.local/measurements/item-price-chart-${label}.json`,
     JSON.stringify({ summary, samples }, null, 2) + "\n",
   );
   console.log(JSON.stringify(summary, null, 2));

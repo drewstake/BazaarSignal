@@ -351,9 +351,9 @@ const report = {
   operationsReductionPct: 100 * (1 - shards / count),
   costModels,
 };
-mkdirSync("docs/measurements", { recursive: true });
+mkdirSync(".local/measurements", { recursive: true });
 writeFileSync(
-  "docs/measurements/price-history-optimization.json",
+  ".local/measurements/price-history-optimization.json",
   JSON.stringify(report, null, 2) + "\n",
 );
 console.log(JSON.stringify(report, null, 2));

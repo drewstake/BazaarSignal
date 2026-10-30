@@ -1,6 +1,6 @@
 """Losslessly encode the existing artwork. Requires Pillow with WebP support.
 
-Original PNGs stay intact. Exact RGBA equality is checked after decoding each
+Original PNGs in assets/artwork/night-market stay intact. Exact RGBA equality is checked after decoding each
 export; dimensions, crop, transparency, and the approved artwork do not change.
 """
 import json
@@ -10,9 +10,11 @@ from PIL import Image
 
 root = Path(__file__).resolve().parents[1]
 art = root / "public/assets/night-market"
+sources = root / "assets/artwork/night-market"
+art.mkdir(parents=True, exist_ok=True)
 measurements = []
 for name in ("scene-only", "reference", "workspace-courtyard"):
-    source = art / f"{name}.png"
+    source = sources / f"{name}.png"
     output = art / f"{name}.webp"
     with Image.open(source) as original:
         rgba = original.convert("RGBA")

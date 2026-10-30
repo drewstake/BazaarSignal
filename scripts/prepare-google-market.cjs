@@ -34,7 +34,7 @@ async function main() {
   const billing = await call(`https://cloudbilling.googleapis.com/v1/projects/${project}/billingInfo`);
   console.log(JSON.stringify({project, projectNumber:p.projectNumber, billingEnabled:billing.billingEnabled, apply}));
   if (!apply) return;
-  throw new Error('Resource creation refused by the $0 policy. See docs/ZERO-COST-AUDIT.md. Do not re-enable billing or deploy the Google collector.');
+  throw new Error('Resource creation refused by the $0 policy. See docs/history/ZERO-COST-AUDIT.md. Do not re-enable billing or deploy the Google collector.');
   if (!billing.billingEnabled) throw new Error('Link an active billing account in Google Cloud first. No resources changed.');
   const services = [
     'firebase.googleapis.com','firestore.googleapis.com','storage.googleapis.com',

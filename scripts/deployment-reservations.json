@@ -7,7 +7,7 @@
   "periodEnd": "2026-11-01T07:00:00.000Z",
   "recordedThrough": "2026-10-04T22:02:00.000Z",
   "documentedAttempts": 13,
-  "source": "docs/FREE-TIER-PREPARATION.md, October 4 22:02 UTC assessment",
+  "source": "docs/history/FREE-TIER-PREPARATION.md, October 4 22:02 UTC assessment",
   "kind": "aggregate recovery floor; original receipts unavailable",
   "holds": {
     "cpuSeconds": 130000,
