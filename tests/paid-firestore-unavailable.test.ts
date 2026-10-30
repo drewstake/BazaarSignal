@@ -1,8 +1,10 @@
-import { expect, it } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
 import { errorDiagnostic, isTransientFirestoreFailure } from '../collector/diagnostics';
 import { createPaidRuntime, PAID_BUDGET_KEY } from '../collector/paid-budget';
 import { trialGoogleStore } from '../collector/trial-google';
 import { paidRuntimeFixture, snapshotFixture, fixtureTime, fixtureEnd } from './support/paid-runtime-fixture';
+
+afterEach(() => vi.useRealTimers());
 
 const unavailable = () => Response.json({ error: { status: 'UNAVAILABLE',
   message: 'The service is temporarily unavailable. Please retry with exponential backoff.' } }, { status: 503 });
@@ -82,6 +84,10 @@ it('does not collect twice when an admission committed before its 503 response',
 });
 
 it.each([401,403,429,500])('preserves terminal handling for provider status %s', async status=>{
+  // GoogleCacheStore advances the observed server clock with Date.now(). Keep
+  // that clock fixed for this exact timestamp assertion on every runner.
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(fixtureTime);
   const f=paidRuntimeFixture(snapshotFixture('one',fixtureTime,30)),network=f.f.config.network;
   let commits=0;
   f.f.config.network=async(url,init)=>{
