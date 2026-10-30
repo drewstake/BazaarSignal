@@ -14,7 +14,7 @@ const project='bazaarsignal-510305',root=`projects/${project}/locations/us-centr
   const verified=verifyMarketBackup({manifest,documents,containment:JSON.parse(fs.readFileSync(`${dir}/containment-after.json`,'utf8')),readFile:file=>fs.readFileSync(`${dir}/${file}`)});
   if(offline){console.log(JSON.stringify({offline:true,...verified},null,2));return;}
  }
- if(apply&&!process.argv.includes(`--approved-project=${project}`))throw new Error('Explicit approval for this project is required. Read docs/ZERO-COST-AUDIT.md.');
+ if(apply&&!process.argv.includes(`--approved-project=${project}`))throw new Error('Explicit approval for this project is required. Read docs/history/ZERO-COST-AUDIT.md.');
  const account=auth.getAllAccounts().find(a=>a.user.email==='drewstake3@gmail.com');
  if(!account)throw new Error('Expected deployment account unavailable');
  const token=await auth.getAccessToken(account.tokens.refresh_token,[]);

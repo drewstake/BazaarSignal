@@ -13,7 +13,7 @@ async function main() {
   const args = process.argv.slice(2);
   const file = args.find(arg => !arg.startsWith("--"));
   if (!file || args.some(arg => arg.startsWith("--") && arg !== "--apply") || args.filter(arg => !arg.startsWith("--")).length !== 1)
-    throw new Error("Usage: npm run trial:launch -- <verified-plan.json> [--apply]. No verified plan is currently available; see docs/MARKET-TRIAL.md.");
+    throw new Error("Usage: npm run trial:launch -- <verified-plan.json> [--apply]. No verified plan is currently available; see docs/history/MARKET-TRIAL.md.");
   const path = realpathSync(file);
   const plan: GoogleTrialPlan = JSON.parse(readFileSync(path, "utf8"));
   prepareTrial(plan); // No authentication or cloud calls for invalid evidence.

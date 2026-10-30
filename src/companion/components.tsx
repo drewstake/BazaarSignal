@@ -6,7 +6,7 @@ import { itemArtwork } from "./item-artwork";
 /* Sky Island Market icon pack (public/assets/sky-island-v1)           */
 /* ------------------------------------------------------------------ */
 // Web-sized copies from scripts/build-sky-icons.py keep each original canvas,
-// transparent padding and aspect ratio; the full-size originals sit beside them.
+// transparent padding and aspect ratio; originals live in assets/artwork/sky-island-v1.
 const SKY = "/assets/sky-island-v1/web";
 export type SkyIconName =
   | "emerald"

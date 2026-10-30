@@ -1,5 +1,7 @@
 # Item artwork review — 2026-10-02
 
+> Historical artwork review and evidence. Current regeneration paths are in the [artwork guide](../../assets/artwork/README.md); release statements below are dated observations.
+
 ## Subsequent interface changes and release scope
 
 After the artwork review below, the user requested clickable item cards, an L2 order book with all available levels (up to 30 per side), gray quantity bars sharing one scale across both sides, and a wider two-column details panel. The final panel is 820px on desktop, uses side-by-side buy/sell tables when space permits, and stacks them on phones. Save stars and auction copy actions stay independent of opening details. The L2 display uses the already-loaded snapshot and adds no collection or network request. Existing local work on the seven-column Bazaar layout, 21-item pages, default quantity/depth of one, and concise card text is included in this release.
@@ -53,10 +55,10 @@ Only artwork, image mappings, and their documentation were added. Nothing was de
 
 Screenshots are review artifacts under the ignored `.local` directory and are not shipped in the app.
 
-- [All 27 icons at 64px and 80px](../../.local/artwork/screenshots/all-icons-64-and-80.png)
-- [Desktop — Great White Shark Tooth](../../.local/artwork/screenshots/desktop-great_white_shark_tooth.png)
-- [Mobile — Great White Shark Tooth](../../.local/artwork/screenshots/mobile-great_white_shark_tooth.png)
-- [Desktop — Summoning Eye](../../.local/artwork/screenshots/desktop-summoning_eye.png)
-- [Mobile — Summoning Eye](../../.local/artwork/screenshots/mobile-summoning_eye.png)
-- [Desktop — Seeds](../../.local/artwork/screenshots/desktop-seeds.png)
-- [Mobile — Rough Sapphire Gemstone](../../.local/artwork/screenshots/mobile-rough_sapphire_gem.png)
+- All 27 icons at 64px and 80px (local evidence: `.local/artwork/screenshots/all-icons-64-and-80.png`)
+- Desktop — Great White Shark Tooth (local evidence: `.local/artwork/screenshots/desktop-great_white_shark_tooth.png`)
+- Mobile — Great White Shark Tooth (local evidence: `.local/artwork/screenshots/mobile-great_white_shark_tooth.png`)
+- Desktop — Summoning Eye (local evidence: `.local/artwork/screenshots/desktop-summoning_eye.png`)
+- Mobile — Summoning Eye (local evidence: `.local/artwork/screenshots/mobile-summoning_eye.png`)
+- Desktop — Seeds (local evidence: `.local/artwork/screenshots/desktop-seeds.png`)
+- Mobile — Rough Sapphire Gemstone (local evidence: `.local/artwork/screenshots/mobile-rough_sapphire_gem.png`)

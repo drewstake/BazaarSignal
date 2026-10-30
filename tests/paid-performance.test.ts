@@ -1,6 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { fixtureTime, paidRuntimeFixture, portfolioAssets, portfolioUrl, snapshotFixture } from './support/paid-runtime-fixture';
 
 const authState = vi.hoisted(() => ({ currentUser: null as any }));
@@ -79,7 +80,7 @@ it.skipIf(!process.env.PAID_BENCH_OUTPUT)('measures the offline paid portfolio w
     node: process.version, platform: process.platform, snapshotBytes: Buffer.byteLength(raw),
     hashes: Object.fromEntries(['tests/paid-performance.test.ts', 'tests/support/paid-runtime-fixture.ts', 'collector/paid-budget.ts', 'src/companion/portfolio-market.ts'].map(p => [p, hash(p)])),
     scenarios, visits: { ...f.totals(), tokenCalls: token.mock.calls.length, preflights: Number(preflight) } };
-  mkdirSync('docs/measurements', { recursive: true });
+  mkdirSync(dirname(process.env.PAID_BENCH_OUTPUT!), { recursive: true });
   writeFileSync(process.env.PAID_BENCH_OUTPUT!, JSON.stringify(result, null, 2) + '\n');
   console.log(JSON.stringify({ snapshotBytes: result.snapshotBytes, scenarios: Object.fromEntries(Object.entries(scenarios).map(([key, s]) => [key, { ...s.counts, medianMs: s.medianMs, p95Ms: s.p95Ms }])), visits: result.visits }, null, 2));
 }, 120_000);

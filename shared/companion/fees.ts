@@ -1,4 +1,4 @@
-// Versioned assumptions, independently documented in docs/MARKET.md. Never infer a
+// Versioned assumptions, independently documented in docs/history/MARKET.md. Never infer a
 // player's perks from public market data. The UI exposes the Bazaar rate explicitly.
 import type { FeeContext } from "./types";
 import { isValidSample } from "../market";

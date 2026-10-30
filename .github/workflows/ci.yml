@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'feature/**']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      MARKET_SCHEDULER_DISABLED: '1'
+      LOCAL_SHARED_MARKET: 'false'
+      LOCAL_CLOUD_HISTORY: 'false'
+      LOCAL_DAILY_HISTORY: 'false'
+      VITE_MARKET_UPDATES_PAUSED: 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            market-functions/package-lock.json
+      - run: npm ci
+      - run: npm ci --prefix market-functions
+      - run: npm test
+      - run: npm run build
+      - run: npm run build:collector
+      - run: npm run build:market-functions
+      - run: node scripts/check-repo.mjs

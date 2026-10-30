@@ -17,3 +17,9 @@ playwright-report/
 apps-script/build/
 .clasp.json
 .clasprc.json
+
+# Disposable UI captures and generated authoring output (runtime art stays tracked).
+/preview-*.png
+/output/
+/Claude outputs/
+!collector/.env.example

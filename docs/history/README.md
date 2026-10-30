@@ -1,0 +1,55 @@
+# Historical releases, incidents and audits
+
+These are dated records, including superseded setup and Gmail instructions. Claims about active/paused services, accounts, quotas, versions, approvals and deployment status apply only to their recorded work. Read [current development](../development.md) and [operations](../operations/README.md) first.
+
+Recent evidence includes [October 30 portfolio price recovery](PORTFOLIO-PRICE-RECOVERY-2026-10-30.md), [October 29 audit release](APP-AUDIT-RELEASE-2026-10-29.md), and [October 26 ledger recovery](LEDGER-V2-RECOVERY-2026-10-26.md). A report of local implementation is not deployment proof; follow its linked release evidence where present. No deployment was performed during repository cleanup.
+
+Personal account examples in narrative documents use placeholders. Original machine evidence stays at its stable paths under [measurements](../measurements/README.md). References to `.local/` identify machine-local artifacts, not files available in a fresh clone.
+
+## Records
+
+- [Portfolio, Settings and Admin release — October 13, 2026](ADMIN-RELEASE.md)
+- [Application audit — October 15, 2026](APP-AUDIT-2026-10-15.md)
+- [BazaarSignal application audit — October 29, 2026](APP-AUDIT-2026-10-29.md)
+- [Application audit deployment — October 15, 2026](APP-AUDIT-DEPLOYMENT-2026-10-15.md)
+- [Audit fixes — October 29, 2026](APP-AUDIT-FIXES-2026-10-29.md)
+- [Audit fixes release — October 29, 2026](APP-AUDIT-RELEASE-2026-10-29.md)
+- [Market artwork](ARTWORK.md)
+- [Grouped auction review — October 2, 2026](AUCTION-GROUPING-REVIEW.md)
+- [Automatic portfolio price recovery — October 20, 2026](AUTOMATIC-PRICE-RETRY.md)
+- [Billing feed and collection recovery — October 15, 2026](BILLING-RECOVERY-2026-10-15.md)
+- [Live deployment targeting Google’s free allowances](FREE-TIER-LIVE-DEPLOYMENT.md)
+- [Free-tier infrastructure preparation — October 4, 2026](FREE-TIER-PREPARATION.md)
+- [Gmail and MailApp setup](GMAIL_SETUP.md)
+- [Google Functions deployment](GOOGLE-MARKET-DEPLOYMENT.md)
+- [Temporary hourly usage test](HOURLY-USAGE-TEST.md)
+- [Apps Script read-only preflight findings — October 23, 2026](LEDGER-V2-APPS-SCRIPT-CHECKS-2026-10-23.md)
+- [Cloud rollout checks — October 23, 2026](LEDGER-V2-CLOUD-ROLLOUT-CHECKS-2026-10-23.md)
+- [Initial ledger v2 paid CPU admission — October 26, 2026](LEDGER-V2-INITIAL-CPU-ADMISSION-2026-10-26.md)
+- [Ledger v2 production adapter and live evidence](LEDGER-V2-PRODUCTION-ADAPTER-2026-10-23.md)
+- [Ledger v2 recovery — October 26, 2026](LEDGER-V2-RECOVERY-2026-10-26.md)
+- [Ledger v2 release packet — October 23, 2026](LEDGER-V2-RELEASE-PACKET-2026-10-23.md)
+- [Retained CPU and contained rollback — October 26, 2026](LEDGER-V2-ROLLBACK-CPU-GATE-2026-10-26.md)
+- [BazaarSignal reliability rollout and rollback plan](LEDGER-V2-ROLLOUT-PLAN-2026-10-22.md)
+- [Ledger v2 rollout refresh — October 26, 2026](LEDGER-V2-ROLLOUT-REFRESH-2026-10-26.md)
+- [Local market trial — October 1, 2026](LOCAL-MARKET-TRIAL-RESULTS.md)
+- [Market collection resource audit — October 3, 2026](MARKET-COLLECTION-AUDIT.md)
+- [Shared market deployment procedure](MARKET-DEPLOYMENT.md)
+- [Instrumented market trial](MARKET-TRIAL.md)
+- [Historical market implementation notes](MARKET.md)
+- [Night-market interface and portfolio value history](NIGHT-MARKET-RELEASE.md)
+- [Notification sender repair — October 18, 2026](NOTIFICATION-SENDER-REPAIR-2026-10-18.md)
+- [Active paid performance release — October 13, 2026](PAID-PERFORMANCE-DEPLOYMENT.md)
+- [Paid portfolio performance review](PAID-PERFORMANCE-REVIEW.md)
+- [October $5 paid pilot](PAID-PILOT.md)
+- [Automatic portfolio price recovery — October 27, 2026](PORTFOLIO-PRICE-RECOVERY-2026-10-27.md)
+- [Portfolio price recovery — October 30, 2026](PORTFOLIO-PRICE-RECOVERY-2026-10-30.md)
+- [October 4, 2026 portfolio cleanup release](PORTFOLIO-RELEASE.md)
+- [Portfolio and alert controls — October 16, 2026](PORTFOLIO-UI-2026-10-16.md)
+- [Portfolio pivot: behavior and release contract](PORTFOLIOS.md)
+- [Private capped measurement — October 12, 2026](PRIVATE-MEASUREMENT-RUN.md)
+- [Market refresh cadence — October 21, 2026](QUARTER-HOUR-REFRESH-2026-10-21.md)
+- [Public deployment and verification](SETUP.md)
+- [BazaarSignal usability review — October 2, 2026](USABILITY-REVIEW.md)
+- [Owner usage and costs](USAGE-AND-COSTS.md)
+- [$0 spending audit — October 1, 2026](ZERO-COST-AUDIT.md)

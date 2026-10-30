@@ -1,8 +1,8 @@
 """Build web-sized copies of the Sky Island Market icon pack.
 
-The pack in public/assets/sky-island-v1 ships 1100-1400 px PNGs (about
-11 MB in total). The app only shows them at 16-260 px, so this writes
-smaller copies next to them in public/assets/sky-island-v1/web/:
+Canonical originals live in assets/artwork/sky-island-v1. The app only shows
+them at 16-260 px, so this writes runtime copies to
+public/assets/sky-island-v1/web/:
 
     ui-*.png   -> <name>-64.png, <name>-128.png
     item-*.png -> <name>-256.png, <name>-512.png
@@ -19,13 +19,14 @@ from pathlib import Path
 
 from PIL import Image
 
-PACK = Path(__file__).resolve().parent.parent / "public" / "assets" / "sky-island-v1"
-OUT = PACK / "web"
+ROOT = Path(__file__).resolve().parent.parent
+PACK = ROOT / "assets" / "artwork" / "sky-island-v1"
+OUT = ROOT / "public" / "assets" / "sky-island-v1" / "web"
 SIZES = {"ui-": (64, 128), "item-": (256, 512)}
 
 
 def build():
-    OUT.mkdir(exist_ok=True)
+    OUT.mkdir(parents=True, exist_ok=True)
     written = []
     for src in sorted(PACK.glob("*.png")):
         sizes = next((s for prefix, s in SIZES.items() if src.name.startswith(prefix)), None)

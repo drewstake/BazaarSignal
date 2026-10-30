@@ -72,5 +72,5 @@ try {
 const median = key => samples.map(s=>s[key]).sort((a,b)=>a-b)[3];
 const result = {mode:'Loopback built frontend; 4x CPU; seven fresh Chromium contexts; native HTTP cache; CSP blocks external connections; real public snapshot replay',
   medians:Object.fromEntries(['coldLandingMs','itemReadyMs','navigationMs','reloadMs'].map(k=>[k,median(k)])),samples};
-writeFileSync(`docs/measurements/app-audit-2026-10-29/native-cache-profile.json`,JSON.stringify(result,null,2));
+writeFileSync(`${output}/native-cache-profile.json`,JSON.stringify(result,null,2));
 console.log(JSON.stringify({medians:result.medians,example:samples[3]},null,2));
