@@ -17,7 +17,6 @@ jobs:
       LOCAL_SHARED_MARKET: 'false'
       LOCAL_CLOUD_HISTORY: 'false'
       LOCAL_DAILY_HISTORY: 'false'
-      VITE_MARKET_UPDATES_PAUSED: 'true'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -31,8 +30,12 @@ jobs:
             market-functions/package-lock.json
       - run: npm ci
       - run: npm ci --prefix market-functions
-      - run: npm test
+      # File-backed rollout/rollback fixtures need headroom on shared runners.
+      - run: npm test -- --testTimeout=30000
       - run: npm run build
+        env:
+          # Build paused output without overriding tests' active-polling fixtures.
+          VITE_MARKET_UPDATES_PAUSED: 'true'
       - run: npm run build:collector
       - run: npm run build:market-functions
       - run: node scripts/check-repo.mjs

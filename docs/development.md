@@ -52,7 +52,7 @@ Records import from `.local/local-workspace-data` and export on orderly shutdown
 
 Run emulator suites sequentially: they share 9098/8081. They can coexist with signed-in development on 5173/8080. Browser suites use separate Vite ports and synthetic or intercepted data. `npm test` is not a claim that emulator, browser or production delivery checks ran.
 
-The [CI workflow](../.github/workflows/ci.yml) installs both package trees, runs `npm test`, all three main builds and repository checks. It uses no Firebase/Google secrets and does not deploy, collect market data or send email. Emulator and browser suites remain additional local checks.
+The [CI workflow](../.github/workflows/ci.yml) installs both package trees, runs `npm test` with a 30-second per-test timeout for file-backed recovery fixtures on shared runners, all three main builds and repository checks. Its frontend pause flag applies only to the build so active-polling fixtures retain their own configuration. It uses no Firebase/Google secrets and does not deploy, collect market data or send email. Emulator and browser suites remain additional local checks.
 
 ## Generated output and assets
 
