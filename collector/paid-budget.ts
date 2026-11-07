@@ -12,6 +12,7 @@ import { errorDiagnostic, isTransientFirestoreFailure, type DiagnosticReporter }
 import { LedgerWriteQueue } from './ledger-write-queue';
 import { historyDay, validHistoryItem } from '../shared/daily-price-history';
 import { PAID_PILOT_INTERVAL } from '../shared/paid-pilot';
+import { CONTINUOUS_LEDGER_KEY, CONTINUOUS_MARKET_ID } from '../shared/continuous-market';
 import { PAID_BUDGET_KEY, PAID_ADMISSION_LIMIT, paidReceiptKey, type PaidReceipt } from './paid-ledger-storage';
 export { PAID_BUDGET_KEY } from './paid-ledger-storage';
 
@@ -26,6 +27,7 @@ export const paidRates: Counters = {
   logBytes: .5 / 1024 ** 3, storageClassA: .005 / 1000, storageClassB: .0004 / 1000,
 };
 export interface PaidBudget {
+  budgetPolicy?: 'uncapped';
   version: 1 | 2; id: string; startsAt: number; expiresAt: number;
   limitUsd: number; stopUsd: number; reservedUsd: number;
   reserved: Counters; observed: Counters; legacyLedgerSha256: string;
@@ -74,22 +76,32 @@ export function validatePaid(s: PaidBudget | null, now: number, billingNow = now
       s.admissionCount < Object.keys(s.admissions).length || s.admissionCount > PAID_ADMISSION_LIMIT)) ||
     s.stoppedAt !== undefined) throw new TrialStopped(s?.reason ?? 'Paid budget is missing, stopped or expired');
 }
+export function validateContinuous(s: PaidBudget | null, now: number) {
+  if (!s || s.version !== 2 || s.budgetPolicy !== 'uncapped' || s.id !== CONTINUOUS_MARKET_ID ||
+      !Number.isFinite(s.startsAt) || s.startsAt > now || s.expiresAt !== 0 ||
+      s.limitUsd !== 0 || s.stopUsd !== 0 || s.billing !== undefined ||
+      !Number.isFinite(s.reservedUsd) || s.reservedUsd < 0 ||
+      !/^[a-f0-9]{64}$/.test(s.legacyLedgerSha256) || !s.reserved || !s.observed || !s.admissions ||
+      !Number.isSafeInteger(s.admissionCount) || s.admissionCount! < Object.keys(s.admissions).length ||
+      s.stoppedAt !== undefined) throw new TrialStopped(s?.reason ?? 'Continuous market configuration is missing or stopped');
+}
 export class PaidLedger {
   constructor(private store: CacheStore, private clock = Date.now, private report?: DiagnosticReporter,
-    private writes?: LedgerWriteQueue) {}
+    private writes?: LedgerWriteQueue, private continuous = false) {}
+  private get key() { return this.continuous ? CONTINUOUS_LEDGER_KEY : PAID_BUDGET_KEY; }
   private async change<T>(fn: (s: PaidBudget, now: number,
     publish: (payload: { key: string; value: string }) => void) => T | Promise<T>, terminal = false) {
     for (let attempt = 0; attempt < 4; attempt++) {
       const work = async () => {
-      const raw = await this.store.read(PAID_BUDGET_KEY);
+      const raw = await this.store.read(this.key);
       const s: PaidBudget | null = raw ? JSON.parse(raw) : null;
       const now = this.store.time ? await this.store.time() : this.clock();
-      if (!terminal) validatePaid(s, now, this.clock());
+      if (!terminal) this.continuous ? validateContinuous(s, now) : validatePaid(s, now, this.clock());
       if (!s) throw new TrialStopped('Paid budget missing');
       let payload: { key: string; value: string } | undefined;
       const result = await fn(s, now, value => { payload = value; });
       const next = JSON.stringify(s);
-      const done = (!payload && raw === next) || await this.store.commit(PAID_BUDGET_KEY, raw, next, payload);
+      const done = (!payload && raw === next) || await this.store.commit(this.key, raw, next, payload);
       return { done, result };
       };
       const outcome = await (this.writes ? this.writes.run(work) : work());
@@ -99,7 +111,7 @@ export class PaidLedger {
   }
   private reserve(s: PaidBudget, costs: Counters) {
     const usd = paidCost(costs);
-    if (!s.billing?.latest && s.reservedUsd + usd > s.stopUsd) throw new TrialStopped('Paid budget reservation stop reached ($4.50 of $5)');
+    if (!this.continuous && !s.billing?.latest && s.reservedUsd + usd > s.stopUsd) throw new TrialStopped('Paid budget reservation stop reached ($4.50 of $5)');
     s.reservedUsd += usd;
     for (const [k,n] of Object.entries(costs)) s.reserved[k] = (s.reserved[k] ?? 0) + n;
   }
@@ -112,7 +124,7 @@ export class PaidLedger {
       if (kind === 'collector' && s.lastCollectorAt !== undefined && Math.floor(now / PAID_INTERVAL_MS) <= Math.floor(s.lastCollectorAt / PAID_INTERVAL_MS)) return null;
       // Keep deduplication for this entire fixed trial. No ambiguous holds are refunded.
       const count = s.admissionCount ?? Object.keys(s.admissions).length;
-      if (count >= PAID_ADMISSION_LIMIT) throw new TrialStopped('Paid request limit reached');
+      if (!this.continuous && count >= PAID_ADMISSION_LIMIT) throw new TrialStopped('Paid request limit reached');
       const envelope = paidEnvelope(kind);
       // Ledger + receipt publish atomically at admission and finish. Retain room
       // for four CAS attempts and the adapter's two explicit resource retries.
@@ -122,7 +134,7 @@ export class PaidLedger {
       s.version = 2;
       publish({ key, value: JSON.stringify({ version: 1, budget: s.id, invocation: id, at: now } satisfies PaidReceipt) });
       if (kind === 'collector') s.lastCollectorAt = now;
-      return new TrialSession(this, s.id, id, Math.min(s.expiresAt,now + (kind !== 'browser' ? 80000 : 14000), deadline), envelope, this.clock, now - this.clock(), 'normal');
+      return new TrialSession(this, s.id, id, Math.min(this.continuous ? Infinity : s.expiresAt,now + (kind !== 'browser' ? 80000 : 14000), deadline), envelope, this.clock, now - this.clock(), 'normal');
     });
   }
   async add(id: string, costs: Counters) {
@@ -151,6 +163,7 @@ export class PaidLedger {
     await this.change((s,now) => { s.stoppedAt ??= now; s.reason ??= reason; }, true);
   }
   async refreshBilling(feed: (billing: PaidBilling, save: (costs: GoogleSpend[]) => Promise<void>, now: number) => Promise<void>) {
+    if (this.continuous) return;
     const raw = await this.store.read(PAID_BUDGET_KEY);
     const s: PaidBudget | null = raw ? JSON.parse(raw) : null;
     if (!s?.billing || s.stoppedAt !== undefined) return;
@@ -195,6 +208,7 @@ export class PaidLedger {
 }
 
 export function createPaidRuntime(config: {
+  continuous?: boolean;
   expiresAt: number; store: (session?: TrialSession) => CacheStore;
   shutdown: () => Promise<void>; network?: typeof fetch; now?: () => number;
   report?: (data: Record<string, unknown>) => void;
@@ -209,10 +223,10 @@ export function createPaidRuntime(config: {
   const writes = config.ledgerWriteIntervalMs ? new LedgerWriteQueue(config.ledgerWriteIntervalMs) : undefined;
   async function run(kind: 'collector' | 'browser' | 'history', id: string, work: (session: TrialSession, collector: MarketCollector) => Promise<void>) {
     const deadline = now() + (kind !== 'browser' ? 80000 : 14000);
-    const raw = config.store(), ledger = new PaidLedger(raw, now, config.report, writes);
+    const raw = config.store(), ledger = new PaidLedger(raw, now, config.report, writes, config.continuous);
     let session: TrialSession | null = null;
     try {
-      if (!Number.isFinite(config.expiresAt) || now() >= config.expiresAt) throw new TrialStopped('Paid release expired');
+      if (!config.continuous && (!Number.isFinite(config.expiresAt) || now() >= config.expiresAt)) throw new TrialStopped('Paid release expired');
       if (kind !== 'browser' && config.billingFeed) await ledger.refreshBilling(config.billingFeed);
       session = await ledger.admit(kind, id, deadline);
       if (!session) return;
@@ -321,7 +335,7 @@ export function createPaidRuntime(config: {
             reply = () => { res.writeHead(req.method === 'OPTIONS' ? 204 : 200).end(req.method === 'OPTIONS' ? '' : '{"accepted":true}'); }; return;
           }
           await marketHandler(collector,async (request,response,status,body) => {
-            const text = body === undefined ? '' : JSON.stringify({...body as object,usage:{mode:'normal',pollMs:PAID_INTERVAL_MS,bazaarMs:PAID_INTERVAL_MS,trialId:'paid-202610',expiresAt:config.expiresAt}});
+            const text = body === undefined ? '' : JSON.stringify({...body as object,usage:{mode:'normal',pollMs:PAID_INTERVAL_MS,bazaarMs:PAID_INTERVAL_MS,...identity()}});
             if (Buffer.byteLength(text) > 8 * 1024 ** 2) throw new TrialStopped('Paid response exceeds bound');
             const compressed = text && /\bgzip\b/.test(String(request.headers['accept-encoding'] ?? ''));
             const bytes = compressed ? gzipSync(text) : Buffer.from(text);
@@ -346,10 +360,13 @@ export function createPaidRuntime(config: {
             const message = 'Price service is temporarily busy. Saved prices remain available; retry after one minute.';
             res.setHeader('Retry-After','60');
             res.writeHead(503).end(JSON.stringify({error:message,usage:{mode:'slow',pollMs:PAID_INTERVAL_MS,
-              retryAt:Math.min(now()+60_000,config.expiresAt),reason:message,trialId:'paid-202610',expiresAt:config.expiresAt}}));
-          } else res.writeHead(503).end(JSON.stringify({error:'Price updates stopped for the monthly budget or a collection error.',usage:{mode:'paused',pollMs:0}}));
+              retryAt:config.continuous ? now()+60_000 : Math.min(now()+60_000,config.expiresAt),reason:message,...identity()}}));
+          } else res.writeHead(503).end(JSON.stringify({error:config.continuous ? 'Price updates stopped because the market service needs attention.' : 'Price updates stopped for the monthly budget or a collection error.',usage:{mode:'paused',pollMs:0}}));
         }
       }
     },
   };
+  function identity() {
+    return config.continuous ? { trialId: CONTINUOUS_MARKET_ID } : { trialId: 'paid-202610', expiresAt: config.expiresAt };
+  }
 }

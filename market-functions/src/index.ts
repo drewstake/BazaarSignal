@@ -13,6 +13,7 @@ import { readPortfolioDemand } from '../../collector/portfolio-demand';
 import { PORTFOLIO_COLLECTION_ENABLED } from '../../shared/companion/portfolio-policy';
 import { MARKET_COLLECTION_SCHEDULE } from '../../shared/market-schedule';
 import { PAID_COLLECTION_SCHEDULE } from '../../shared/paid-pilot';
+import { continuousMarket } from '../../shared/continuous-market';
 import type { Holding } from '../../shared/companion/portfolio';
 import type { TrialSession } from '../../collector/trial';
 import { pausedMarketResponse } from '../../collector/paused-response';
@@ -35,8 +36,10 @@ const ownerUsage = usageHandler({
   dashboard: cachedDashboard(usageStore, () => measureDashboard({ store: usageStore, token })),
 });
 const live = process.env.MARKET_OPERATING_MODE === "free-tier";
-const paid = process.env.MARKET_OPERATING_MODE === 'paid-budget';
+const continuous = continuousMarket(process.env.MARKET_OPERATING_MODE);
+const paid = continuous || process.env.MARKET_OPERATING_MODE === 'paid-budget';
 const paidRuntime = createPaidRuntime({
+  continuous,
   ledgerWriteIntervalMs: 1000,
   billingFeed: googleBillingFeed(token),
   expiresAt: Date.parse(process.env.MARKET_LIVE_END ?? ''),
@@ -45,7 +48,7 @@ const paidRuntime = createPaidRuntime({
   shutdown: () => stopTrialInfrastructure({project,token,additionalJobs:[HISTORY_JOB]}),
   history: {
     capture: session => new CloudPriceHistory({project,token},session).capture(Date.now,session.network()),
-    item: (session,item) => new CloudPriceHistory({project,token},session).item(item,Date.now(),Date.parse(process.env.MARKET_LIVE_END ?? '')),
+    item: (session,item) => new CloudPriceHistory({project,token},session).item(item,Date.now(),continuous ? null : Date.parse(process.env.MARKET_LIVE_END ?? '')),
   },
   report: data => console.info(JSON.stringify(data)),
 });

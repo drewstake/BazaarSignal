@@ -18,7 +18,7 @@ Auction House support is retired. New Auction House holdings, collection, valuat
 
 ## Stack and architecture
 
-React 19 and TypeScript run in a Vite frontend on Firebase Hosting. Firebase Auth and Firestore protect private records. Google Apps Script handles authenticated notification configuration and MailApp delivery. A separate Node market API/collector serves shared cached Bazaar data and archived daily prices, with durable budget and expiration controls. Local adapters use Firestore emulation and SQLite; Vitest and Playwright cover isolated behavior. See [architecture](docs/architecture.md).
+React 19 and TypeScript run in a Vite frontend on Firebase Hosting. Firebase Auth and Firestore protect private records. Google Apps Script handles authenticated notification configuration and MailApp delivery. A separate Node market API/collector serves shared cached Bazaar data and archived daily prices. The [continuous production service](docs/operations/continuous-market.md) has no budget cutoff or expiration; request limits and manual/error shutdown remain. Historical pilot modes preserve their original controls. Local adapters use Firestore emulation and SQLite; Vitest and Playwright cover isolated behavior. See [architecture](docs/architecture.md).
 
 ## Develop locally
 

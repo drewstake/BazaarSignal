@@ -48,7 +48,7 @@ if (sha(await readFile(join(cwd, 'lib', 'index.cjs'))) !== receipt.sourceSha256 
   throw new Error('Extracted code or dependency lock differs from the measured build');
 const guard = join(extraction, 'deny-network.cjs');
 await writeFile(guard, "const deny=()=>{throw new Error('Outbound network forbidden during image smoke test')}; require('node:net').Socket.prototype.connect=deny; globalThis.fetch=deny;\n");
-for (const [target, mode] of [['marketApi','free-tier'], ['refreshMarket','free-tier'], ['refreshMarket','measurement'], ['marketApi','paid-budget'], ['refreshMarket','paid-budget']]) {
+for (const [target, mode] of [['marketApi','free-tier'], ['refreshMarket','free-tier'], ['refreshMarket','measurement'], ['marketApi','paid-budget'], ['refreshMarket','paid-budget'], ['marketApi','continuous'], ['refreshMarket','continuous']]) {
   await new Promise((done, fail) => {
     const child = spawn(process.execPath, ['--require', guard, 'node_modules/@google-cloud/functions-framework/build/src/main.js'], {
       cwd, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'],
@@ -78,6 +78,6 @@ for (const [target, mode] of [['marketApi','free-tier'], ['refreshMarket','free-
 receipt.localRuntimeSmokeVerified = true;
 receipt.localRuntimeSmokePlatform = `${process.platform}/${process.arch} Node ${process.version}`;
 receipt.localRuntimeSmokeVerifiedAt = new Date().toISOString();
-receipt.localRuntimeSmoke = { handlers: ['marketApi', 'refreshMarket'], operatingModes: ['free-tier','measurement','paid-budget'], outboundConnections: 'blocked', handlerRequests: 0 };
+receipt.localRuntimeSmoke = { handlers: ['marketApi', 'refreshMarket'], operatingModes: ['free-tier','measurement','paid-budget','continuous'], outboundConnections: 'blocked', handlerRequests: 0 };
 await writeFile(receiptPath, JSON.stringify(receipt, null, 2));
 console.log(JSON.stringify(receipt, null, 2));

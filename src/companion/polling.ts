@@ -1,18 +1,21 @@
 import { PORTFOLIO_COLLECTION_ENABLED } from '../../shared/companion/portfolio-policy';
 import { MARKET_REFRESH_MS, nextMarketRead } from '../../shared/market-schedule';
 import { paidPilotActive, PAID_PILOT_INTERVAL } from '../../shared/paid-pilot';
+import { continuousMarket, CONTINUOUS_MARKET_ID } from '../../shared/continuous-market';
 export const PAUSED_MESSAGE = "Updates paused to protect the free allowance";
 export type PollDirective = { mode: "normal" | "warning" | "slow" | "paused"; pollMs: number; bazaarMs?: number; auctionMs?: number; retryAt?: number; reason?: string; expiresAt?: number; serverNow?: number; trialId?: string };
 const configuredEnd = Date.parse(import.meta.env.VITE_MARKET_TRIAL_END ?? "");
 const configuredTrialId = import.meta.env.VITE_MARKET_TRIAL_ID;
-const paidMode = paidPilotActive(import.meta.env.VITE_MARKET_OPERATING_MODE);
+const continuous = continuousMarket(import.meta.env.VITE_MARKET_OPERATING_MODE);
+const paidMode = continuous || paidPilotActive(import.meta.env.VITE_MARKET_OPERATING_MODE);
 const liveMode = paidMode || import.meta.env.VITE_MARKET_OPERATING_MODE === "free-tier";
 const maximumWindow = liveMode ? 32 * 86400_000 : 15 * 60_000;
 const boundedTrial = /^[a-zA-Z0-9_-]{1,100}$/.test(configuredTrialId ?? '') && Number.isFinite(configuredEnd) && configuredEnd > Date.now() && configuredEnd - Date.now() <= maximumWindow;
 export const configuredPause = (!PORTFOLIO_COLLECTION_ENABLED && !paidMode) || import.meta.env.VITE_MARKET_UPDATES_PAUSED === "true" ||
-  (!import.meta.env.DEV && (import.meta.env.VITE_MARKET_UPDATES_PAUSED !== "false" || !boundedTrial));
+  (!import.meta.env.DEV && (import.meta.env.VITE_MARKET_UPDATES_PAUSED !== "false" ||
+    !(continuous ? configuredTrialId === CONTINUOUS_MARKET_ID && !import.meta.env.VITE_MARKET_TRIAL_END : boundedTrial)));
 let directive: PollDirective = { mode: configuredPause ? "paused" : "normal", pollMs: paidMode ? PAID_PILOT_INTERVAL : liveMode ? MARKET_REFRESH_MS : 20_000,
-  ...(boundedTrial ? { expiresAt: configuredEnd, trialId: configuredTrialId } : {}) };
+  ...(continuous ? { trialId: CONTINUOUS_MARKET_ID } : boundedTrial ? { expiresAt: configuredEnd, trialId: configuredTrialId } : {}) };
 let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
 function expire() {
   if (directive.expiresAt !== undefined && Date.now() >= directive.expiresAt)
@@ -34,8 +37,10 @@ export function applyPollingDirective(next: PollDirective) {
   if (directive.mode === "paused") return;
   const valid = next && ["normal", "warning", "slow", "paused"].includes(next.mode) && Number.isFinite(next.pollMs) && next.pollMs >= 0 &&
     (next.retryAt===undefined||(Number.isFinite(next.retryAt)&&next.retryAt>=0&&next.retryAt<=(next.expiresAt??Infinity)))&&
-    (next.mode === "paused" || ((!configuredTrialId || next.trialId === configuredTrialId) && (next.expiresAt === undefined ? !import.meta.env.PROD :
-      Number.isFinite(next.expiresAt) && next.expiresAt > Date.now() && next.expiresAt - Date.now() <= maximumWindow)));
+    (next.mode === "paused" || ((!configuredTrialId || next.trialId === configuredTrialId) && (continuous
+      ? next.trialId === CONTINUOUS_MARKET_ID && next.expiresAt === undefined
+      : next.expiresAt === undefined ? !import.meta.env.PROD :
+        Number.isFinite(next.expiresAt) && next.expiresAt > Date.now() && next.expiresAt - Date.now() <= maximumWindow)));
   const value: PollDirective = valid
     ? { ...next, pollMs: next.mode === "paused" ? 0 : Math.max(liveMode ? MARKET_REFRESH_MS : next.mode === "slow" ? 60_000 : 20_000, next.pollMs) }
     : { mode: "paused", pollMs: 0, reason: "Usage policy is inconsistent" };

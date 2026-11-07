@@ -346,7 +346,7 @@ export class CloudPriceHistory {
     ]);
     return lastSuccess;
   }
-  async item(item: string, now = Date.now(), expiresAt: number) {
+  async item(item: string, now = Date.now(), expiresAt: number | null) {
     if (!validHistoryItem(item)) throw Error("Invalid history item");
     const meta = (await this.read(["meta"])).get("meta")
       ?.value as HistoryMeta | null;
@@ -374,11 +374,11 @@ export class CloudPriceHistory {
       timezone: "EST",
       points,
       collector: {
-        enabled: now < expiresAt,
+        enabled: expiresAt === null || now < expiresAt,
         location: "cloud",
         expiresAt,
         lastSuccess: meta.lastSuccess,
-        lastError: meta.lastError ?? (now < expiresAt && meta.lastSuccess &&
+        lastError: meta.lastError ?? ((expiresAt === null || now < expiresAt) && meta.lastSuccess &&
           historyDay(meta.lastSuccess.at) < historyDay(now) - 1 &&
           now - (historyDay(now) * 86_400_000 + 5 * 3_600_000) >= 300_000
           ? { at: now, message: 'Daily closing prices are overdue. Retained prices may be incomplete.' } : null),

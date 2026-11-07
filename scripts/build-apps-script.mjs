@@ -10,4 +10,5 @@ const { appendFile } = await import('node:fs/promises');
 await appendFile('apps-script/build/Entrypoints.js', 'function configureFreeTierMarket() { return BazaarBackend.configureFreeTierMarket(); }\n');
 await appendFile('apps-script/build/Entrypoints.js', 'function scheduledMinuteTick() { return BazaarBackend.scheduledMinuteTick(); }\nfunction installAlignedTrigger() { return BazaarBackend.installAlignedTrigger(); }\n');
 await appendFile('apps-script/build/Entrypoints.js', 'function scheduledPaidMinuteTick() { return BazaarBackend.scheduledPaidMinuteTick(); }\nfunction configurePaidPilot() { return BazaarBackend.configurePaidPilot(); }\n');
+await appendFile('apps-script/build/Entrypoints.js', 'function configureContinuousMarket() { return BazaarBackend.configureContinuousMarket(); }\n');
 

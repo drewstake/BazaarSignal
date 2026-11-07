@@ -14,6 +14,8 @@ The checked-in paid-pilot deadline is **2026-11-01 07:00 UTC** in `shared/paid-p
 
 ## Useful boundaries
 
+The owner authorized removal of the app budget and production deployment on November 7. The [continuous service](continuous-market.md) is deployed with no monetary stop or calendar expiry. The original October ledgers remain unchanged as history.
+
 | Area | Entry points / guidance |
 | --- | --- |
 | Local private-data backup | `npm run backup:local`; [development](../development.md) |

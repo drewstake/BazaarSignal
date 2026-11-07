@@ -13,6 +13,7 @@ import {
 import type { UsageDashboard } from "../../shared/usage-dashboard";
 import "./admin-dashboard.css";
 import { useVisibleNow } from './use-visible-now';
+import { continuousMarket } from '../../shared/continuous-market';
 
 const date = (at: number | null | undefined) =>
   at ? formatEstDateTime(at) : "Not available";
@@ -87,6 +88,10 @@ export default function AdminDashboard({ user }: { user: User }) {
     u = data?.users,
     t = data?.traffic;
   const status = data ? pilotStatus(data, now) : "Checking access";
+  const continuousReport = p?.budgetPolicy === 'uncapped';
+  const continuousRelease = continuousMarket(import.meta.env.VITE_MARKET_OPERATING_MODE);
+  const continuous = continuousReport || continuousRelease;
+  const historicalPilot = continuousRelease && p && !continuousReport;
   const actualSpend = p?.billing?.latest;
   const pauseAmount = actualSpend?.actualUsd ?? p?.reservedUsd;
   const measured = (at: number | null | undefined) => (
@@ -105,7 +110,7 @@ export default function AdminDashboard({ user }: { user: User }) {
             <ShieldCheck size={14} /> OWNER WORKSPACE
           </div>
           <h1 id="admin-title">Admin</h1>
-          <p>Operations, budget, and audience.</p>
+          <p>Operations, billing, and audience.</p>
         </div>
         <span className="admin-measured">Updates daily · {updateTime}</span>
       </div>
@@ -126,16 +131,21 @@ export default function AdminDashboard({ user }: { user: User }) {
             scheduled update {date(data.nextRefreshAt)}. Opening this page does
             not collect new measurements.
           </p>
+          {historicalPilot && <p>
+            The current release has no automatic budget cutoff or expiration.
+            The October measurements below are historical; the daily report has
+            not yet recorded the restored service.
+          </p>}
           <section className="admin-status" aria-labelledby="pilot-title">
             <div className="admin-status-title">
               <Activity size={22} />
               <div>
                 <span id="pilot-title">
-                  October paid pilot · Status at measurement
+                  {historicalPilot ? 'October paid pilot · Historical snapshot' : `${continuousReport ? 'Market service' : 'October paid pilot'} · Status at measurement`}
                 </span>
                 <strong
                   className={
-                    status === "Active paid pilot"
+                    (status === "Active paid pilot" || status === "Active")
                       ? "admin-positive"
                       : "admin-attention"
                   }
@@ -143,7 +153,7 @@ export default function AdminDashboard({ user }: { user: User }) {
                   {status}
                 </strong>
               </div>
-              <span className="admin-pill">Hourly checks</span>
+              <span className="admin-pill">15-minute checks</span>
             </div>
             <div className="admin-status-grid">
               <div>
@@ -162,15 +172,15 @@ export default function AdminDashboard({ user }: { user: User }) {
                 </small>
               </div>
               <div>
-                <span>Verified pilot expiration</span>
+                <span>{continuousReport ? "Service expiration" : "Verified pilot expiration"}</span>
                 <b>
                   {p && s?.expiresAt === p.expiresAt
-                    ? date(p.expiresAt)
+                    ? continuousReport ? "None" : date(p.expiresAt)
                     : "Not verified"}
                 </b>
                 <small>
                   {p && s?.expiresAt === p.expiresAt
-                    ? "No auto-renewal"
+                    ? continuousReport ? "Runs until stopped by the owner or a service error" : "No auto-renewal"
                     : "Ledger and deployed service dates must agree"}
                 </small>
               </div>
@@ -208,38 +218,35 @@ export default function AdminDashboard({ user }: { user: User }) {
             </details>
           </section>
           <div className="admin-section-heading">
-            <h2>Google billing &amp; app safety limits</h2>
-            <span>USD · October pilot</span>
+            <h2>Google billing</h2>
+            <span>{historicalPilot ? "USD · Last saved October reading" : continuous ? "USD · Continuous service" : "USD · October pilot"}</span>
           </div>
           <div className="admin-cards">
             <article>
-              <span>Actual Google charges</span>
+              <span>{historicalPilot ? 'Historical Google charges' : 'Actual Google charges'}</span>
               <strong>{money(data.billing.actualUsd)}</strong>
-              <p>{!p?.billing && data.billing.actualUsd == null
+              <p>{!continuous && !p?.billing && data.billing.actualUsd == null
                 ? 'No Google spending reading in this saved report. Updated billing details appear with the next daily snapshot.'
                 : data.billing.reason}</p>
               <p>
-                Google Billing reports costs minus savings and credits. The app
-                safety reserve below does not measure money spent.
+                Google Billing reports costs minus savings and credits. Internal
+                usage estimates do not measure money spent.
               </p>
               {data.billing.measuredAt != null && measured(data.billing.measuredAt)}
-              {actualSpend && (
+              {!continuous && actualSpend && (
                 <p>
                   Spending pause: {money(p?.stopUsd)} in reported net cost.
                   Billing delays can allow charges beyond this threshold.
                   {now - actualSpend.publishedAt > 86400000 && ' Billing update overdue; last reported cost retained.'}
                 </p>
               )}
-              <a href={data.billing.sourceUrl} target="_blank" rel="noreferrer">
+              <a href={continuous ? 'https://console.cloud.google.com/billing/012803-EA91BE-8DCD32/reports;projects=1081657730748?project=bazaarsignal-510305' : data.billing.sourceUrl} target="_blank" rel="noreferrer">
                 Open Google Billing <ArrowUpRight size={13} />
               </a>
               <details>
                 <summary>About Google spending updates</summary>
                 <p>
-                  The collector checks Google billing notifications every 15 minutes. Google
-                  publishes net cost updates several times a day, after credits.
-                  This dashboard shows the saved daily reading and its original
-                  publication time. An unavailable reading is never treated as $0.
+                  {continuous ? 'Open Google Billing for current charges. The retired October billing feed is retained as history and does not control this service.' : 'The collector checks Google billing notifications every 15 minutes. This dashboard shows the saved daily reading and its original publication time.'} Google costs can be delayed. An unavailable reading is never treated as $0.
                 </p>
                 <a
                   href="https://docs.cloud.google.com/billing/docs/how-to/budgets-programmatic-notifications"
@@ -250,6 +257,14 @@ export default function AdminDashboard({ user }: { user: User }) {
                 </a>
               </details>
             </article>
+            {continuous ? (
+              <article>
+                <span>Automatic budget stop</span>
+                <strong>Disabled</strong>
+                <p>Market collection and notification checks run every 15 minutes with no monthly spending cutoff or calendar expiration.</p>
+                <p>Request limits, freshness checks, email quotas, and manual shutdown remain active.</p>
+              </article>
+            ) : <>
             <article>
               <span>App safety reserve</span>
               <strong>{money(p?.reservedUsd)}</strong>
@@ -325,6 +340,7 @@ export default function AdminDashboard({ user }: { user: User }) {
               </p>
               {measured(actualSpend?.publishedAt ?? p?.measuredAt)}
             </article>
+            </>}
           </div>
           <div className="admin-section-heading">
             <h2>Users &amp; sign-ups</h2>

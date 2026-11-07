@@ -175,7 +175,7 @@ export async function cachedMarketRequest<T>(url: string, signal?: AbortSignal):
       if (old) return deliver({ ...old.body, status: { ...old.body.status, usage: policy } });
       if (!localPreview) throw new Error(`${PAUSED_MESSAGE}. No saved data is available for this view.`);
     }
-    const budgeted = ['free-tier','paid-budget'].includes(import.meta.env.VITE_MARKET_OPERATING_MODE ?? '');
+    const budgeted = ['free-tier','paid-budget','continuous'].includes(import.meta.env.VITE_MARKET_OPERATING_MODE ?? '');
     const sameRelease = !budgeted || !policy.trialId ||
       (old?.body?.usage ?? old?.body?.status?.usage)?.trialId === policy.trialId;
     const sameSlot = budgeted

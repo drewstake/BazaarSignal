@@ -7,7 +7,9 @@ import type { UserRecord } from './store';
 import { sharedMarket } from './companion';
 import { PORTFOLIO_EVALUATION_ENABLED } from '../shared/companion/portfolio-policy';
 import { BACKGROUND_JOBS_ENABLED, EMAIL_DELIVERY_ENABLED } from '../shared/automation-policy';
-import { paidPilotActive, paidPilotAlertWindow, PAID_PILOT_INTERVAL } from '../shared/paid-pilot';
+import { paidPilotAlertWindow, PAID_PILOT_INTERVAL } from '../shared/paid-pilot';
+import { CONTINUOUS_MARKET_ID } from '../shared/continuous-market';
+import { marketServiceActive } from '../shared/market-mode';
 import { MARKET_HOUR, MARKET_REFRESH_MS, marketAlertWindow } from '../shared/market-schedule';
 import { portfolioNotificationRequest, runPortfolioNotifications } from './portfolio-backend';
 import { readOwnerUsageReport } from './usage-report';
@@ -228,7 +230,7 @@ export function scheduledPaidMinuteTick() {
   }
   if (!paidPilotAlertWindow(Date.now())) return {ok:true,skipped:true};
   const properties=props();
-  if (!paidPilotActive(properties.getProperty('MARKET_OPERATING_MODE')) || properties.getProperty('MARKET_UPDATES_PAUSED')!=='false') return {ok:true,paused:true};
+  if (!marketServiceActive(properties.getProperty('MARKET_OPERATING_MODE')) || properties.getProperty('MARKET_UPDATES_PAUSED')!=='false') return {ok:true,paused:true};
   try {
     settings();
     return locked(()=>{
@@ -260,7 +262,7 @@ export function scheduledPaidMinuteTick() {
 /** Explicit editor action after the paid API is verified; never sends mail. */
 export function configurePaidPilot() {
   settings();
-  if(!paidPilotActive('paid-budget'))throw new Error('Paid pilot expired');
+  if(!marketServiceActive('paid-budget'))throw new Error('Paid pilot expired');
   const properties=props();
   properties.setProperties({MARKET_OPERATING_MODE:'paid-budget',MARKET_UPDATES_PAUSED:'false',
     MARKET_TRIAL_START:properties.getProperty('PAID_PILOT_START')||new Date().toISOString(),
@@ -271,6 +273,22 @@ export function configurePaidPilot() {
     ScriptApp.newTrigger('scheduledPaidMinuteTick').timeBased().everyMinutes(1).create();
   for(const t of triggers.filter((t:any)=>['scheduledPoll','scheduledMinuteTick'].includes(t.getHandlerFunction())))ScriptApp.deleteTrigger(t);
   return {configured:true,checks:'Every 15 minutes at :02, :17, :32 and :47',expiresAt:'2026-11-01T07:00:00.000Z',sender:SENDER};
+}
+/** Owner editor action after the continuous API is deployed. Sends no email. */
+export function configureContinuousMarket() {
+  settings();
+  const properties=props();
+  const origin=(properties.getProperty('MARKET_API_URL') || 'https://marketapi-k5a64sgi2q-uc.a.run.app').replace(/\/$/, '');
+  const status=fetchJson(`${origin}/api/companion/status`);
+  const usage=status.usage ?? status.status?.usage;
+  if(usage?.trialId!==CONTINUOUS_MARKET_ID || usage.mode!=='normal' || usage.expiresAt!==undefined)
+    throw new Error('Verify the continuous market API before enabling the notification worker.');
+  const triggers=ScriptApp.getProjectTriggers();
+  if(!triggers.some((t:any)=>t.getHandlerFunction()==='scheduledPaidMinuteTick'))
+    ScriptApp.newTrigger('scheduledPaidMinuteTick').timeBased().everyMinutes(1).create();
+  properties.setProperties({MARKET_OPERATING_MODE:'continuous',MARKET_UPDATES_PAUSED:'false',
+    MARKET_TRIAL_START:new Date().toISOString(),MARKET_TRIAL_END:''});
+  return {configured:true,checks:'Every 15 minutes at :02, :17, :32 and :47',expiresAt:null,budgetUsd:null,sender:SENDER};
 }
 export function installTrigger() {
   if(!BACKGROUND_JOBS_ENABLED)throw new Error('Background services remain paused');
