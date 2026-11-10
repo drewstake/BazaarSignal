@@ -4,6 +4,10 @@ These are entry points for maintainers of the existing deployment, not fresh-pro
 
 ## Before a release or recovery
 
+The [November 10 reporting repair](resource-reporting.md#november-10-source-mismatch)
+found newer production code absent from this checkout. Reconcile the MacBook source
+before a full deployment so the November 7 continuous-operation release is preserved.
+
 1. Identify the intended change and obtain authorization for cloud writes, deployment, email or collection. Local tests/builds do not require those actions.
 2. Read the latest relevant [release/incident record](../history/README.md), then inspect current service revisions, saved Apps Script source and versioned web deployment, schedules, ledger format, budget reservations and expiry. Historical IDs and timestamps are evidence, not defaults to copy.
 3. Preserve private records, signing material, receipts, migration markers, retained usage and rollback artifacts. Never reset a ledger or extend a deadline to make an old procedure pass.

@@ -43,16 +43,21 @@ export default function AdminDashboard({ user }: { user: User }) {
     [historyError, setHistoryError] = useState("");
   const [historyBusy, setHistoryBusy] = useState(false);
   const controller = useRef<AbortController | null>(null);
+  const nextRead = useRef(0);
   const active = (signal?: AbortSignal) =>
     !signal?.aborted && auth?.currentUser === user;
   async function readSnapshot() {
     if (busy) return;
+    nextRead.current = Date.now() + 5 * 60000;
     const signal = controller.current?.signal;
     setBusy(true);
     setError("");
     try {
       const result = await loadAdminSnapshot(user);
-      if (active(signal)) setData(result);
+      if (active(signal)) {
+        setData(result);
+        nextRead.current = Math.max(nextRead.current, result.nextRefreshAt + 60000);
+      }
     } catch (e) {
       if (active(signal)) setError((e as Error).message);
     } finally {
@@ -68,8 +73,13 @@ export default function AdminDashboard({ user }: { user: User }) {
       controller.current?.abort();
     };
   }, [user]);
+  useEffect(() => {
+    if (now < nextRead.current || document.visibilityState === 'hidden') return;
+    void readSnapshot();
+    if (history) void readHistory();
+  }, [now]);
   async function readHistory() {
-    if (history || historyBusy) return;
+    if (historyBusy) return;
     setHistoryBusy(true);
     setHistoryError("");
     const signal = controller.current?.signal;
@@ -126,6 +136,7 @@ export default function AdminDashboard({ user }: { user: User }) {
             scheduled update {date(data.nextRefreshAt)}. Opening this page does
             not collect new measurements.
           </p>
+          {now >= data.nextRefreshAt + 60000 && <p role="status" className="admin-attention">Daily report overdue. The timestamps below show the last successful measurements.</p>}
           <section className="admin-status" aria-labelledby="pilot-title">
             <div className="admin-status-title">
               <Activity size={22} />
@@ -465,27 +476,27 @@ export default function AdminDashboard({ user }: { user: User }) {
               if (e.currentTarget.open) void readHistory();
             }}
           >
-            <summary>Historical free-tier report · October 2026</summary>
+            <summary>Resource usage · {history ? new Intl.DateTimeFormat('en-US', {month:'long',year:'numeric',timeZone:'America/Los_Angeles'}).format(history.generatedAt) : 'updates daily'}</summary>
             <p>
-              This archived report predates the paid pilot. Its allowance
-              percentages and paused status do not describe the current
-              operating budget.
+              Automatically measured daily. Monthly counters reset with the Pacific calendar;
+              daily counters and storage capacity use the periods shown below.
+              These measurements describe usage, not Google charges or spending limits.
             </p>
-            {historyBusy && <p role="status">Loading historical report…</p>}
+            {historyBusy && <p role="status">Loading resource report…</p>}
             {historyError && <p role="alert">{historyError} Close and reopen this section after one minute to retry.</p>}
             {history && (
               <>
                 <p>
-                  Report measured {date(history.generatedAt)}. Collection was{" "}
-                  {history.collection.state.toLowerCase()} as measured{" "}
-                  {date(history.collection.measuredAt)}.
+                  Report measured {date(history.generatedAt)}. Next scheduled update {date(history.nextMeasurementAt)}.
+                  {now >= history.nextMeasurementAt + 60000 && ' Update overdue; these are the last saved measurements.'}
                 </p>
                 <div className="admin-history-table">
                   <table>
                     <thead>
                       <tr>
                         <th>Resource</th>
-                        <th>Historical measurement</th>
+                        <th>Project / period</th>
+                        <th>Measurement</th>
                         <th>Measured at</th>
                       </tr>
                     </thead>
@@ -493,6 +504,7 @@ export default function AdminDashboard({ user }: { user: User }) {
                       {history.rows.map((row) => (
                         <tr key={row.id}>
                           <td>{row.resource}</td>
+                          <td>{row.project}<br />{row.periodLabel}</td>
                           <td>
                             {row.measured == null
                               ? "Unavailable"

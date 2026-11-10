@@ -48,8 +48,11 @@ export function loadAdminHistory(user: User, now = Date.now()) {
     .then((token) =>
       requestBackend<UsageDashboard>({ action: "admin-history" }, token),
     );
-  const entry = { until: Infinity, value };
+  const entry = { until: nextAdminRefresh(now) + 60000, value };
   histories.set(user, entry);
+  void value.then(report => {
+    entry.until = Math.min(entry.until, Math.max(now + 60000, report.nextMeasurementAt + 60000));
+  }).catch(() => {});
   // A transient failure must not poison this user's history for the whole
   // session. Reopening after the cooldown may retry; there is no background I/O.
   void value.catch(() => { entry.until = Date.now() + 60000; });

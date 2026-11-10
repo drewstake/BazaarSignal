@@ -170,7 +170,7 @@ it("an admission failure still consumes the daily attempt before any provider re
   expect(fetcher).not.toHaveBeenCalled();
   expect(commit).toHaveBeenCalledOnce();
 });
-it("the daily clock skips an already claimed report, stopped mode, and expired pilot", () => {
+it("the daily clock skips claimed reports but keeps reporting after collection stops or the pilot expires", () => {
   saved = fixture(now);
   expect(scheduledAdminDailyTick(now)).toEqual({ ok: true, skipped: true });
   expect(fetcher).not.toHaveBeenCalled();
@@ -178,12 +178,14 @@ it("the daily clock skips an already claimed report, stopped mode, and expired p
   properties.MARKET_OPERATING_MODE = "paused";
   expect(scheduledAdminDailyTick(now + ADMIN_CACHE_MS)).toEqual({
     ok: true,
-    paused: true,
+    checkedAt: now + ADMIN_CACHE_MS,
+    nextRefreshAt: nextAdminRefresh(now + ADMIN_CACHE_MS),
   });
   properties.MARKET_OPERATING_MODE = "paid-budget";
   expect(scheduledAdminDailyTick(Date.parse("2026-11-01T12:10:15Z"))).toEqual({
     ok: true,
-    paused: true,
+    checkedAt: Date.parse("2026-11-01T12:10:15Z"),
+    nextRefreshAt: Date.parse("2026-11-02T12:10:00Z"),
   });
 });
 it("aggregates real creation dates without retaining identities and rejects incomplete inventories", () => {

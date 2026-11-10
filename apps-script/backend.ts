@@ -13,6 +13,7 @@ import { portfolioNotificationRequest, runPortfolioNotifications } from './portf
 import { readOwnerUsageReport } from './usage-report';
 import { readOwnerAdmin, readAdminHistory, scheduledAdminDailyTick } from './admin-report';
 import { adminClockWindow } from '../shared/admin';
+import { scheduledResourceTick } from './resource-report';
 declare const PropertiesService:any, ScriptApp:any, Session:any, UrlFetchApp:any,
   Utilities:any, LockService:any, ContentService:any, CacheService:any, MailApp:any;
 const PROJECT='bazaarsignal', SENDER='bazaarsignal@gmail.com';
@@ -221,6 +222,8 @@ export function installAlignedTrigger() {
 }
 /** Dedicated paid-pilot clock; old paused triggers cannot activate this path. */
 export function scheduledPaidMinuteTick() {
+  // Reporting stays independent of market operation, spending, and expiration.
+  try { scheduledResourceTick(); } catch { /* Preserve the existing worker clock. */ }
   // Reuse the existing clock. This path is never exposed through doPost.
   if(adminClockWindow(Date.now())) {
     try { settings(); return scheduledAdminDailyTick(); }

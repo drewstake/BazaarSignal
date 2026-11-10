@@ -1,7 +1,9 @@
 import { afterEach, expect, it, vi } from "vitest";
-const { daily } = vi.hoisted(() => ({
+const { daily, resources } = vi.hoisted(() => ({
   daily: vi.fn(() => ({ ok: true, checkedAt: 123 })),
+  resources: vi.fn(),
 }));
+vi.mock('../apps-script/resource-report',()=>({scheduledResourceTick:resources,readResourceReport:vi.fn()}));
 vi.mock("../apps-script/admin-report", () => ({
   scheduledAdminDailyTick: daily,
   readOwnerAdmin: vi.fn(),
@@ -30,6 +32,7 @@ it("the installed minute clock dispatches the daily report without invoking the 
   });
   expect(scheduledPaidMinuteTick()).toEqual({ ok: true, checkedAt: 123 });
   expect(daily).toHaveBeenCalledOnce();
+  expect(resources).toHaveBeenCalledOnce();
   vi.setSystemTime(new Date("2026-10-14T12:11:15Z"));
   expect(scheduledPaidMinuteTick()).toEqual({ ok: true, skipped: true });
   expect(daily).toHaveBeenCalledOnce();

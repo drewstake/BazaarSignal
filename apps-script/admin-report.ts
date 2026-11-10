@@ -1,5 +1,5 @@
 import { readDoc, jsonWrite, commit } from "./store";
-import { readOwnerUsageReport } from "./usage-report";
+import { readResourceReport } from './resource-report';
 import {
   adminClockSlot,
   adminClockWindow,
@@ -10,7 +10,6 @@ import {
   parseAdminReport,
   type AdminReport,
 } from "../shared/admin";
-import { paidPilotActive } from "../shared/paid-pilot";
 import { validPaidBilling } from '../shared/paid-spending';
 
 declare const UrlFetchApp: any,
@@ -239,7 +238,7 @@ export function scheduledAdminDailyTick(now = Date.now()) {
   if (!adminClockWindow(now)) return { ok: true, skipped: true };
   const properties = PropertiesService.getScriptProperties();
   const mode = properties.getProperty("MARKET_OPERATING_MODE");
-  if (!paidPilotActive(mode, now)) return { ok: true, paused: true };
+  // Reporting is independent of market activation and the pilot deadline.
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(100)) return { ok: true, skipped: true };
   let previous: AdminReport | null = null,
@@ -279,7 +278,7 @@ export function scheduledAdminDailyTick(now = Date.now()) {
   const report = measureAdmin(
     (url) => {
       const r = UrlFetchApp.fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}`, 'x-goog-user-project': url.startsWith('https://monitoring.googleapis.com/') || url.includes('/projects/bazaarsignal-510305/') ? 'bazaarsignal-510305' : 'bazaarsignal' },
         muteHttpExceptions: true,
         followRedirects: false,
       });
@@ -303,5 +302,5 @@ export function scheduledAdminDailyTick(now = Date.now()) {
 }
 export function readAdminHistory(identity: { uid: string; email: string }) {
   authorizeAdmin(identity);
-  return readOwnerUsageReport(identity);
+  return readResourceReport(identity);
 }

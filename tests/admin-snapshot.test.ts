@@ -31,6 +31,16 @@ it("retains historical reads through repeated opens for the same signed-in user"
   expect(request).toHaveBeenCalledOnce();
   expect(request).toHaveBeenCalledWith({ action: "admin-history" }, "token");
 });
+it('reloads resource measurements across the daily boundary and month rollover', async () => {
+  const now = Date.parse('2026-10-31T20:00:00Z');
+  const user = {getIdToken: async () => 'token'} as any;
+  request.mockResolvedValue({rows:[],nextMeasurementAt:nextAdminRefresh(now)});
+  await loadAdminHistory(user, now);
+  await loadAdminHistory(user, now + 1000);
+  expect(request).toHaveBeenCalledOnce();
+  await loadAdminHistory(user, nextAdminRefresh(now) + 60000);
+  expect(request).toHaveBeenCalledTimes(2);
+});
 it('allows a failed history read to recover after a minute without retry loops or cross-user reuse', async () => {
   vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-15T15:00:00Z'));
   const user = { getIdToken: async () => 'token' } as any;

@@ -1,6 +1,8 @@
 import {afterEach,expect,it,vi} from 'vitest';
 const {run,save,control}=vi.hoisted(()=>({run:vi.fn<() => {processed:number;failed:number;complete:boolean;paused?:boolean}>(()=>({processed:1,failed:0,complete:true})),save:vi.fn(),control:{state:{runtimeWindow:0,runtimeMs:0,monitor:{} as any} as any}}));
 vi.mock('../apps-script/portfolio-backend',()=>({runPortfolioNotifications:run,portfolioNotificationRequest:vi.fn()}));
+// Resource reporting has its own daily admission tests and cannot send mail.
+vi.mock('../apps-script/resource-report',()=>({scheduledResourceTick:vi.fn(),readResourceReport:vi.fn()}));
 vi.mock('../apps-script/store',async original=>({...await original() as any,loadControl:()=>control,saveControl:save}));
 import {scheduledPaidMinuteTick} from '../apps-script/backend';
 afterEach(()=>{vi.useRealTimers();vi.unstubAllGlobals();vi.clearAllMocks();});
