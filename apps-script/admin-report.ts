@@ -11,6 +11,7 @@ import {
   type AdminReport,
 } from "../shared/admin";
 import { continuousMarket, CONTINUOUS_LEDGER_KEY, CONTINUOUS_MARKET_ID } from "../shared/continuous-market";
+import { marketServiceActive } from '../shared/market-mode';
 import { validPaidBilling } from '../shared/paid-spending';
 
 declare const UrlFetchApp: any,

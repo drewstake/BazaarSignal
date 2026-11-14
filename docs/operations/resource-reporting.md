@@ -33,7 +33,10 @@ report without clearing the daily attempt record.
 
 The Windows checkout and GitHub main were older than the November 7 production
 release. The owner indicated that the newer source was probably on their MacBook.
-**Do not deploy a full build from this checkout until that source is reconciled.**
+That source was reconciled on November 14 from the owner's pushed
+`feature/continuous-market-service` branch (`4334818`), retaining the later
+resource-reporting fixes. The timeout repair deployed only the market backend;
+Hosting and Apps Script remain on their November 10 releases.
 
 `scripts/prepare-admin-report-patch.mjs` prepares a narrowly checked patch against
 retained production Apps Script and Admin JavaScript artifacts. It preserves the

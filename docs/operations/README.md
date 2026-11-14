@@ -4,9 +4,10 @@ These are entry points for maintainers of the existing deployment, not fresh-pro
 
 ## Before a release or recovery
 
-The [November 10 reporting repair](resource-reporting.md#november-10-source-mismatch)
-found newer production code absent from this checkout. Reconcile the MacBook source
-before a full deployment so the November 7 continuous-operation release is preserved.
+The MacBook continuous-operation source (`4334818`) was reconciled with the
+November 10 reporting repair during the [November 14 timeout repair](../history/TIMEOUT-RECOVERY-2026-11-14.md).
+Inspect current deployment state before choosing a release tool; the October
+pilot tools do not deploy the continuous service.
 
 1. Identify the intended change and obtain authorization for cloud writes, deployment, email or collection. Local tests/builds do not require those actions.
 2. Read the latest relevant [release/incident record](../history/README.md), then inspect current service revisions, saved Apps Script source and versioned web deployment, schedules, ledger format, budget reservations and expiry. Historical IDs and timestamps are evidence, not defaults to copy.

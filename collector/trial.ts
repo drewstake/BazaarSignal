@@ -21,6 +21,10 @@ export interface TrialState {
 export class TrialStopped extends Error {
   override name = "TrialStopped";
 }
+/** This request ran out of time; the shared operating period did not end. */
+export class InvocationTimedOut extends TrialStopped {
+  override name = "TimeoutError";
+}
 export const TRIAL_MAX_MS = 15 * 60_000;
 export const CLEANUP_INTERVAL_MS = Math.ceil(86_400_000 / 56);
 export const trialLimits: Counters = {
@@ -283,13 +287,15 @@ export class TrialSession {
     private clock: () => number,
     private offset: number,
     readonly mode: "normal" | "warning" | "slow" | "paused",
+    private invocationDeadline = false,
   ) {
     this.started = clock();
   }
   assertOpen() {
     if (this.refusal) throw this.refusal;
     if (this.clock() + this.offset >= this.expiresAt)
-      this.refuse("Trial deadline reached");
+      this.refuse("Trial deadline reached", this.invocationDeadline
+        ? new InvocationTimedOut('Market invocation deadline reached') : undefined);
   }
   private refuse(reason: string, original?: TrialStopped): never {
     this.refusal ??= original ?? new TrialStopped(reason);
@@ -331,7 +337,8 @@ export class TrialSession {
     } catch (error) {
       this.refuse(
         error instanceof Error ? error.message : "Shared reservation failed",
-        error instanceof TrialStopped ? error : undefined,
+        error instanceof TrialStopped ? error : new TrialStopped(
+          error instanceof Error ? error.message : 'Shared reservation failed', { cause: error }),
       );
     }
     for (const [key, value] of Object.entries(costs))

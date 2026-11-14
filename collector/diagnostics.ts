@@ -4,6 +4,7 @@ export function errorDiagnostic(error: unknown) {
   const message = typeof e?.message === 'string' ? e.message : '';
   const code = typeof e?.code === 'number' && Number.isFinite(e.code) ? e.code : undefined;
   const reason = isFirestoreWriteThrottle(e) ? 'firestore-write-bandwidth'
+    : isTransportTimeout(e) ? 'transport-timeout'
     : isTransientFirestoreFailure(e) ? 'firestore-unavailable'
     : /quota/i.test(message) ? 'quota-exhausted'
     : message === 'Invalid Google cost update' ? 'invalid-cost-timestamp-or-value'
@@ -36,3 +37,22 @@ export function isTransientFirestoreFailure(error: unknown) {
   return isFirestoreWriteThrottle(error) ||
     (e?.service === 'firestore' && (e.code === 503 || e.code === 14));
 }
+
+/** A request timeout says nothing about whether a write committed. End this
+ * invocation without replay, refunds, or a service-wide stop. Match structured
+ * transport identities, never arbitrary messages containing "timeout". */
+export function isTransportTimeout(error: unknown) {
+  const visited = new Set<unknown>();
+  for (let depth = 0; depth < 4 && error && typeof error === 'object' && !visited.has(error); depth++) {
+    visited.add(error);
+    const current = error as { name?: unknown; code?: unknown; cause?: unknown };
+    if (current.name === 'TimeoutError' ||
+        ['ETIMEDOUT', 'UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_HEADERS_TIMEOUT', 'UND_ERR_BODY_TIMEOUT'].includes(String(current.code)))
+      return true;
+    error = current.cause;
+  }
+  return false;
+}
+
+export const isTransientMarketFailure = (error: unknown) =>
+  isTransientFirestoreFailure(error) || isTransportTimeout(error);

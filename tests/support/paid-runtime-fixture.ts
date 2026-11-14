@@ -7,6 +7,7 @@ import { Coordinator, emptyJob } from '../../collector/coordinator';
 import { livePolicy } from '../../collector/allowance-live';
 import { normalizeBazaar } from '../../shared/companion/bazaar';
 import { offlineGoogle } from './offline-google';
+import { CONTINUOUS_LEDGER_KEY, CONTINUOUS_MARKET_ID } from '../../shared/continuous-market';
 
 export const fixtureTime = Date.parse('2026-10-13T21:05:00Z');
 export const fixtureEnd = Date.parse('2026-11-01T07:00:00Z');
@@ -26,13 +27,16 @@ export function snapshotFixture(version = 'one', at = fixtureTime, itemCount = 1
   } });
 }
 
-export function paidRuntimeFixture(rawSnapshot: string, blob = false) {
+export function paidRuntimeFixture(rawSnapshot: string, blob = false, continuous = false) {
   let now = fixtureTime;
   const f = offlineGoogle(() => now);
   const budget: PaidBudget = { version: 1, id: 'paid-202610', startsAt: now - 1000,
     expiresAt: fixtureEnd, limitUsd: 5, stopUsd: 4.5, reservedUsd: 1,
     reserved: {}, observed: {}, legacyLedgerSha256: 'a'.repeat(64), admissions: {} };
-  f.seed(PAID_BUDGET_KEY, JSON.stringify(budget));
+  const ledgerKey = continuous ? CONTINUOUS_LEDGER_KEY : PAID_BUDGET_KEY;
+  if (continuous) Object.assign(budget, { version: 2, budgetPolicy: 'uncapped',
+    id: CONTINUOUS_MARKET_ID, expiresAt: 0, limitUsd: 0, stopUsd: 0, admissionCount: 0 });
+  f.seed(ledgerKey, JSON.stringify(budget));
   const control = new Coordinator(trialGoogleStore(f.config), livePolicy).empty();
   const metrics = { requests: 0, responseBytes: 0, snapshotLoads: 0,
     decodedSnapshotBytes: 0, controlReads: 0, upstreamCalls: 0, shutdowns: 0 };
@@ -45,7 +49,7 @@ export function paidRuntimeFixture(rawSnapshot: string, blob = false) {
     else f.seed('bazaar', encodeInlineSnapshot('bazaar', raw));
   }
   publish(rawSnapshot);
-  const makeRuntime = () => createPaidRuntime({ expiresAt: fixtureEnd, now: () => now,
+  const makeRuntime = () => createPaidRuntime({ continuous, expiresAt: fixtureEnd, now: () => now,
     shutdown: async () => { metrics.shutdowns++; },
     network: async () => { metrics.upstreamCalls++; throw Error('Offline workload forbids upstream collection'); },
     store: session => {
@@ -79,7 +83,7 @@ export function paidRuntimeFixture(rawSnapshot: string, blob = false) {
     return { status, body: text ? JSON.parse(text) : null, headers, ms };
   }
   const totals = () => ({ ...metrics, ...f.counts,
-    reservedUsd: JSON.parse(f.read(PAID_BUDGET_KEY)!).reservedUsd - 1 });
+    reservedUsd: JSON.parse(f.read(ledgerKey)!).reservedUsd - 1 });
   const receipts = () => [...f.documents].filter(([name]) => name.includes('/paid-receipt-'))
     .map(([, doc]) => JSON.parse(doc.fields.value.stringValue));
   return { f, control, metrics, request, runtime, makeRuntime, publish, totals, receipts, setNow: (at: number) => { now = at; } };

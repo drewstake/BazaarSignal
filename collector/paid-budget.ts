@@ -8,7 +8,7 @@ import { livePolicy } from './allowance-live';
 import { marketHandler, retiredMarketRoute } from './routes';
 import { SnapshotReadCache } from './snapshot-read-cache';
 import { type PaidBilling, type GoogleSpend, validPaidBilling, validGoogleSpend } from '../shared/paid-spending';
-import { errorDiagnostic, isTransientFirestoreFailure, type DiagnosticReporter } from './diagnostics';
+import { errorDiagnostic, isTransientMarketFailure, type DiagnosticReporter } from './diagnostics';
 import { LedgerWriteQueue } from './ledger-write-queue';
 import { historyDay, validHistoryItem } from '../shared/daily-price-history';
 import { PAID_PILOT_INTERVAL } from '../shared/paid-pilot';
@@ -134,7 +134,10 @@ export class PaidLedger {
       s.version = 2;
       publish({ key, value: JSON.stringify({ version: 1, budget: s.id, invocation: id, at: now } satisfies PaidReceipt) });
       if (kind === 'collector') s.lastCollectorAt = now;
-      return new TrialSession(this, s.id, id, Math.min(this.continuous ? Infinity : s.expiresAt,now + (kind !== 'browser' ? 80000 : 14000), deadline), envelope, this.clock, now - this.clock(), 'normal');
+      const invocationEnd = Math.min(now + (kind !== 'browser' ? 80000 : 14000), deadline);
+      const periodEnd = this.continuous ? Infinity : s.expiresAt;
+      return new TrialSession(this, s.id, id, Math.min(periodEnd, invocationEnd), envelope,
+        this.clock, now - this.clock(), 'normal', invocationEnd < periodEnd);
     });
   }
   async add(id: string, costs: Counters) {
@@ -194,7 +197,7 @@ export class PaidLedger {
       this.report?.({ event: 'billing_feed_failed', severity: 'WARNING', at: this.clock(), ...errorDiagnostic(error) });
       // A failed/ambiguous billing save must not acknowledge the cost message,
       // attempt another database write, or admit collection with unknown state.
-      if (isTransientFirestoreFailure(error)) throw error;
+      if (isTransientMarketFailure(error)) throw error;
       // A late/missing feed is unknown, never $0 and never a reservation-based
       // stop after activation. Retain the last actual cost and expose the failure.
       await this.change((current, now) => {
@@ -239,9 +242,9 @@ export function createPaidRuntime(config: {
       await session.finish();
       config.report?.({event:'paid_market',kind,at:now(),observed:session.observed});
     } catch (e) {
-      if (isTransientFirestoreFailure(e)) {
-        // End this invocation without replaying an ambiguous write or globally
-        // shutting down for a temporary outage. Retain all admitted holds.
+      if (isTransientMarketFailure(e)) {
+        // A timeout/unavailable response may follow a committed write. Do not
+        // replay it, refund its hold, or disable the API and collection jobs.
         config.report?.({event:'paid_market_throttled',kind,at:now(),...errorDiagnostic(e)});
         throw e;
       }
@@ -313,7 +316,7 @@ export function createPaidRuntime(config: {
             let data: unknown;
             try { data = await config.history.item(session,url.searchParams.get('item')!); }
             catch (error) {
-              if (error instanceof TrialStopped) throw error;
+              if (error instanceof TrialStopped || isTransientMarketFailure(error)) throw error;
               reply = () => { res.writeHead(503,{'Content-Type':'application/json','Cache-Control':'no-store'}).end('{"error":"Daily archive temporarily unavailable"}'); };return;
             }
             const text = JSON.stringify(data);
@@ -352,11 +355,11 @@ export function createPaidRuntime(config: {
         });
         reply?.();
       } catch (error) {
-        if (reply && isTransientFirestoreFailure(error)) { reply(); return; }
+        if (reply && isTransientMarketFailure(error)) { reply(); return; }
         if (!res.headersSent) {
           res.setHeader('Access-Control-Allow-Origin','https://bazaarsignal.web.app');
           res.setHeader('Content-Type','application/json');
-          if (isTransientFirestoreFailure(error)) {
+          if (isTransientMarketFailure(error)) {
             const message = 'Price service is temporarily busy. Saved prices remain available; retry after one minute.';
             res.setHeader('Retry-After','60');
             res.writeHead(503).end(JSON.stringify({error:message,usage:{mode:'slow',pollMs:PAID_INTERVAL_MS,
