@@ -33,6 +33,13 @@ it('retains activation/runtime guards and deduplicates all four notification win
   }
   expect(run).toHaveBeenCalledTimes(4);
   vi.setSystemTime(new Date('2026-11-01T07:02:00Z'));expect(scheduledPaidMinuteTick()).toEqual({ok:true,paused:true});
+  p.MARKET_OPERATING_MODE='continuous';
+  vi.setSystemTime(new Date('2026-12-01T07:02:00Z'));
+  expect(scheduledPaidMinuteTick()).toEqual({ok:true,processed:1,failed:0,complete:true});
+  expect(scheduledPaidMinuteTick()).toEqual({ok:true,skipped:true});
+  p.MARKET_UPDATES_PAUSED='true';
+  vi.setSystemTime(new Date('2026-12-01T07:17:00Z'));
+  expect(scheduledPaidMinuteTick()).toEqual({ok:true,paused:true});
 });
 it.each([
   {processed:0,failed:1,complete:true,error:'failed'},

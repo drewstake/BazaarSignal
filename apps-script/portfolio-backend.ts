@@ -31,7 +31,7 @@ import {
   readDoc,
 } from "./store";
 import { sharedMarket } from "./companion";
-import { paidPilotActive } from '../shared/paid-pilot';
+import { marketServiceActive } from '../shared/market-mode';
 declare const PropertiesService: any, ScriptApp: any, MailApp: any;
 
 export const decodeFields = (fields: Record<string, any>): any =>
@@ -138,7 +138,7 @@ export interface PriceEvidence {
   fixture?: boolean;
 }
 const evidence = (assets: string[] = []): PriceEvidence => {
-  if (!PORTFOLIO_EVALUATION_ENABLED && !(typeof PropertiesService !== 'undefined' && paidPilotActive(PropertiesService.getScriptProperties().getProperty('MARKET_OPERATING_MODE'))))
+  if (!PORTFOLIO_EVALUATION_ENABLED && !(typeof PropertiesService !== 'undefined' && marketServiceActive(PropertiesService.getScriptProperties().getProperty('MARKET_OPERATING_MODE'))))
     throw new Error(
       "Market data: Portfolio evaluation is paused; a fresh sample cannot be captured.",
     );
@@ -533,7 +533,7 @@ function processPortfolioNotifications(users: string[], started: number, pricesF
   }
   // A paid service stop must also stop queued portfolio sends. Keep the queue
   // untouched until an operator restores pricing; do not deliver stale events.
-  if (assets.length && !prices && paidPilotActive(props.getProperty('MARKET_OPERATING_MODE'))) return { ...result, paused: true };
+  if (assets.length && !prices && marketServiceActive(props.getProperty('MARKET_OPERATING_MODE'))) return { ...result, paused: true };
   for (const uid of users) {
     if (Date.now() - started > 40000) break;
     result.attempted.push(uid);
@@ -645,7 +645,7 @@ function processPortfolioNotifications(users: string[], started: number, pricesF
             throw new Error("Delivery no longer eligible.");
           const recipient = verifiedRecipient(uid);
           if (!recipient) throw new Error("Verified identity unavailable.");
-          if(!EMAIL_DELIVERY_ENABLED && !paidPilotActive(props.getProperty('MARKET_OPERATING_MODE')))throw new Error('Email delivery remains paused');
+          if(!EMAIL_DELIVERY_ENABLED && !marketServiceActive(props.getProperty('MARKET_OPERATING_MODE')))throw new Error('Email delivery remains paused');
           MailApp.sendEmail({
             to: recipient,
             ...portfolioMailText(mail, alert.workflow.itemName),

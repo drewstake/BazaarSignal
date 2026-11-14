@@ -10,6 +10,7 @@ import {
   parseAdminReport,
   type AdminReport,
 } from "../shared/admin";
+import { continuousMarket, CONTINUOUS_LEDGER_KEY, CONTINUOUS_MARKET_ID } from "../shared/continuous-market";
 import { validPaidBilling } from '../shared/paid-spending';
 
 declare const UrlFetchApp: any,
@@ -30,6 +31,7 @@ export function measureAdmin(
   now = Date.now(),
   mode?: string,
 ): AdminReport {
+  const continuous = continuousMarket(mode);
   const report = {
     ...(previous ?? emptyAdmin(now)),
     checkedAt: now,
@@ -48,25 +50,27 @@ export function measureAdmin(
   };
   source("Paid budget and prices", () => {
     const budget = JSON.parse(
-      get(docUrl("paid-budget-october")).fields.value.stringValue,
+      get(docUrl(continuous ? CONTINUOUS_LEDGER_KEY : "paid-budget-october")).fields.value.stringValue,
     );
     const control = JSON.parse(get(docUrl("control")).fields.value.stringValue);
     if (
       ![1, 2].includes(budget.version) ||
-      budget.id !== "paid-202610" ||
-      budget.limitUsd !== 5 ||
-      budget.stopUsd !== 4.5 ||
+      budget.id !== (continuous ? CONTINUOUS_MARKET_ID : "paid-202610") ||
+      (continuous && (budget.budgetPolicy !== 'uncapped' || budget.expiresAt !== 0)) ||
+      budget.limitUsd !== (continuous ? 0 : 5) ||
+      budget.stopUsd !== (continuous ? 0 : 4.5) ||
       ![budget.startsAt, budget.expiresAt, budget.reservedUsd].every(
         Number.isFinite,
       ) ||
-      budget.reservedUsd < 1 || (budget.billing && !validPaidBilling(budget.billing, now))
+      budget.reservedUsd < (continuous ? 0 : 1) || (budget.billing && !validPaidBilling(budget.billing, now))
     )
       throw Error("Invalid paid ledger");
     const job = control.jobs?.bazaar;
     report.pilot = {
+      ...(continuous ? { budgetPolicy: 'uncapped' as const } : {}),
       measuredAt: now,
       startsAt: budget.startsAt,
-      expiresAt: budget.expiresAt,
+      expiresAt: continuous ? null : budget.expiresAt,
       budgetUsd: budget.limitUsd,
       stopUsd: budget.stopUsd,
       reservedUsd: budget.reservedUsd,
@@ -75,6 +79,11 @@ export function measureAdmin(
       lastPriceCheck: job?.lastCheckedAt ?? null,
       priceError: job?.error ?? null,
       ...(budget.billing ? { billing: budget.billing } : {}),
+    };
+    if (continuous) report.billing = {
+      actualUsd: null, measuredAt: null,
+      reason: 'No automatic spending cutoff. View current charges and credits in Google Billing; historical reservations are not charges.',
+      sourceUrl: 'https://console.cloud.google.com/billing/012803-EA91BE-8DCD32/reports;projects=1081657730748?project=bazaarsignal-510305',
     };
     if (budget.billing) {
       const b = budget.billing;
@@ -102,12 +111,12 @@ export function measureAdmin(
           e.value,
         ]),
       );
-      if (env.MARKET_OPERATING_MODE !== "paid-budget")
+      if (env.MARKET_OPERATING_MODE !== (continuous ? 'continuous' : "paid-budget"))
         throw Error("Different operating mode");
-      return Date.parse(env.MARKET_LIVE_END);
+      return continuous ? null : Date.parse(env.MARKET_LIVE_END);
     });
     if (
-      !ends.every(Number.isFinite) ||
+      !ends.every(end => continuous ? end === null : Number.isFinite(end)) ||
       ends[0] !== ends[1] ||
       !scheduler.state ||
       !scheduler.schedule
@@ -131,7 +140,7 @@ export function measureAdmin(
       measuredAt: now,
       lastAttempt: (worker.paidLastAttempt ?? monitor.lastAttempt) || null,
       lastSuccess: success,
-      enabled: mode ? mode === "paid-budget" : monitor.enabled === true,
+      enabled: mode ? marketServiceActive(mode, now) : monitor.enabled === true,
       error: worker.paidError ?? null,
     };
   });

@@ -4,6 +4,7 @@ import type { CacheStore } from "./cache-store";
 import { decodeInlineSnapshot, encodeInlineSnapshot, inlineSnapshotLimits } from './inline-snapshot';
 import { errorDiagnostic, type DiagnosticReporter } from './diagnostics';
 import { PAID_BUDGET_KEY, PAID_RECEIPT_LIMIT, isPaidReceiptKey } from './paid-ledger-storage';
+import { CONTINUOUS_LEDGER_KEY } from '../shared/continuous-market';
 
 export interface GoogleStoreRetries {
   wait?: (ms: number) => Promise<unknown>;
@@ -115,7 +116,7 @@ export class GoogleCacheStore implements CacheStore {
   ) {
     if (key === "auctions" || payload?.key === "auctions") throw new Error("Auction snapshots are retired");
     if (snapshotKeys.has(key)) throw new Error("Snapshots require atomic publication");
-    const receipt = payload && key === PAID_BUDGET_KEY && isPaidReceiptKey(payload.key);
+    const receipt = payload && (key === PAID_BUDGET_KEY || key === CONTINUOUS_LEDGER_KEY) && isPaidReceiptKey(payload.key);
     if (receipt && Buffer.byteLength(payload.value) > PAID_RECEIPT_LIMIT) throw new Error('Paid receipt exceeds bound');
     if (payload && !receipt && (key !== "control" || !snapshotKeys.has(payload.key)))
       throw new Error("Invalid snapshot publication");

@@ -16,7 +16,7 @@ export type DailyHistory = {
   collector: {
     enabled: boolean;
     location?: "cloud" | "local";
-    expiresAt?: number;
+    expiresAt?: number | null;
     lastSuccess: { at: number; items: number } | null;
     lastError: { at: number; message: string } | null;
   };

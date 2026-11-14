@@ -9,6 +9,7 @@ Personal account examples in narrative documents use placeholders. Original mach
 ## Records
 
 - [Admin reporting repair — November 10, 2026](ADMIN-REPORT-REPAIR-2026-11-10.md)
+- [Continuous service restoration and budget removal — November 7, 2026](../operations/continuous-market.md)
 - [Production release — November 4, 2026](RELEASE-2026-11-04.md)
 - [Portfolio, Settings and Admin release — October 13, 2026](ADMIN-RELEASE.md)
 - [Application audit — October 15, 2026](APP-AUDIT-2026-10-15.md)

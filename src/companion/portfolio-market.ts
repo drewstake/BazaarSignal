@@ -62,7 +62,7 @@ export async function portfolioMarket(assets:string[],signal?:AbortSignal):Promi
 export function visiblePortfolioPresence(user:User,assets:string[]) {
   // Paid collection and mail run every 15 minutes regardless of visible demand. Skip the
   // no-op admission (and token/preflight/leave requests) before creating timers.
-  if(import.meta.env.VITE_MARKET_OPERATING_MODE==='paid-budget')return ()=>{};
+  if(['paid-budget','continuous'].includes(import.meta.env.VITE_MARKET_OPERATING_MODE ?? ''))return ()=>{};
   assets=assets.filter(id=>/^bz_[A-Za-z0-9_:-]{1,100}$/.test(id));
   if(fixtureMode||!assets.length||pollingDirective().mode==='paused')return ()=>{};
   const tab=crypto.randomUUID();let registered=false,closed=false;

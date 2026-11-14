@@ -18,9 +18,10 @@ export interface AdminReport {
   nextRefreshAt: number;
   schedule?: "daily";
   pilot: {
+    budgetPolicy?: 'uncapped';
     measuredAt: number;
     startsAt: number;
-    expiresAt: number;
+    expiresAt: number | null;
     budgetUsd: number;
     stopUsd: number;
     reservedUsd: number;
@@ -120,8 +121,8 @@ export function pilotStatus(report: AdminReport, now: number) {
   const p = report.pilot,
     s = report.scheduler;
   if (!p) return "Unavailable";
-  if (now >= p.expiresAt) return "Expired";
-  if (p.stoppedAt || (p.billing?.latest ? p.billing.latest.actualUsd >= p.stopUsd : p.reservedUsd >= p.stopUsd)) return "Stopped";
+  if (p.expiresAt !== null && now >= p.expiresAt) return "Expired";
+  if (p.stoppedAt || (p.budgetPolicy !== 'uncapped' && (p.billing?.latest ? p.billing.latest.actualUsd >= p.stopUsd : p.reservedUsd >= p.stopUsd))) return "Stopped";
   if (
     !s ||
     now - p.measuredAt >= ADMIN_CACHE_MS + 60 * 60_000 ||
@@ -138,7 +139,7 @@ export function pilotStatus(report: AdminReport, now: number) {
     p.measuredAt - p.lastPriceCheck > (s.schedule === PAID_COLLECTION_SCHEDULE ? PAID_PILOT_INTERVAL + 5 * 60000 : 75 * 60000)
   )
     return "Needs attention";
-  return "Active paid pilot";
+  return p.budgetPolicy === 'uncapped' ? 'Active' : "Active paid pilot";
 }
 export function parseAdminReport(value: unknown): AdminReport {
   const r = value as AdminReport;
@@ -157,13 +158,14 @@ export function parseAdminReport(value: unknown): AdminReport {
     (![
       r.pilot.measuredAt,
       r.pilot.startsAt,
-      r.pilot.expiresAt,
       r.pilot.budgetUsd,
       r.pilot.stopUsd,
       r.pilot.reservedUsd,
     ].every(Number.isFinite) ||
       r.pilot.reservedUsd < 0 ||
-      r.pilot.expiresAt <= r.pilot.startsAt ||
+      (r.pilot.budgetPolicy === 'uncapped'
+        ? r.pilot.expiresAt !== null || r.pilot.budgetUsd !== 0 || r.pilot.stopUsd !== 0
+        : r.pilot.expiresAt === null || !Number.isFinite(r.pilot.expiresAt) || r.pilot.expiresAt <= r.pilot.startsAt) ||
       r.pilot.stopUsd > r.pilot.budgetUsd)
   )
     throw new Error("Invalid pilot report.");
