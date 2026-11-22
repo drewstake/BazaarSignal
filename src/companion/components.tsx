@@ -1,6 +1,6 @@
 
 import type { CSSProperties } from "react";
-import { itemArtwork } from "./item-artwork";
+import { itemArtwork } from "../../shared/companion/item-artwork";
 
 /* ------------------------------------------------------------------ */
 /* Sky Island Market icon pack (public/assets/sky-island-v1)           */
@@ -51,6 +51,7 @@ export function SkyIcon({
 }
 const compactFormatter = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
 const exactFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
+export const formatCoinTarget = new Intl.NumberFormat('en-US', { maximumSignificantDigits: 21 }).format;
 export const compact = (n: number | null | undefined) =>
   n == null || !Number.isFinite(n)
     ? "—"

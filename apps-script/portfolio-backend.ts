@@ -18,6 +18,7 @@ import {
 import { PORTFOLIO_EVALUATION_ENABLED } from "../shared/companion/portfolio-policy";
 import { EMAIL_DELIVERY_ENABLED } from '../shared/automation-policy';
 import type { BazaarItem } from "../shared/companion/types";
+import { itemArtwork } from "../shared/companion/item-artwork";
 import { deliver, emptyState, type Mail, type State } from "./core";
 import {
   checkAdmission,
@@ -33,6 +34,7 @@ import {
 import { sharedMarket } from "./companion";
 import { marketServiceActive } from '../shared/market-mode';
 declare const PropertiesService: any, ScriptApp: any, MailApp: any;
+declare const Utilities: { formatDate(date: Date, timeZone: string, pattern: string): string };
 
 export const decodeFields = (fields: Record<string, any>): any =>
   Object.fromEntries(
@@ -314,7 +316,7 @@ function verifiedRecipient(uid: string): string | null {
     {
       method: "post",
       contentType: "application/json",
-      headers: { Authorization: `Bearer ${ScriptApp.getOAuthToken()}` },
+      headers: { Authorization: `Bearer ${ScriptApp.getOAuthToken()}`, "x-goog-user-project": "bazaarsignal" },
       payload: JSON.stringify({ localId: [uid] }),
     },
   );
@@ -352,15 +354,15 @@ export function queueCrossings(
     { fixture: prices.fixture, portfolioDeleted: p.deleted, emailEnabled },
   );
   ledger.crossings[n.id] = result.state;
-  for (const event of result.events) {
-    if (ledger.state.mail.some((m) => m.id === event.id)) continue;
+  for (const {id, ...quote} of result.events) {
+    if (ledger.state.mail.some((m) => m.id === id)) continue;
     ledger.state.alerts.push({
       recipient: "",
       tokenHash: "",
-      fingerprint: event.id,
+      fingerprint: id,
       test: false,
       workflow: {
-        id: event.id,
+        id,
         itemId: h.itemId,
         itemName: h.name,
         quantity: h.quantity,
@@ -377,8 +379,8 @@ export function queueCrossings(
       },
     });
     ledger.state.mail.push({
-      id: event.id,
-      alertId: event.id,
+      id,
+      alertId: id,
       kind: "portfolio",
       status: "queued",
       attempts: 0,
@@ -389,12 +391,7 @@ export function queueCrossings(
         notificationId: n.id,
         revision: n.revision,
         holdingRevision: h.revision,
-        direction: event.direction,
-        percent: event.percent,
-        baseline: event.baseline,
-        price: event.price,
-        sampledAt: event.sampledAt,
-        source: event.source,
+        ...quote,
         portfolioId: n.portfolioId,
         holdingId: n.holdingId,
       },
@@ -403,19 +400,53 @@ export function queueCrossings(
 }
 export function portfolioMailText(mail: Mail, name: string) {
   const e = mail.portfolio!;
+  const item = name.replace(/[\r\n\t]+/g, " ").trim();
+  const htmlItem = item.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const coins = (value: number) => value.toLocaleString("en-US", { maximumSignificantDigits: 21 });
+  const price = coins(e.price);
+  const verb = e.direction === "up" ? "rose" : "fell";
+  const offer = e.source === "bazaar-bid-v1" ? "Highest buy order" : "Lowest sell offer";
+  const detail = e.targetPrice === undefined
+    ? `${Math.abs(e.percent).toLocaleString("en-US", {maximumFractionDigits: 2})}% ${e.percent < 0 ? "below" : "above"} your ${coins(e.baseline)}-coin baseline`
+    : e.targetPrice !== e.price ? `Your target was ${coins(e.targetPrice)} coins` : "";
+  const when = Utilities.formatDate(new Date(e.sampledAt), "America/New_York", "MMM d 'at' h:mm a z");
+  const manage = "https://bazaarsignal.web.app/#view=settings&section=notifications";
+  const icon = e.holdingId?.startsWith("bz_") ? itemArtwork[e.holdingId.slice(3)] : undefined;
+  const art = e.holdingId === "bz_SUMMONING_EYE"
+    ? `<tr><td style="padding:0;background-color:#211437"><img alt="" width="520" src="https://bazaarsignal.web.app/assets/alerts/summoning-eye-v1.jpg" style="display:block;width:100%;max-width:520px;height:auto;border:0"></td></tr>`
+    : typeof icon === "string"
+      ? `<tr><td align="center" style="padding:12px;background-color:#f4eff8"><img alt="" width="112" height="112" src="https://bazaarsignal.web.app${icon}" style="display:block;border:0"></td></tr>`
+      : "";
   return {
-    subject: `BazaarSignal: ${name} crossed ${e.direction === "up" ? "an upward" : "a downward"} threshold`,
+    subject: `${item} ${verb} to ${price} coins`,
     body: [
-      `${name}: ${e.percent.toFixed(2)}% from your ${e.baseline} coin baseline.`,
-      `Reference price: ${e.price} coins per recorded unit.`,
-      `Sample: ${new Date(e.sampledAt).toISOString()}. Source: ${e.source}.`,
-      "",
-      "Bazaar references are before fees and slippage.",
-      "This threshold rearms after a fresh price moves back inside it. Manage or pause it in Notifications.",
-      "https://bazaarsignal.web.app/#view=notifications",
-      "",
-      "Polling can miss brief movements. MailApp acceptance does not guarantee inbox delivery.",
-    ].join("\n"),
+      `${item} — ${offer.toLowerCase()} ${verb} to ${price} coins.`,
+      detail, when, `\nManage alerts: ${manage}`,
+    ].filter(Boolean).join("\n"),
+    htmlBody: `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f2eef6;font-family:Arial,Helvetica,sans-serif">
+<tr><td align="center" style="padding:22px 10px">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;max-width:520px;background-color:#ffffff;border:1px solid #ddd4e6;border-radius:14px;overflow:hidden">
+    <tr><td style="padding:14px 22px;background-color:#251b32;border-radius:13px 13px 0 0">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+        <td style="color:#ffffff;font-size:18px;font-weight:bold;letter-spacing:-0.6px">Bazaar<span style="color:#cfabff">Signal</span></td>
+        <td align="right" style="color:#e1cdee;font-size:10px;font-weight:bold;letter-spacing:1.5px">PRICE ALERT</td>
+      </tr></table>
+    </td></tr>
+    ${art}
+    <tr><td style="padding:24px 22px;color:#21182c">
+      <h1 style="margin:0 0 16px;font-size:24px;line-height:1.2;overflow-wrap:anywhere">${htmlItem}</h1>
+      <p style="margin:0 0 4px;font-size:15px;color:#594e61">${offer} ${verb} to</p>
+      <p style="margin:0;font-size:34px;line-height:1.15;font-weight:bold;letter-spacing:-1px;overflow-wrap:anywhere">${price} <span style="font-size:17px;letter-spacing:0;font-weight:normal;color:#594e61">coins</span></p>
+      ${detail ? `<p style="margin:8px 0 0;font-size:14px;color:#594e61">${detail}</p>` : ""}
+    </td></tr>
+    <tr><td style="padding:14px 22px;border-top:1px solid #e8e2ec">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+        <td style="color:#594e61;font-size:12px;line-height:1.5">${when}</td>
+        <td align="right"><a href="${manage.replace(/&/g, "&amp;")}" style="display:inline-block;padding:9px 12px;background-color:#eee6f8;border-radius:7px;color:#503275;font-size:13px;font-weight:bold;text-decoration:none;white-space:nowrap">Manage alerts</a></td>
+      </tr></table>
+    </td></tr>
+  </table>
+</td></tr></table>`,
   };
 }
 export interface PortfolioRunResult {
@@ -622,7 +653,8 @@ function processPortfolioNotifications(users: string[], started: number, pricesF
         receipt: (id) => Number(props.getProperty(prefix + id)) || null,
         remember: (id, at) => props.setProperty(prefix + id, String(at)),
         forget: (id) => props.deleteProperty(prefix + id),
-        send: (mail, alert) => {
+        send: (mail, alert, setStage) => {
+          setStage('Eligibility check');
           const e = mail.portfolio!,
             n = read(notificationPath(uid, e.notificationId)).data,
             p = read(`users/${uid}/portfolios/${e.portfolioId}`).data,
@@ -643,12 +675,17 @@ function processPortfolioNotifications(users: string[], started: number, pricesF
               ?.emailEnabled !== true
           )
             throw new Error("Delivery no longer eligible.");
+          setStage('Firebase recipient lookup');
           const recipient = verifiedRecipient(uid);
           if (!recipient) throw new Error("Verified identity unavailable.");
+          setStage('Eligibility check');
           if(!EMAIL_DELIVERY_ENABLED && !marketServiceActive(props.getProperty('MARKET_OPERATING_MODE')))throw new Error('Email delivery remains paused');
+          setStage('Message preparation');
+          const text = portfolioMailText(mail, alert.workflow.itemName);
+          setStage('MailApp.sendEmail');
           MailApp.sendEmail({
             to: recipient,
-            ...portfolioMailText(mail, alert.workflow.itemName),
+            ...text,
             name: "BazaarSignal",
           });
         },

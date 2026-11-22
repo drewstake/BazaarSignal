@@ -279,7 +279,7 @@ details p {
   gap: 15px;
   margin-bottom: 21px;
 }
-.portfolio-heading h2 {
+.portfolio-heading h1 {
   margin: 0;
   font-size: 24px;
   overflow-wrap: anywhere;
@@ -699,7 +699,7 @@ details p {
     flex-wrap: wrap;
     margin: 15px 0;
   }
-  .portfolio-heading h2 {
+  .portfolio-heading h1 {
     font-size: 22px;
   }
   .portfolio-heading .actions button {

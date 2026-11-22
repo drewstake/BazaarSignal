@@ -22,7 +22,7 @@ The seven icons completed before the scope change are also retained: Great White
 - [Top 20 ranking](top-20-volume.json): exact IDs and the two activity values used to select them.
 - [Verification and provenance](verification.json): per-icon reference URLs, output sizes, PNG/WebP comparisons, hashes, and verification results.
 - [ImageGen prompts](generation-prompts.json): the exact prompt for each of the 27 individual built-in ImageGen generations. Reference images were supplied and every raw result was visually inspected.
-- [App mapping](../../src/companion/item-artwork.ts): exact ID lookup shared by cards, inspectors, and repeated listings. Final assets live in [public/assets/items](../../public/assets/items).
+- [Item artwork mapping](../../shared/companion/item-artwork.ts) supplies cards, inspectors, listings, and portfolio emails. Final assets live in [public/assets/items](../../public/assets/items).
 
 The SkyBlock appearance references preserve the actual subjects and distinct variants, including the tooth silhouette, green Summoning Eye, the differing rough gemstone shapes/colors, and normal versus enchanted crops. These are generated interpretations of the verified references. Item-specific source links are recorded in `verification.json`.
 

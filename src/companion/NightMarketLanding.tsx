@@ -1,30 +1,8 @@
-import { Settings } from "lucide-react";
+import { Settings, TrendingUp } from "lucide-react";
 import { SkyIcon } from "./components";
 import BazaarSearch from "./BazaarSearch";
-import {
-  NightMarketFeatureCard,
-  NightMarketPortfolioPreview,
-} from "./NightMarketComponents";
+import { NightMarketPortfolioPreview } from "./NightMarketComponents";
 import "./night-market.css";
-
-const features = [
-  {
-    id: "holdings",
-    title: "Track holdings",
-    description:
-      "Keep a record of the items you own on the Bazaar.",
-  },
-  {
-    id: "returns",
-    title: "See returns",
-    description: "View estimated value and returns for your tracked items.",
-  },
-  {
-    id: "alerts",
-    title: "Set price alerts",
-    description: "Set target prices for the items you track.",
-  },
-] as const;
 
 export default function NightMarketLanding({
   view,
@@ -67,6 +45,7 @@ export default function NightMarketLanding({
               <SkyIcon name="watchlist-chest" size={34} />
               Portfolio
             </a>
+            <a href="#view=trending"><TrendingUp size={25} aria-hidden="true" />Trending</a>
             <a
               href="#view=settings"
               aria-current={view === "settings" ? "page" : undefined}
@@ -78,13 +57,11 @@ export default function NightMarketLanding({
         </header>
         <main className="nm-main" id="main-content" tabIndex={-1}>
           <section className="nm-hero" aria-labelledby="nm-title">
-            <p className="nm-eyebrow">SKYBLOCK BAZAAR</p>
             <h1 id="nm-title">
-              Your SkyBlock<span className="nm-headline-line">portfolio.</span>
-              <span className="nm-headline-accent">At a glance.</span>
+              Your SkyBlock <span className="nm-headline-accent">portfolio</span>
             </h1>
             <p className="nm-description">
-              Track your items, estimated value, and returns.
+              Track purchase costs, estimated returns, and price alerts.
             </p>
             <button
               className="nm-sign-in"
@@ -113,7 +90,7 @@ export default function NightMarketLanding({
               {busy ? "Signing in…" : "Sign in with Google"}
             </button>
             <p className="nm-privacy">
-              Private to you. Add items manually; no inventory sync.
+              Holdings are private and entered manually.
             </p>
             {error && (
               <p className="nm-error" role="alert">
@@ -125,11 +102,6 @@ export default function NightMarketLanding({
             <div className="nm-mobile-scene" aria-hidden="true" />
             <NightMarketPortfolioPreview />
           </div>
-          <section className="nm-features" aria-label="Portfolio features">
-            {features.map((feature) => (
-              <NightMarketFeatureCard key={feature.id} {...feature} />
-            ))}
-          </section>
         </main>
       </div>
     </div>

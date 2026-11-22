@@ -10,8 +10,13 @@ import {
 } from "../shared/daily-price-history";
 import { historyDownload } from "./history-download";
 import { dailyReducer } from "./history-sources";
+import { executeDepth, normalizeBazaar } from "../shared/companion/bazaar";
+import { liquidMarket } from "./trending";
 import { parseBook } from "../shared/market";
 import { TrialStopped, type TrialSession, type Counters } from "./trial";
+import { flipLot, flipVersion } from "../shared/flips";
+import { summarizeFlips, type FlipBaselines } from "./flips";
+import type { NpcChanges } from "./npc-prices";
 
 export const HISTORY_JOB = "bazaar-daily-close";
 // Cloud Scheduler's delivered job header can contain its short job ID.
@@ -30,6 +35,8 @@ export type HistoryShard = {
   version: 1;
   year: number;
   items: Record<string, CloudPriceTuple[]>;
+  // Ten-unit quotes at the same timestamp as the daily close for paired replays.
+  lots?: Record<string, [day:number, at:number, entry:number, exit:number, liquid:0|1][]>;
 };
 export type HistoryMeta = {
   version: 1;
@@ -112,6 +119,8 @@ export class CloudPriceHistory {
       token: () => Promise<string>;
       network?: typeof fetch;
       wait?: (signal: AbortSignal) => Promise<void>;
+      publishFlipAverages?: boolean;
+      npcPriceChanges?: () => Promise<NpcChanges>;
     },
     private session?: TrialSession,
   ) {}
@@ -126,7 +135,7 @@ export class CloudPriceHistory {
     return `https://firestore.googleapis.com/v1/projects/${this.config.project}/databases/(default)/documents`;
   }
   private name(id: string) {
-    if (!/^(meta|year-20\d\d-(?:[0-9]|[12][0-9]|3[01]))$/.test(id))
+    if (!/^(meta|flip-v4-averages-[01]|year-20\d\d-(?:[0-9]|[12][0-9]|3[01]))$/.test(id))
       throw Error("Invalid history document ID");
     return `projects/${this.config.project}/databases/(default)/documents/priceHistory/${id}`;
   }
@@ -317,7 +326,17 @@ export class CloudPriceHistory {
       const shard = documents.get(
         historyDocument(year, historyShard(row.item)),
       )!.value as HistoryShard;
-      mergeCloudPrice((shard.items[row.item] ??= []), row);
+      const series=(shard.items[row.item] ??= []);
+      mergeCloudPrice(series, row);
+      if (this.config.publishFlipAverages && series.find(q=>q[0]===row.day)?.[1]===row.at) {
+        const book=normalizeBazaar(row.item,raw.products[row.item],row.at,checkedAt);
+        const entry=executeDepth(book.asks,flipLot)?.unit, exit=executeDepth(book.bids,flipLot)?.unit;
+        const lots=shard.lots??={};
+        const prior=(lots[row.item]??[]).filter(q=>q[0]>row.day-90 && q[0]!==row.day);
+        if(entry && exit) prior.push([row.day,row.at,entry,exit,liquidMarket(book)?1:0]);
+        if(prior.length) lots[row.item]=prior;
+        else delete lots[row.item];
+      }
     }
     // Prepare every shard before issuing writes. A partial RPC failure retains
     // real points but does not publish a successful collection status.
@@ -344,7 +363,37 @@ export class CloudPriceHistory {
         },
       },
     ]);
+    if (this.config.publishFlipAverages) {
+      const through = historyDay(raw.lastUpdated) - (closing ? 0 : 1);
+      await this.publishFlipAverages(through, year, [...documents.values()].map(doc => doc.value));
+    }
     return lastSuccess;
+  }
+  async publishFlipAverages(through: number, loadedYear?: number, loadedShards: HistoryShard[] = []) {
+    const key = "flip-v4-averages-" + (through % 2);
+    const prior = (await this.read([key])).get(key)!;
+    if (prior.value?.throughDay > through) return;
+    const shards: HistoryShard[] = [];
+    for (const year of new Set([historyYear(through - 89), historyYear(through)])) {
+      if (year === loadedYear) shards.push(...loadedShards);
+      else {
+        const ids = Array.from({length: HISTORY_SHARDS}, (_, i) => historyDocument(year, i));
+        for (const doc of (await this.read(ids)).values()) if (doc.value) shards.push(doc.value);
+      }
+    }
+    const summary = summarizeFlips(shards, through, await this.config.npcPriceChanges?.());
+    // Empty rankings are valid while affected items rebuild their baseline.
+    if (!shards.some(s => Object.keys(s.items).length)) throw Error("Historical price coverage is insufficient.");
+    await this.write([{id: key, updateTime: prior.updateTime, value: summary}]);
+  }
+  async flipAverages(at: number): Promise<FlipBaselines> {
+    const through = historyDay(at) - 1;
+    const ids = [through % 2, (through - 1) % 2].map(slot => "flip-v4-averages-" + slot);
+    const candidates = [...(await this.read(ids)).values()].map(doc => doc.value as FlipBaselines | null)
+      .filter((s): s is FlipBaselines => !!s && s.model === flipVersion && s.throughDay <= through && s.throughDay >= through - 2);
+    const summary = candidates.sort((a, b) => b.throughDay - a.throughDay)[0];
+    if (!summary) throw Error("Historical averages are awaiting the next daily archive.");
+    return summary;
   }
   async item(item: string, now = Date.now(), expiresAt: number | null) {
     if (!validHistoryItem(item)) throw Error("Invalid history item");

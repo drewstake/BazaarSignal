@@ -18,6 +18,7 @@ export interface GoogleTransport {
   collection?: string;
   onAttempt?: (costs: Counters) => void;
   inlineSmallSnapshots?: boolean;
+  recordTrends?: boolean;
   report?: DiagnosticReporter;
 }
 /** Bound reads before JSON/gzip decoding; no SDK retry can issue an uncounted RPC. */
@@ -295,5 +296,5 @@ export function trialGoogleStore(
     assertOpen: () => session?.assertOpen(),
     wait: ms => delay(ms, undefined, { signal: session?.signal(ms + 1000) }),
     report: config.report,
-  });
+  }, config.recordTrends);
 }

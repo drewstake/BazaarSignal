@@ -1,6 +1,7 @@
 import { evaluate, isFresh, isValidSample, parseBook } from '../shared/market';
 import { newPriceAlert, validatePriceAlert } from '../shared/price-alert';
 import type { Book, PriceAlertInput, ProductPrice, Workflow } from '../shared/model';
+import type { CrossingQuote } from '../shared/companion/notifications';
 
 export type DeliveryState = 'queued' | 'sending' | 'sent' | 'failed' | 'cancelled';
 export interface Mail {
@@ -8,7 +9,7 @@ export interface Mail {
   status: DeliveryState; attempts: number; nextAttempt: number;
   sentAt?: number; leaseUntil: number; error: string | null;
   quote?: { side: 'buy'|'sell'; unit: number; total: number; timestamp: number };
-  portfolio?: { notificationId:string; revision:number; holdingRevision:number; direction:'up'|'down'; percent:number; baseline:number; price:number; sampledAt:number; source:string; portfolioId:string; holdingId:string };
+  portfolio?: CrossingQuote & { notificationId:string; revision:number; holdingRevision:number; portfolioId:string; holdingId:string };
 }
 export interface RecordAlert {
   workflow: Workflow; fingerprint: string; tokenHash: string;
@@ -106,12 +107,39 @@ export function enqueueTestTarget(state: State, id: string, market: Market, now:
   enqueue(state,id,'target',now,{side:quote.side,unit:quote.unit,total:quote.total,timestamp:market.timestamp}); return true;
 }
 export const retryDelay = (attempt: number) => [60_000, 300_000, 900_000, 3_600_000][Math.min(Math.max(attempt-1,0),3)];
-export function failMail(mail: Mail, now: number) {
+type DeliveryStage = 'Eligibility check' | 'Firebase recipient lookup' | 'Message preparation' | 'MailApp.sendEmail';
+export type SetDeliveryStage = (stage: DeliveryStage) => void;
+
+export function safeProviderCode(code: unknown): string | undefined {
+  return typeof code === 'string' && ['SERVICE_DISABLED', 'PERMISSION_DENIED', 'UNAUTHENTICATED', 'RESOURCE_EXHAUSTED',
+    'ACCESS_TOKEN_SCOPE_INSUFFICIENT', 'USER_PROJECT_DENIED', 'UNAVAILABLE'].includes(code) ? code : undefined;
+}
+
+function deliveryError(stage: DeliveryStage, error: unknown) {
+  // Provider messages can contain the address, request URL or credentials.
+  const { status, code, message } = (error ?? {}) as { status?: number; code?: string; message?: string };
+  const details: string[] = [];
+  if (typeof status === 'number' && Number.isInteger(status) && status >= 400 && status <= 599)
+    details.push(`HTTP ${status}`);
+  const providerCode = safeProviderCode(code);
+  if (providerCode) details.push(providerCode);
+  else if (message === 'Verified identity unavailable.') details.push('RECIPIENT_INELIGIBLE');
+  else if (message === 'Delivery no longer eligible.') details.push('ALERT_INELIGIBLE');
+  else if (message === 'Email delivery remains paused') details.push('DELIVERY_PAUSED');
+  else if (stage === 'MailApp.sendEmail' && typeof message === 'string') {
+    if (/quota|limit exceeded|service invoked too many times/i.test(message)) details.push('QUOTA_EXCEEDED');
+    else if (/permission|authorization required/i.test(message)) details.push('PERMISSION_DENIED');
+    else if (/invalid (email|recipient)/i.test(message)) details.push('INVALID_RECIPIENT');
+  }
+  return `${stage} failed (${details.join(', ') || 'UNKNOWN_ERROR'}).`;
+}
+
+export function failMail(mail: Mail, now: number, error = 'Delivery lease expired. Provider acceptance is unknown.') {
   mail.status = mail.attempts >= 5 ? 'failed' : 'queued';
-  mail.error = 'Mail delivery could not be confirmed. A bounded retry may duplicate an ambiguous send.';
+  mail.error = error;
   mail.nextAttempt = now + retryDelay(mail.attempts); mail.leaseUntil = 0;
 }
-export interface DeliveryIO { now():number; quota():number; save():void; send(mail:Mail, alert:RecordAlert):void;
+export interface DeliveryIO { now():number; quota():number; save():void; send(mail:Mail, alert:RecordAlert, setStage:SetDeliveryStage):void;
   receipt(id:string):number|null; remember(id:string, at:number):void; forget?(id:string):void; budgetExpired():boolean }
 export function deliver(state:State, io:DeliveryIO, onlyTest = false) {
   let budget = io.quota(); state.monitor.quota = budget;
@@ -131,7 +159,9 @@ export function deliver(state:State, io:DeliveryIO, onlyTest = false) {
     if (budget<1) { mail.error='Daily email quota exhausted; queued until quota is available.'; mail.nextAttempt=io.now()+3_600_000; io.save(); continue; }
     mail.status='sending'; mail.attempts++; mail.leaseUntil=io.now()+600_000; mail.error=null;
     io.save(); // Must persist before crossing MailApp's non-transactional boundary.
-    try { io.send(mail,alert); } catch { failMail(mail,io.now()); io.save(); continue; }
+    let stage: DeliveryStage = 'Message preparation';
+    try { io.send(mail,alert,next => { stage = next; }); }
+    catch (error) { failMail(mail,io.now(),deliveryError(stage,error)); io.save(); continue; }
     budget--; const at=io.now();
     // Independent receipt reduces Firestore-outage duplicates; no provider idempotency exists.
     io.remember(mail.id,at);

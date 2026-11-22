@@ -94,6 +94,22 @@ function recoveryFixture() {
   const config = { ...fake.config, wait: async () => {} };
   return { ...fake, config, fetcher, session, expire: () => { time += 80000; } };
 }
+it("publishes rolling flip averages from the daily close and withholds that day until it ends", async () => {
+  const f = recoveryFixture();
+  const id = "ITEM_0", doc = historyDocument(2026, historyShard(id));
+  f.docs.set(doc, {update: "prior", packed: encodeHistory({version:1,year:2026,items:{
+    [id]: Array.from({length:89}, (_,i) => [day-89+i,historyDayStart(day-89+i),12,11,"bazaarsignal"])
+  }})});
+  const api = new CloudPriceHistory({...f.config, publishFlipAverages:true});
+  const upstream = vi.fn(f.fetcher);
+  const success = await api.capture(() => now, upstream);
+  expect(upstream).toHaveBeenCalledTimes(1);
+  expect(decodeHistory(f.docs.get(doc)!.packed).lots[id]).toEqual([[day,now,12,11,0]]);
+  expect(success.closing).toBe(true);
+  const summary = await api.flipAverages(historyDayStart(day + 1));
+  expect(summary.items[id][2]?.avg).toEqual({offer:12,bid:11,median:12,days:90});
+  await expect(api.flipAverages(now)).rejects.toThrow("awaiting");
+});
 it.each(Array.from({ length: 8 }, (_, batch) => [batch, 429] as const).concat(
   Array.from({ length: 8 }, (_, batch) => [batch, 503] as any)))('recovers shard batch %i after HTTP %i within the original envelope', async (target, status) => {
   const f = recoveryFixture(), actual = f.network.getMockImplementation()!;

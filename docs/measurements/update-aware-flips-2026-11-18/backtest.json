@@ -1,0 +1,629 @@
+{
+  "from": "2026-10-19",
+  "through": "2026-11-17",
+  "lot": 10,
+  "minimum": 15,
+  "holdingDays": 14,
+  "taxPct": 1.25,
+  "calendarDays": 30,
+  "missingQuoteDates": [
+    "2026-10-28",
+    "2026-10-29",
+    "2026-11-01",
+    "2026-11-02",
+    "2026-11-03",
+    "2026-11-04",
+    "2026-11-05",
+    "2026-11-06",
+    "2026-11-07",
+    "2026-11-10",
+    "2026-11-12",
+    "2026-11-13"
+  ],
+  "dateOnlyEventsOmitted": [
+    "2026-10-29",
+    "2026-11-17"
+  ],
+  "savedBookTimes": [
+    "2026-11-17T22:14:49.005Z",
+    "2026-11-18T18:15:08.979Z"
+  ],
+  "depthMatched": {
+    "7": {
+      "legacy": {
+        "evaluated": 2,
+        "abstained": 1,
+        "picks": 1,
+        "reached": 0,
+        "missed": 0,
+        "incomplete": 1,
+        "meanObservedDays": 0,
+        "medianWorstQuotedNetPct": -8.741273840052258,
+        "worstQuotedNetPct": -8.741273840052258,
+        "results": [
+          {
+            "date": "2026-11-18",
+            "id": "ENCHANTMENT_ULTIMATE_FLASH_1",
+            "entry": 2996233.47,
+            "target": 3624275.44,
+            "outcome": "open",
+            "observed": 0,
+            "downside": -8.741273840052258
+          }
+        ]
+      },
+      "current": {
+        "evaluated": 2,
+        "abstained": 2,
+        "picks": 0,
+        "reached": 0,
+        "missed": 0,
+        "incomplete": 0,
+        "meanObservedDays": null,
+        "medianWorstQuotedNetPct": null,
+        "worstQuotedNetPct": null,
+        "results": []
+      }
+    },
+    "30": {
+      "legacy": {
+        "evaluated": 2,
+        "abstained": 0,
+        "picks": 2,
+        "reached": 0,
+        "missed": 0,
+        "incomplete": 2,
+        "meanObservedDays": 0.5,
+        "medianWorstQuotedNetPct": -12.859497145009495,
+        "worstQuotedNetPct": -12.885901002033988,
+        "results": [
+          {
+            "date": "2026-11-17",
+            "id": "ENCHANTED_TITANIUM",
+            "entry": 14407,
+            "target": 17992.533333333333,
+            "outcome": "open",
+            "observed": 1,
+            "downside": -12.833093287985003
+          },
+          {
+            "date": "2026-11-18",
+            "id": "PERFECT_PERIDOT_GEM",
+            "entry": 12469279.62,
+            "target": 17195738.583333336,
+            "outcome": "open",
+            "observed": 0,
+            "downside": -12.885901002033988
+          }
+        ]
+      },
+      "current": {
+        "evaluated": 2,
+        "abstained": 2,
+        "picks": 0,
+        "reached": 0,
+        "missed": 0,
+        "incomplete": 0,
+        "meanObservedDays": null,
+        "medianWorstQuotedNetPct": null,
+        "worstQuotedNetPct": null,
+        "results": []
+      }
+    },
+    "90": {
+      "legacy": {
+        "evaluated": 2,
+        "abstained": 0,
+        "picks": 2,
+        "reached": 0,
+        "missed": 0,
+        "incomplete": 2,
+        "meanObservedDays": 0,
+        "medianWorstQuotedNetPct": -19.426761173207225,
+        "worstQuotedNetPct": -20.60214409970747,
+        "results": [
+          {
+            "date": "2026-11-17",
+            "id": "DRAGON_HORN",
+            "entry": 3210287.0100000002,
+            "target": 12624697.903174605,
+            "outcome": "open",
+            "observed": 0,
+            "downside": -18.25137824670698
+          },
+          {
+            "date": "2026-11-18",
+            "id": "OVERGROWN_GRASS",
+            "entry": 3659183.1400000006,
+            "target": 7281004.083561643,
+            "outcome": "open",
+            "observed": 0,
+            "downside": -20.60214409970747
+          }
+        ]
+      },
+      "current": {
+        "evaluated": 2,
+        "abstained": 2,
+        "picks": 0,
+        "reached": 0,
+        "missed": 0,
+        "incomplete": 0,
+        "meanObservedDays": null,
+        "medianWorstQuotedNetPct": null,
+        "worstQuotedNetPct": null,
+        "results": []
+      }
+    }
+  },
+  "quoteProxy": {
+    "7": {
+      "legacy": {
+        "evaluated": 17,
+        "abstained": 6,
+        "picks": 11,
+        "reached": 2,
+        "missed": 0,
+        "incomplete": 9,
+        "meanObservedDays": 3.8181818181818183,
+        "medianWorstQuotedNetPct": -17.892720392131004,
+        "worstQuotedNetPct": -61.0201953222004,
+        "results": [
+          {
+            "date": "2026-10-19",
+            "id": "SHARD_FLORA",
+            "entry": 450609.3,
+            "target": 703392.9199999999,
+            "outcome": "open",
+            "observed": 3,
+            "downside": -61.0201953222004
+          },
+          {
+            "date": "2026-10-20",
+            "id": "FTX_3070",
+            "entry": 89500.7,
+            "target": 165449.75000000003,
+            "outcome": "open",
+            "observed": 7,
+            "downside": -17.892720392131004
+          },
+          {
+            "date": "2026-10-21",
+            "id": "FTX_3070",
+            "entry": 89497.8,
+            "target": 149514.00000000003,
+            "outcome": "open",
+            "observed": 6,
+            "downside": -16.925265202049665
+          },
+          {
+            "date": "2026-10-22",
+            "id": "BURROWING_SPORES",
+            "entry": 2999997.8,
+            "target": 4861704.159999999,
+            "outcome": "hit",
+            "observed": 4,
+            "downside": -20.999938774955094
+          },
+          {
+            "date": "2026-10-23",
+            "id": "BURROWING_SPORES",
+            "entry": 3028244.1,
+            "target": 4451420.149999999,
+            "outcome": "hit",
+            "observed": 3,
+            "downside": -13.801841593615267
+          },
+          {
+            "date": "2026-10-24",
+            "id": "ENCHANTMENT_LUCK_7",
+            "entry": 42429996.1,
+            "target": 53187273.866666675,
+            "outcome": "open",
+            "observed": 3,
+            "downside": -30.179109570434303
+          },
+          {
+            "date": "2026-10-25",
+            "id": "ENCHANTMENT_LUCK_7",
+            "entry": 41886995.9,
+            "target": 50116440.51666667,
+            "outcome": "open",
+            "observed": 3,
+            "downside": -29.273989576679092
+          },
+          {
+            "date": "2026-10-26",
+            "id": "GOLDEN_FRAGMENT",
+            "entry": 12800000,
+            "target": 15448126.833333334,
+            "outcome": "open",
+            "observed": 5,
+            "downside": -11.279263701171867
+          },
+          {
+            "date": "2026-10-27",
+            "id": "DESIGNER_COFFEE_BEANS",
+            "entry": 266353.9,
+            "target": 318817.71428571426,
+            "outcome": "open",
+            "observed": 4,
+            "downside": -36.97295215125441
+          },
+          {
+            "date": "2026-10-30",
+            "id": "BOUNCY_BEACH_BALL",
+            "entry": 39579.6,
+            "target": 62976.719999999994,
+            "outcome": "open",
+            "observed": 2,
+            "downside": -10.153308143589122
+          },
+          {
+            "date": "2026-10-31",
+            "id": "BOUNCY_BEACH_BALL",
+            "entry": 38366.2,
+            "target": 56165.46,
+            "outcome": "open",
+            "observed": 2,
+            "downside": -7.217026314829188
+          }
+        ]
+      },
+      "current": {
+        "evaluated": 17,
+        "abstained": 17,
+        "picks": 0,
+        "reached": 0,
+        "missed": 0,
+        "incomplete": 0,
+        "meanObservedDays": null,
+        "medianWorstQuotedNetPct": null,
+        "worstQuotedNetPct": null,
+        "results": []
+      }
+    },
+    "30": {
+      "legacy": {
+        "evaluated": 17,
+        "abstained": 1,
+        "picks": 16,
+        "reached": 0,
+        "missed": 0,
+        "incomplete": 16,
+        "meanObservedDays": 3.25,
+        "medianWorstQuotedNetPct": -16.518519734408002,
+        "worstQuotedNetPct": -51.36815729053759,
+        "results": [
+          {
+            "date": "2026-10-19",
+            "id": "DRAGON_HORN",
+            "entry": 7331931.2,
+            "target": 14062856.180769231,
+            "outcome": "open",
+            "observed": 6,
+            "downside": -51.36815729053759
+          },
+          {
+            "date": "2026-10-20",
+            "id": "DRAGON_HORN",
+            "entry": 6877918.5,
+            "target": 13764232.033333333,
+            "outcome": "open",
+            "observed": 5,
+            "downside": -48.157960162656764
+          },
+          {
+            "date": "2026-10-21",
+            "id": "DRAGON_HORN",
+            "entry": 6720931.4,
+            "target": 13473388.211111112,
+            "outcome": "open",
+            "observed": 4,
+            "downside": -46.94703700219288
+          },
+          {
+            "date": "2026-10-22",
+            "id": "ENCHANTMENT_SMOLDERING_1",
+            "entry": 2290982.4,
+            "target": 4856362.9125,
+            "outcome": "open",
+            "observed": 4,
+            "downside": -15.931095542244226
+          },
+          {
+            "date": "2026-10-23",
+            "id": "DARK_CANDY",
+            "entry": 40417.8,
+            "target": 68181.7761904762,
+            "outcome": "open",
+            "observed": 6,
+            "downside": -9.59631956712143
+          },
+          {
+            "date": "2026-10-24",
+            "id": "DRAGON_HORN",
+            "entry": 6068214.6,
+            "target": 13072390.671999998,
+            "outcome": "open",
+            "observed": 3,
+            "downside": -41.24048861505326
+          },
+          {
+            "date": "2026-10-25",
+            "id": "ENCHANTMENT_PROSECUTE_6",
+            "entry": 70203264.6,
+            "target": 106954287.79130436,
+            "outcome": "open",
+            "observed": 3,
+            "downside": -12.024434560625828
+          },
+          {
+            "date": "2026-10-26",
+            "id": "DRAGON_HORN",
+            "entry": 4281713.5,
+            "target": 12571455.804166665,
+            "outcome": "open",
+            "observed": 3,
+            "downside": -16.723684367251565
+          },
+          {
+            "date": "2026-10-27",
+            "id": "DARK_CANDY",
+            "entry": 45002.8,
+            "target": 63356.37500000001,
+            "outcome": "open",
+            "observed": 4,
+            "downside": -33.620430284337864
+          },
+          {
+            "date": "2026-10-30",
+            "id": "COMPOST",
+            "entry": 7241.3,
+            "target": 12668.264285714282,
+            "outcome": "open",
+            "observed": 4,
+            "downside": -21.460114206012737
+          },
+          {
+            "date": "2026-10-31",
+            "id": "DRAGON_HORN",
+            "entry": 5752998,
+            "target": 10690730.890909089,
+            "outcome": "open",
+            "observed": 2,
+            "downside": -26.39024135763649
+          },
+          {
+            "date": "2026-11-09",
+            "id": "JACOBS_TICKET",
+            "entry": 18850.1,
+            "target": 34820.100000000006,
+            "outcome": "open",
+            "observed": 3,
+            "downside": -16.31335510156444
+          },
+          {
+            "date": "2026-11-11",
+            "id": "JACOBS_TICKET",
+            "entry": 18297.6,
+            "target": 33659.07894736843,
+            "outcome": "open",
+            "observed": 2,
+            "downside": -13.786418710650572
+          },
+          {
+            "date": "2026-11-14",
+            "id": "COMPOST",
+            "entry": 7118.6,
+            "target": 11087.666666666666,
+            "outcome": "open",
+            "observed": 2,
+            "downside": -8.699322900570337
+          },
+          {
+            "date": "2026-11-15",
+            "id": "COMPOST",
+            "entry": 6998.7,
+            "target": 10738.91111111111,
+            "outcome": "open",
+            "observed": 1,
+            "downside": -7.126716390186749
+          },
+          {
+            "date": "2026-11-16",
+            "id": "COMPOST",
+            "entry": 7065.5,
+            "target": 10411.444444444445,
+            "outcome": "open",
+            "observed": 0,
+            "downside": -7.402395442643829
+          }
+        ]
+      },
+      "current": {
+        "evaluated": 17,
+        "abstained": 17,
+        "picks": 0,
+        "reached": 0,
+        "missed": 0,
+        "incomplete": 0,
+        "meanObservedDays": null,
+        "medianWorstQuotedNetPct": null,
+        "worstQuotedNetPct": null,
+        "results": []
+      }
+    },
+    "90": {
+      "legacy": {
+        "evaluated": 17,
+        "abstained": 1,
+        "picks": 16,
+        "reached": 0,
+        "missed": 0,
+        "incomplete": 16,
+        "meanObservedDays": 2.5625,
+        "medianWorstQuotedNetPct": -15.627539513279118,
+        "worstQuotedNetPct": -41.24048861505326,
+        "results": [
+          {
+            "date": "2026-10-19",
+            "id": "SALTED_SUNFLOWER_SEEDS",
+            "entry": 159186.5,
+            "target": 374597.442857143,
+            "outcome": "open",
+            "observed": 5,
+            "downside": -10.085152478382271
+          },
+          {
+            "date": "2026-10-20",
+            "id": "SALTED_SUNFLOWER_SEEDS",
+            "entry": 159185.7,
+            "target": 370525.7761904764,
+            "outcome": "open",
+            "observed": 4,
+            "downside": -10.084142294188492
+          },
+          {
+            "date": "2026-10-21",
+            "id": "SALTED_SUNFLOWER_SEEDS",
+            "entry": 159186.3,
+            "target": 367001.0765625002,
+            "outcome": "open",
+            "observed": 3,
+            "downside": -10.076726923108327
+          },
+          {
+            "date": "2026-10-22",
+            "id": "ENCHANTMENT_SMOLDERING_1",
+            "entry": 2290982.4,
+            "target": 4947746.158333333,
+            "outcome": "open",
+            "observed": 4,
+            "downside": -15.931095542244226
+          },
+          {
+            "date": "2026-10-23",
+            "id": "ENCHANTMENT_FEAST_1",
+            "entry": 2899999.3,
+            "target": 4873593.147457627,
+            "outcome": "open",
+            "observed": 3,
+            "downside": -10.770956306782548
+          },
+          {
+            "date": "2026-10-24",
+            "id": "DRAGON_HORN",
+            "entry": 6068214.6,
+            "target": 13309176.294366198,
+            "outcome": "open",
+            "observed": 3,
+            "downside": -41.24048861505326
+          },
+          {
+            "date": "2026-10-25",
+            "id": "ENCHANTMENT_FEAST_1",
+            "entry": 2851468.7,
+            "target": 4799717.940983607,
+            "outcome": "open",
+            "observed": 2,
+            "downside": -37.262288334078505
+          },
+          {
+            "date": "2026-10-26",
+            "id": "DRAGON_HORN",
+            "entry": 4281713.5,
+            "target": 13245569.557142857,
+            "outcome": "open",
+            "observed": 3,
+            "downside": -16.723684367251565
+          },
+          {
+            "date": "2026-10-27",
+            "id": "ENCHANTMENT_ULTIMATE_REITERATE_1",
+            "entry": 611997.5,
+            "target": 950841.9507462686,
+            "outcome": "open",
+            "observed": 2,
+            "downside": -10.365888545296343
+          },
+          {
+            "date": "2026-10-30",
+            "id": "COMPOST",
+            "entry": 7241.3,
+            "target": 13303.092682926834,
+            "outcome": "open",
+            "observed": 4,
+            "downside": -21.460114206012737
+          },
+          {
+            "date": "2026-10-31",
+            "id": "DRAGON_HORN",
+            "entry": 5752998,
+            "target": 13033457.600000001,
+            "outcome": "open",
+            "observed": 2,
+            "downside": -26.39024135763649
+          },
+          {
+            "date": "2026-11-09",
+            "id": "DEEPFRIES",
+            "entry": 56418.6,
+            "target": 119057.22777777778,
+            "outcome": "open",
+            "observed": 4,
+            "downside": -17.051792316718245
+          },
+          {
+            "date": "2026-11-11",
+            "id": "DRAGON_HORN",
+            "entry": 4932036.3,
+            "target": 12891358.286567166,
+            "outcome": "open",
+            "observed": 1,
+            "downside": -38.720627953407394
+          },
+          {
+            "date": "2026-11-14",
+            "id": "ENCHANTMENT_DEDICATION_4",
+            "entry": 17612240.2,
+            "target": 39107837.79411764,
+            "outcome": "open",
+            "observed": 0,
+            "downside": -4.384748298515711
+          },
+          {
+            "date": "2026-11-15",
+            "id": "OVERGROWN_GRASS",
+            "entry": 4373297,
+            "target": 7414535.947297296,
+            "outcome": "open",
+            "observed": 1,
+            "downside": -15.323983484314011
+          },
+          {
+            "date": "2026-11-16",
+            "id": "JACOBS_TICKET",
+            "entry": 17042.9,
+            "target": 38191.13684210526,
+            "outcome": "open",
+            "observed": 0,
+            "downside": -7.43936624635479
+          }
+        ]
+      },
+      "current": {
+        "evaluated": 17,
+        "abstained": 17,
+        "picks": 0,
+        "reached": 0,
+        "missed": 0,
+        "incomplete": 0,
+        "meanObservedDays": null,
+        "medianWorstQuotedNetPct": null,
+        "worstQuotedNetPct": null,
+        "results": []
+      }
+    }
+  }
+}

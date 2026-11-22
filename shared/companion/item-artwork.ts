@@ -1,4 +1,4 @@
-/** Individually generated, reference-checked artwork keyed by exact SkyBlock ID.
+/** App and email artwork keyed by exact SkyBlock ID.
  * One lossless 236px export per item supports the current largest 118px display
  * at 2x. The complete progress inventory lives in docs/artwork/catalog-inventory.json.
  */

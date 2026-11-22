@@ -152,7 +152,7 @@ export async function cachedMarketRequest<T>(url: string, signal?: AbortSignal):
   const controller = new AbortController();
   const pathname = new URL(url).pathname;
   const localPreview = localPreviewMarketRead(url);
-  const reusable = /^\/(?:live-market\/)?api\/companion\/(bazaar|snapshot|book|portfolio-prices)$/.test(pathname);
+  const reusable = /^\/(?:live-market\/)?api\/companion\/(bazaar|snapshot|book|portfolio-prices|trending|flips)$/.test(pathname);
   const deliver = (body: any, cached = false, savedAt?: number) => {
     // A complete reply may itself pause polling. That must stop future I/O
     // without discarding the saved book/error that explains the pause.
@@ -160,7 +160,10 @@ export async function cachedMarketRequest<T>(url: string, signal?: AbortSignal):
     return observe(body, cached, savedAt);
   };
   const work = async () => {
-    const old = reusable ? await read(url, true) : undefined;
+    const saved = reusable ? await read(url, true) : undefined;
+    const rankingVersion = pathname.endsWith("/flips") ? 4 : pathname.endsWith("/trending") ? 2 : undefined;
+    const oldRanking = !!saved && rankingVersion !== undefined && saved.body.board?.version !== rankingVersion;
+    const old = oldRanking ? undefined : saved;
     if (old && old.at > (partialFailures.get(url) ?? Infinity)) partialFailures.delete(url);
     controller.signal.throwIfAborted();
     const firstRead = !seen.has(url); seen.add(url);
@@ -187,6 +190,7 @@ export async function cachedMarketRequest<T>(url: string, signal?: AbortSignal):
       (!old || old.at < policy.retryAt);
     if (old && sameRelease && Date.now() - old.at >= 0 && sameSlot && !recoveryDue && !partialFailures.has(url)) return deliver(old.body, true, old.at);
     const response = await fetch(url, {
+      ...(oldRanking ? { cache: "reload" as const } : {}),
       credentials: "omit", signal: AbortSignal.any([
         AbortSignal.timeout(localPreview ? 20_000 : Math.max(1,Math.floor(Math.min(20_000,(policy.expiresAt ?? Infinity)-Date.now())))),
         controller.signal,

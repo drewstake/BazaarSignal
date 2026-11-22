@@ -5,8 +5,13 @@ import {
   type NotificationInput,
 } from "../../shared/companion/notifications";
 import type { Holding } from "../../shared/companion/portfolio";
+import { parseCoinAmount } from "../../shared/companion/positions";
 import WorkspaceDialog from "./WorkspaceDialog";
 import { exact } from "./components";
+function draftTargets(current?: HoldingNotification) {
+  return {up: current?.up?.toString() ?? "", down: current?.down?.toString() ?? ""};
+}
+
 export default function NotificationEditor({
   holding,
   current,
@@ -29,13 +34,13 @@ export default function NotificationEditor({
   embedded?: boolean;
 }) {
   const [baseline, setBaseline] = useState<NotificationInput["baseline"]>(
-      current?.baseline ?? "acquisition",
-    ),
-    [up, setUp] = useState(current?.up == null ? "" : String(current.up)),
-    [down, setDown] = useState(
-      current?.down == null ? "" : String(current.down),
+      (current && !current.deleted) ? current.baseline : "fixed",
     ),
     [error, setError] = useState("");
+  const coinDraft = useState(() => draftTargets(current?.baseline === "fixed" && !current.deleted ? current : undefined));
+  const percentDraft = useState(() => draftTargets(current?.baseline !== "fixed" && !current?.deleted ? current : undefined));
+  const fixed = baseline === "fixed";
+  const [{up, down}, setTargets] = fixed ? coinDraft : percentDraft;
   const comparisonPrice =
     baseline === "acquisition"
       ? holding.costBasis / holding.quantity
@@ -57,15 +62,19 @@ export default function NotificationEditor({
     if (!Number.isFinite(target)) return null;
     return `${baseline === "sample" ? "Est. sell price" : "Sell price"}: ${exact(target)} coins`;
   }
-  const upTarget = targetPrice(up, "up");
-  const downTarget = targetPrice(down, "down");
+  const upTarget = !fixed && targetPrice(up, "up");
+  const downTarget = !fixed && targetPrice(down, "down");
+  function parseTarget(text: string) {
+    if (!text.trim()) return null;
+    return fixed ? (parseCoinAmount(text) ?? NaN) : Number(text);
+  }
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (busy) return;
     const input = {
       baseline,
-      up: up.trim() ? Number(up) : null,
-      down: down.trim() ? Number(down) : null,
+      up: parseTarget(up),
+      down: parseTarget(down),
     };
     try {
       validateNotification(input);
@@ -82,36 +91,37 @@ export default function NotificationEditor({
       aria-label="Holding notification"
     >
       <h2 id="notification-title">Notify me about {holding.name}</h2>
-      <p>Email me when the lowest sell price crosses either target.</p>
+      <p>Email me when the lowest sell offer crosses a target.</p>
       <fieldset disabled={busy}>
         <label>
-          Compare with
+          Target type
           <select
-            autoFocus={embedded}
             value={baseline}
-            onChange={(e) => setBaseline(e.target.value as typeof baseline)}
+            onChange={(e) => { setBaseline(e.target.value as typeof baseline); setError(""); }}
           >
-            <option value="acquisition">My average buy price</option>
-            <option value="sample">Price when enabled</option>
+            <option value="fixed">Exact price in coins</option>
+            <option value="acquisition">Percentage from my average buy price</option>
+            <option value="sample">Percentage from price when enabled</option>
           </select>
         </label>
-        <p>
+        {!fixed && <p>
           {baseline === "acquisition"
             ? "Updates when you change your holding."
             : "Locks in a fresh market price when enabled. Targets below are estimates."}
-        </p>
+        </p>}
         <div className="form-grid">
           <div>
             <label>
-              Price rises by (%)
+              {fixed ? "Price rises to (coins)" : "Price rises by (%)"}
               <input
+                autoFocus={embedded}
                 inputMode="decimal"
                 value={up}
                 onChange={(e) => {
-                  setUp(e.target.value);
+                  setTargets({up: e.target.value, down});
                   setError("");
                 }}
-                placeholder="e.g. 10"
+                placeholder={fixed ? "e.g. 1,500,000" : "e.g. 10"}
                 aria-describedby={
                   upTarget ? "notification-up-target" : undefined
                 }
@@ -129,15 +139,15 @@ export default function NotificationEditor({
           </div>
           <div>
             <label>
-              Price falls by (%)
+              {fixed ? "Price falls to (coins)" : "Price falls by (%)"}
               <input
                 inputMode="decimal"
                 value={down}
                 onChange={(e) => {
-                  setDown(e.target.value);
+                  setTargets({up, down: e.target.value});
                   setError("");
                 }}
-                placeholder="e.g. 10"
+                placeholder={fixed ? "e.g. 1,200,000" : "e.g. 10"}
                 aria-describedby={
                   downTarget ? "notification-down-target" : undefined
                 }
@@ -155,14 +165,9 @@ export default function NotificationEditor({
           </div>
         </div>
         <p>
-          Prices are per item, before fees. Set one or both; no email is sent
-          immediately.
+          Set one or both targets using prices per item before fees.
         </p>
-        <p>
-          {emailEnabled
-            ? "Sent to your Google email."
-            : "Email delivery is off. Turn it on in Settings to receive alerts."}
-        </p>
+        {!emailEnabled && <p>Email delivery is off. Turn it on in Settings to receive alerts.</p>}
         {(error || saveError) && (
           <p className="error" role="alert">
             {error || saveError}
@@ -186,6 +191,7 @@ export default function NotificationEditor({
       busy={busy}
       cancel={cancel}
       labelledBy="notification-title"
+      initialFocus="input"
     >
       {form}
     </WorkspaceDialog>

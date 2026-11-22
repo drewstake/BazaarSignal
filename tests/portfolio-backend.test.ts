@@ -37,7 +37,8 @@ const encode = (v: any): any =>
                 ),
               },
             };
-vi.mock("../apps-script/store", () => ({
+vi.mock("../apps-script/store", async (original) => ({
+  fetchJson: (await original<typeof import("../apps-script/store")>()).fetchJson,
   DOCUMENT: "projects/test/databases/(default)/documents",
   readDoc: (path: string) => { storage.reads.push(path); return storage.docs.get(path) ?? null; },
   loadUser: () => ({ state: storage.legacy }),
@@ -100,24 +101,15 @@ vi.mock("../apps-script/store", () => ({
             .map(([, v]) => v),
         };
   },
-  fetchJson: () => ({
-    users: [
-      {
-        localId: "alice",
-        email: "current@example.test",
-        emailVerified: true,
-        disabled: !storage.accountEnabled,
-        providerUserInfo: [{ providerId: "google.com" }],
-      },
-    ],
-  }),
 }));
 import {
   decodeFields,
   notificationKey,
+  portfolioMailText,
   portfolioNotificationRequest,
   runPortfolioNotifications,
 } from "../apps-script/portfolio-backend";
+import type { Mail } from "../apps-script/core";
 import { legacyHolding } from "../shared/companion/portfolio";
 import { normalizeBazaar } from "../shared/companion/bazaar";
 const now = Date.now(),
@@ -155,6 +147,20 @@ const request = (
   revision = 0,
   input: any = { baseline: "acquisition", up: 10, down: 5 },
 ) => ({ portfolioId: pid, holdingId: hid, operation, revision, input });
+const httpResponse = (status: number, body: unknown) => ({
+  getResponseCode: () => status, getContentText: () => JSON.stringify(body),
+});
+const serviceDisabled = httpResponse(403, {error: {
+  status: 'PERMISSION_DENIED', message: 'private@example.test offline-test-token',
+  details: [{'@type':'type.googleapis.com/google.rpc.ErrorInfo',reason:'SERVICE_DISABLED'}],
+}});
+const lookup = vi.fn((_url: string, options: any) => {
+  if (options.headers['x-goog-user-project'] !== 'bazaarsignal') return serviceDisabled;
+  return httpResponse(200, {users: [{
+    localId: 'alice', email: 'current@example.test', emailVerified: true,
+    disabled: !storage.accountEnabled, providerUserInfo: [{providerId: 'google.com'}],
+  }]});
+});
 beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(now);
@@ -169,6 +175,9 @@ beforeEach(() => {
     }),
   });
   vi.stubGlobal("ScriptApp", { getOAuthToken: () => "offline-test-token" });
+  lookup.mockClear();
+  vi.stubGlobal("UrlFetchApp", {fetch: lookup});
+  vi.stubGlobal("Utilities", {formatDate: vi.fn(() => "Nov 17 at 11:15 PM EST")});
   vi.stubGlobal("MailApp", {
     sendEmail: vi.fn(),
     getRemainingDailyQuota: () => storage.quota,
@@ -207,6 +216,61 @@ function workerSample(price: number, stamp: number) {
     listings: [],
   };
 }
+it("saves coin targets without a current quote and emails each fresh crossing once", () => {
+  const readPrices = vi.fn(() => { throw Error("No current quote"); });
+  const input = {baseline:"fixed", up:110.25, down:90.75};
+  const saved = portfolioNotificationRequest(identity, request("save", 0, input), now, readPrices);
+  expect(saved).toMatchObject({...input, capturedPrice:null, capturedAt:null});
+  expect(readPrices).not.toHaveBeenCalled();
+  seed("users/alice/portfolioPreferences/main", {emailEnabled:true});
+  const send = (globalThis as any).MailApp.sendEmail;
+  function sample(price: number, offset: number) {
+    workerSample(price, now + offset);
+    vi.setSystemTime(now + offset + 10);
+    runPortfolioNotifications(Date.now());
+  }
+  sample(111, 0); // Already above on the first sample.
+  sample(110.24, 1000);
+  seed(`users/alice/portfolios/${pid}/holdings/${hid}`, {...h, costBasis:5000, revision:2});
+  sample(110.25, 2000); // Equality crosses even after a cost-basis change.
+  sample(111, 3000);
+  sample(90.75, 4000);
+  runPortfolioNotifications(Date.now());
+  expect(send).toHaveBeenCalledTimes(2);
+  expect(send.mock.calls.map(([mail]: [{body:string}]) => mail.body.split("\n")[0])).toEqual([
+    "Booster Cookie — lowest sell offer rose to 110.25 coins.",
+    "Booster Cookie — lowest sell offer fell to 90.75 coins.",
+  ]);
+  expect(send.mock.calls[0][0].htmlBody).toContain("Lowest sell offer rose to");
+  for (const [mail] of send.mock.calls) {
+    expect(mail.htmlBody).toContain('src="https://bazaarsignal.web.app/assets/items/booster_cookie.webp"');
+    expect(mail.htmlBody).not.toContain("summoning-eye");
+  }
+});
+it("renders the Summoning Eye crossing once per format with readable time and optional artwork", () => {
+  const sampledAt = Date.parse("2026-11-18T04:15:08.962Z");
+  const mail: Mail = {
+    id:"event", alertId:id, kind:"portfolio", status:"queued", attempts:0, nextAttempt:0, leaseUntil:0, error:null,
+    portfolio:{notificationId:id, revision:1, holdingRevision:1, portfolioId:pid, holdingId:"bz_SUMMONING_EYE",
+      direction:"up", price:1500000, targetPrice:1500000, sampledAt, source:"bazaar-ask-v1"},
+  };
+  const {subject, body, htmlBody} = portfolioMailText(mail, "Summoning Eye");
+  expect(subject).toBe("Summoning Eye rose to 1,500,000 coins");
+  expect(body).toBe("Summoning Eye — lowest sell offer rose to 1,500,000 coins.\nNov 17 at 11:15 PM EST\n\nManage alerts: https://bazaarsignal.web.app/#view=settings&section=notifications");
+  expect(htmlBody.match(/1,500,000/g)).toHaveLength(1);
+  expect(htmlBody).toContain("https://bazaarsignal.web.app/assets/alerts/summoning-eye-v1.jpg");
+  expect(htmlBody).toContain("href=\"https://bazaarsignal.web.app/#view=settings&amp;section=notifications\"");
+  expect((globalThis as any).Utilities.formatDate).toHaveBeenCalledWith(new Date(sampledAt), "America/New_York", "MMM d 'at' h:mm a z");
+
+  const overshoot = portfolioMailText({...mail, portfolio:{...mail.portfolio!, price:1500123.45}}, "Summoning Eye");
+  expect(overshoot.body).toContain("1,500,123.45 coins.\nYour target was 1,500,000 coins");
+  const relative = portfolioMailText({...mail, portfolio:{...mail.portfolio!, holdingId:"bz_NO_CATALOG_IMAGE", direction:"down",
+    source:"bazaar-bid-v1", price:95, targetPrice:undefined, baseline:100, percent:-5}}, "A&B\r\n<Eye>");
+  expect(relative.subject).toBe("A&B <Eye> fell to 95 coins");
+  expect(relative.htmlBody).toContain("A&amp;B &lt;Eye&gt;");
+  expect(relative.htmlBody).not.toContain("<img");
+  expect(relative.body).toContain("highest buy order fell to 95 coins.\n5% below your 100-coin baseline");
+});
 it('reads a shared portfolio once and writes the evaluated ledger once when nothing needs pruning', () => {
   const notification = portfolioNotificationRequest(identity, request(), now);
   for (const itemId of ['ENCHANTED_DIAMOND', 'ENCHANTED_GOLD']) {
@@ -236,8 +300,41 @@ it("runs the persisted worker through priming, crossing, verified recipient look
   expect((globalThis as any).MailApp.sendEmail.mock.calls[0][0]).toMatchObject({
     to: "current@example.test",
   });
+  expect(lookup).toHaveBeenCalledWith('https://identitytoolkit.googleapis.com/v1/projects/bazaarsignal/accounts:lookup', {
+    method:'post', contentType:'application/json', muteHttpExceptions:true, payload:JSON.stringify({localId:['alice']}),
+    headers:{Authorization:'Bearer offline-test-token','x-goog-user-project':'bazaarsignal'},
+  });
   runPortfolioNotifications(now);
   expect((globalThis as any).MailApp.sendEmail).toHaveBeenCalledTimes(1);
+});
+it('retains safe failure stages and retries the same crossing until the provider accepts once', () => {
+  portfolioNotificationRequest(identity, request(), now);
+  seed('users/alice/portfolioPreferences/main', {emailEnabled:true});
+  workerSample(100, now - 2000);
+  runPortfolioNotifications(now);
+  workerSample(115, now - 1000);
+  const send = (globalThis as any).MailApp.sendEmail;
+  const mail = () => {
+    const {state} = JSON.parse(storage.docs.get('portfolioDelivery/alice').fields.json.stringValue);
+    expect(state.mail).toHaveLength(1);
+    return state.mail[0];
+  };
+  lookup.mockReturnValueOnce(serviceDisabled);
+  runPortfolioNotifications(now);
+  const event = mail();
+  expect(event).toMatchObject({status:'queued',attempts:1,error:'Firebase recipient lookup failed (HTTP 403, SERVICE_DISABLED).'});
+  expect(send).not.toHaveBeenCalled();
+
+  vi.setSystemTime(event.nextAttempt);
+  send.mockImplementationOnce(() => { throw Error('Service invoked too many times: email, private@example.test'); });
+  runPortfolioNotifications(Date.now());
+  expect(mail()).toMatchObject({id:event.id,status:'queued',attempts:2,error:'MailApp.sendEmail failed (QUOTA_EXCEEDED).'});
+
+  vi.setSystemTime(mail().nextAttempt);
+  runPortfolioNotifications(Date.now());
+  runPortfolioNotifications(Date.now());
+  expect(mail()).toMatchObject({id:event.id,status:'sent',attempts:3,error:null,sentAt:Date.now()});
+  expect(send).toHaveBeenCalledTimes(2);
 });
 it.each(["preference", "holding", "portfolio", "identity"])(
   "rechecks %s eligibility before sending a quota-deferred crossing",

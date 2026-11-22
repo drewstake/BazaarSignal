@@ -1,0 +1,789 @@
+{
+  "runtime": {
+    "image": "sha256:d6dac2468635c19d0d1c4e58a2663583878b37722d3a339650d8c85fdc2e5ed2",
+    "releaseAt": "2026-11-18T18:49:34.954Z",
+    "services": {
+      "marketapi": {
+        "revision": "marketapi-00044-scj",
+        "trafficPercent": 100
+      },
+      "refreshmarket": {
+        "revision": "refreshmarket-00041-l7c",
+        "trafficPercent": 100
+      }
+    },
+    "jobs": {
+      "firebase-schedule-refreshMarket-us-central1": {
+        "state": "ENABLED",
+        "schedule": "*/15 * * * *",
+        "lastAttemptTime": "2026-11-18T19:00:01.875138Z",
+        "statusCode": 0
+      },
+      "bazaar-daily-close": {
+        "state": "ENABLED",
+        "schedule": "59 4 * * *",
+        "lastAttemptTime": "2026-11-18T04:59:03.594655Z",
+        "statusCode": 0
+      }
+    },
+    "hosting": {
+      "version": "sites/bazaarsignal/versions/e7f9d17ab7ec4a16",
+      "releasedAt": "2026-11-18T18:50:17.267Z"
+    },
+    "collectorRequests": [
+      {
+        "at": "2026-11-18T19:00:01.898970Z",
+        "status": 200,
+        "latency": "4.031911270s"
+      }
+    ],
+    "checkedAt": "2026-11-18T19:00:58.296Z"
+  },
+  "desktop": {
+    "width": 1440,
+    "verifiedAt": "2026-11-18T19:00:38.629Z",
+    "bookAt": "2026-11-18T18:59:48.993Z",
+    "asset": "/assets/app-RlxZKK8h.js",
+    "notes": [
+      {
+        "days": 7,
+        "eligible": 0,
+        "watch": 27,
+        "chartText": "Price history: 199 recorded days. Instant buy and instant sell in coins per item."
+      },
+      {
+        "days": 30,
+        "eligible": 0,
+        "watch": 52,
+        "chartText": "Price history: 199 recorded days. Instant buy and instant sell in coins per item."
+      },
+      {
+        "days": 90,
+        "eligible": 0,
+        "watch": 58,
+        "chartText": "Price history: 199 recorded days. Instant buy and instant sell in coins per item."
+      }
+    ],
+    "lots": [
+      1,
+      10,
+      64
+    ],
+    "errors": []
+  },
+  "mobile": {
+    "width": 390,
+    "verifiedAt": "2026-11-18T19:00:54.944Z",
+    "bookAt": "2026-11-18T18:59:48.993Z",
+    "asset": "/assets/app-RlxZKK8h.js",
+    "notes": [
+      {
+        "days": 7,
+        "eligible": 0,
+        "watch": 27,
+        "chartText": "Price history: 199 recorded days. Instant buy and instant sell in coins per item."
+      },
+      {
+        "days": 30,
+        "eligible": 0,
+        "watch": 52,
+        "chartText": "Price history: 199 recorded days. Instant buy and instant sell in coins per item."
+      },
+      {
+        "days": 90,
+        "eligible": 0,
+        "watch": 58,
+        "chartText": "Price history: 199 recorded days. Instant buy and instant sell in coins per item."
+      }
+    ],
+    "lots": [
+      1,
+      10,
+      64
+    ],
+    "errors": []
+  },
+  "snapshotAt": "2026-11-18T18:59:48.993Z",
+  "through": "2026-11-17",
+  "lot": 10,
+  "minimumDiscount": 15,
+  "changes": [
+    {
+      "id": "COMPOST",
+      "name": "Compost",
+      "change": {
+        "day": 20774,
+        "before": 76800,
+        "after": 25600,
+        "ingredientId": "BOX_OF_SEEDS",
+        "path": [
+          "BOX_OF_SEEDS",
+          "COMPOST"
+        ],
+        "ingredientName": "Box of Seeds"
+      },
+      "cutoff": 20774,
+      "ready": []
+    },
+    {
+      "id": "ENCHANTED_COMPOST",
+      "name": "Compost Bundle",
+      "change": {
+        "day": 20774,
+        "before": 76800,
+        "after": 25600,
+        "ingredientId": "BOX_OF_SEEDS",
+        "path": [
+          "BOX_OF_SEEDS",
+          "COMPOST",
+          "ENCHANTED_COMPOST"
+        ],
+        "ingredientName": "Box of Seeds"
+      },
+      "cutoff": 20774,
+      "ready": []
+    },
+    {
+      "id": "ENCHANTED_MELON_BLOCK",
+      "name": "Enchanted Melon",
+      "change": {
+        "day": 20774,
+        "before": 51200,
+        "after": 12800
+      },
+      "cutoff": 20774,
+      "ready": []
+    },
+    {
+      "id": "ENCHANTED_MELON",
+      "name": "Enchanted Melon Slice",
+      "change": {
+        "day": 20774,
+        "before": 320,
+        "after": 80
+      },
+      "cutoff": 20774,
+      "ready": []
+    },
+    {
+      "id": "SYNTHETIC_HEART",
+      "name": "Synthetic Heart",
+      "change": {
+        "day": 20774,
+        "before": 50000,
+        "after": 10000
+      },
+      "cutoff": 20774,
+      "ready": []
+    }
+  ],
+  "grass": {
+    "id": "OVERGROWN_GRASS",
+    "name": "Overgrown Grass",
+    "entry": 3587472.9799999995,
+    "immediate": 2942089.4,
+    "tax": 36776.1175,
+    "spread": 17.989921696915466,
+    "breakEven": 3632884.030379746,
+    "loss": 682159.6974999997,
+    "target": null,
+    "rise": null,
+    "discount": 27.096448010586805,
+    "avg": null,
+    "evidence": {
+      "hits": 0,
+      "misses": 0,
+      "incomplete": 0
+    },
+    "reasons": [
+      "Waiting for post-update history",
+      "Wide spread",
+      "Daily bids are still falling"
+    ],
+    "score": 0,
+    "upside": null,
+    "buyVolume": 2309,
+    "sellVolume": 1139,
+    "effect": {
+      "kind": "demand",
+      "onset": 20756,
+      "confirmedOn": 20765,
+      "reference": 7760001.3,
+      "recent": 4300013.5,
+      "observations": 9,
+      "beforeCount": 13,
+      "lastBefore": 20753,
+      "comparisons": [
+        {
+          "id": "SKYMART_BROCHURE",
+          "before": 13,
+          "after": 9,
+          "pct": 7.9999466670222175
+        },
+        {
+          "id": "BLESSED_FRUIT",
+          "before": 13,
+          "after": 9,
+          "pct": -17.128046539927723
+        },
+        {
+          "id": "ENCHANTED_REDSTONE",
+          "before": 13,
+          "after": 9,
+          "pct": -24.153957879448072
+        },
+        {
+          "id": "ENCHANTED_COAL",
+          "before": 13,
+          "after": 9,
+          "pct": -22.230003112356055
+        }
+      ],
+      "cutoff": 20756,
+      "releaseWindow": {
+        "before": 6,
+        "after": 0,
+        "pct": null
+      }
+    },
+    "cutoff": 20756
+  },
+  "breaks": 216,
+  "before": {
+    "at": "2026-11-18T18:15:08.979Z",
+    "top90": [
+      {
+        "offer": 8148321.839726027,
+        "bid": 7281004.083561643,
+        "median": 8307554.3,
+        "days": 73,
+        "discount": 55.09280055483137,
+        "upside": 3530808.3925171215,
+        "entry": 3659183.1400000006,
+        "id": "OVERGROWN_GRASS",
+        "name": "Overgrown Grass",
+        "buyVolume": 2308,
+        "sellVolume": 1144
+      },
+      {
+        "offer": 40092.23999999999,
+        "bid": 37844.00533333334,
+        "median": 39678.4,
+        "days": 75,
+        "discount": 55.03469000484882,
+        "upside": 19343.355266666673,
+        "entry": 18027.6,
+        "id": "JACOBS_TICKET",
+        "name": "Jacob's Ticket",
+        "buyVolume": 1179570,
+        "sellVolume": 1065963
+      },
+      {
+        "offer": 719.4054794520548,
+        "bid": 651.1575342465753,
+        "median": 706.5,
+        "days": 73,
+        "discount": 51.07070907103659,
+        "upside": 291.0180650684931,
+        "entry": 352,
+        "id": "ESSENCE_UNDEAD",
+        "name": "Essence Undead",
+        "buyVolume": 49873887,
+        "sellVolume": 60864568
+      },
+      {
+        "offer": 23036841.293589745,
+        "bid": 21515617.97948719,
+        "median": 23357201.9,
+        "days": 78,
+        "discount": 45.87244205450287,
+        "upside": 8777393.1347436,
+        "entry": 12469279.62,
+        "id": "PERFECT_PERIDOT_GEM",
+        "name": "Perfect Peridot Gemstone",
+        "buyVolume": 3292,
+        "sellVolume": 1914
+      },
+      {
+        "offer": 52377.54133333332,
+        "bid": 49029.854666666666,
+        "median": 57471.3,
+        "days": 75,
+        "discount": 44.78301336073913,
+        "upside": 19495.68148333333,
+        "entry": 28921.3,
+        "id": "WORM_MEMBRANE",
+        "name": "Worm Membrane",
+        "buyVolume": 1128936,
+        "sellVolume": 2048019
+      },
+      {
+        "offer": 3319202.6457627127,
+        "bid": 2877190.6,
+        "median": 3401665.4,
+        "days": 59,
+        "discount": 38.25935958998682,
+        "upside": 791928.7475000003,
+        "entry": 2049296.97,
+        "id": "JADERALD",
+        "name": "Jaderald",
+        "buyVolume": 9989,
+        "sellVolume": 4818
+      }
+    ]
+  },
+  "windows": {
+    "7": {
+      "actionable": [],
+      "watchCount": 27,
+      "topWatch": [
+        {
+          "id": "OVERGROWN_GRASS",
+          "name": "Overgrown Grass",
+          "entry": 3587472.9799999995,
+          "immediate": 2942089.4,
+          "tax": 36776.1175,
+          "spread": 17.989921696915466,
+          "breakEven": 3632884.030379746,
+          "loss": 682159.6974999997,
+          "target": null,
+          "rise": null,
+          "discount": 17.23840792904242,
+          "avg": null,
+          "evidence": {
+            "hits": 0,
+            "misses": 0,
+            "incomplete": 0
+          },
+          "reasons": [
+            "Waiting for post-update history",
+            "Wide spread",
+            "Daily bids are still falling"
+          ],
+          "score": 0,
+          "upside": null,
+          "buyVolume": 2309,
+          "sellVolume": 1139,
+          "effect": {
+            "kind": "demand",
+            "onset": 20756,
+            "confirmedOn": 20765,
+            "reference": 7760001.3,
+            "recent": 4300013.5,
+            "observations": 9,
+            "beforeCount": 13,
+            "lastBefore": 20753,
+            "comparisons": [
+              {
+                "id": "SKYMART_BROCHURE",
+                "before": 13,
+                "after": 9,
+                "pct": 7.9999466670222175
+              },
+              {
+                "id": "BLESSED_FRUIT",
+                "before": 13,
+                "after": 9,
+                "pct": -17.128046539927723
+              },
+              {
+                "id": "ENCHANTED_REDSTONE",
+                "before": 13,
+                "after": 9,
+                "pct": -24.153957879448072
+              },
+              {
+                "id": "ENCHANTED_COAL",
+                "before": 13,
+                "after": 9,
+                "pct": -22.230003112356055
+              }
+            ],
+            "cutoff": 20756,
+            "releaseWindow": {
+              "before": 6,
+              "after": 0,
+              "pct": null
+            }
+          },
+          "cutoff": 20756
+        },
+        {
+          "id": "ENCHANTMENT_ULTIMATE_FLASH_1",
+          "name": "Enchantment Ultimate Flash 1",
+          "entry": 2985437.49,
+          "immediate": 2780301.7,
+          "tax": 34753.77125,
+          "spread": 6.871213706102419,
+          "breakEven": 3023227.837974684,
+          "loss": 239889.56125000003,
+          "target": 3776203.3,
+          "rise": 35.81991119884578,
+          "discount": 21.823749213108336,
+          "avg": {
+            "offer": 3818854.7800000003,
+            "bid": 3624275.44,
+            "median": 3982645,
+            "days": 5
+          },
+          "evidence": {
+            "hits": 0,
+            "misses": 0,
+            "incomplete": 0
+          },
+          "reasons": [
+            "Too few comparable recoveries with follow-up"
+          ],
+          "score": 0,
+          "upside": null,
+          "buyVolume": 4733,
+          "sellVolume": 3808
+        },
+        {
+          "id": "PERFECT_PERIDOT_GEM",
+          "name": "Perfect Peridot Gemstone",
+          "entry": 12103005.760000002,
+          "immediate": 11000000.6,
+          "tax": 137500.0075,
+          "spread": 9.113481244844102,
+          "breakEven": 12256208.364556963,
+          "loss": 1240505.167500002,
+          "target": 13285261.7,
+          "rise": 20.775099775903637,
+          "discount": 20.39147574139195,
+          "avg": {
+            "offer": 15203153.02,
+            "bid": 13614107.440000001,
+            "median": 15037045.6,
+            "days": 5
+          },
+          "evidence": {
+            "hits": 0,
+            "misses": 0,
+            "incomplete": 0
+          },
+          "reasons": [
+            "Too few comparable recoveries with follow-up"
+          ],
+          "score": 0,
+          "upside": null,
+          "buyVolume": 3250,
+          "sellVolume": 1907,
+          "effect": {
+            "kind": "unknown",
+            "onset": 20757,
+            "confirmedOn": 20766,
+            "reference": 20145184,
+            "recent": 14500001.95,
+            "observations": 8,
+            "beforeCount": 12,
+            "lastBefore": 20756,
+            "cutoff": 20757
+          },
+          "cutoff": 20757
+        }
+      ]
+    },
+    "30": {
+      "actionable": [],
+      "watchCount": 52,
+      "topWatch": [
+        {
+          "id": "OVERGROWN_GRASS",
+          "name": "Overgrown Grass",
+          "entry": 3587472.9799999995,
+          "immediate": 2942089.4,
+          "tax": 36776.1175,
+          "spread": 17.989921696915466,
+          "breakEven": 3632884.030379746,
+          "loss": 682159.6974999997,
+          "target": null,
+          "rise": null,
+          "discount": 27.096448010586805,
+          "avg": null,
+          "evidence": {
+            "hits": 0,
+            "misses": 0,
+            "incomplete": 0
+          },
+          "reasons": [
+            "Waiting for post-update history",
+            "Wide spread",
+            "Daily bids are still falling"
+          ],
+          "score": 0,
+          "upside": null,
+          "buyVolume": 2309,
+          "sellVolume": 1139,
+          "effect": {
+            "kind": "demand",
+            "onset": 20756,
+            "confirmedOn": 20765,
+            "reference": 7760001.3,
+            "recent": 4300013.5,
+            "observations": 9,
+            "beforeCount": 13,
+            "lastBefore": 20753,
+            "comparisons": [
+              {
+                "id": "SKYMART_BROCHURE",
+                "before": 13,
+                "after": 9,
+                "pct": 7.9999466670222175
+              },
+              {
+                "id": "BLESSED_FRUIT",
+                "before": 13,
+                "after": 9,
+                "pct": -17.128046539927723
+              },
+              {
+                "id": "ENCHANTED_REDSTONE",
+                "before": 13,
+                "after": 9,
+                "pct": -24.153957879448072
+              },
+              {
+                "id": "ENCHANTED_COAL",
+                "before": 13,
+                "after": 9,
+                "pct": -22.230003112356055
+              }
+            ],
+            "cutoff": 20756,
+            "releaseWindow": {
+              "before": 6,
+              "after": 0,
+              "pct": null
+            }
+          },
+          "cutoff": 20756
+        },
+        {
+          "id": "WORM_MEMBRANE",
+          "name": "Worm Membrane",
+          "entry": 27782.9,
+          "immediate": 24950.4,
+          "tax": 311.88,
+          "spread": 10.19512001986833,
+          "breakEven": 28134.58227848101,
+          "loss": 3144.38,
+          "target": 31301,
+          "rise": 25.452898550724633,
+          "discount": 32.0303969263832,
+          "avg": {
+            "offer": 40875.477777777785,
+            "bid": 38191.91666666666,
+            "median": 40468.55,
+            "days": 18
+          },
+          "evidence": {
+            "hits": 0,
+            "misses": 0,
+            "incomplete": 0
+          },
+          "reasons": [
+            "Wide spread",
+            "Daily bids are still falling",
+            "Too few comparable recoveries with follow-up"
+          ],
+          "score": 0,
+          "upside": null,
+          "buyVolume": 1134590,
+          "sellVolume": 2055854,
+          "effect": {
+            "kind": "unknown",
+            "onset": 20733,
+            "confirmedOn": 20735,
+            "reference": 56476.55,
+            "recent": 36613.7,
+            "observations": 30,
+            "beforeCount": 14,
+            "lastBefore": 20732,
+            "cutoff": 20733
+          },
+          "cutoff": 20733
+        },
+        {
+          "id": "ENCHANTED_ENDER_PEARL",
+          "name": "Enchanted Ender Pearl",
+          "entry": 199.5,
+          "immediate": 180.4,
+          "tax": 2.255,
+          "spread": 9.573934837092724,
+          "breakEven": 202.02531645569618,
+          "loss": 21.354999999999993,
+          "target": null,
+          "rise": null,
+          "discount": 32.06197854588796,
+          "avg": null,
+          "evidence": {
+            "hits": 0,
+            "misses": 0,
+            "incomplete": 0
+          },
+          "reasons": [
+            "Sparse usable bid history"
+          ],
+          "score": 0,
+          "upside": null,
+          "buyVolume": 864118,
+          "sellVolume": 10366604
+        }
+      ]
+    },
+    "90": {
+      "actionable": [],
+      "watchCount": 58,
+      "topWatch": [
+        {
+          "id": "OVERGROWN_GRASS",
+          "name": "Overgrown Grass",
+          "entry": 3587472.9799999995,
+          "immediate": 2942089.4,
+          "tax": 36776.1175,
+          "spread": 17.989921696915466,
+          "breakEven": 3632884.030379746,
+          "loss": 682159.6974999997,
+          "target": null,
+          "rise": null,
+          "discount": 27.096448010586805,
+          "avg": null,
+          "evidence": {
+            "hits": 0,
+            "misses": 0,
+            "incomplete": 0
+          },
+          "reasons": [
+            "Waiting for post-update history",
+            "Wide spread",
+            "Daily bids are still falling"
+          ],
+          "score": 0,
+          "upside": null,
+          "buyVolume": 2309,
+          "sellVolume": 1139,
+          "effect": {
+            "kind": "demand",
+            "onset": 20756,
+            "confirmedOn": 20765,
+            "reference": 7760001.3,
+            "recent": 4300013.5,
+            "observations": 9,
+            "beforeCount": 13,
+            "lastBefore": 20753,
+            "comparisons": [
+              {
+                "id": "SKYMART_BROCHURE",
+                "before": 13,
+                "after": 9,
+                "pct": 7.9999466670222175
+              },
+              {
+                "id": "BLESSED_FRUIT",
+                "before": 13,
+                "after": 9,
+                "pct": -17.128046539927723
+              },
+              {
+                "id": "ENCHANTED_REDSTONE",
+                "before": 13,
+                "after": 9,
+                "pct": -24.153957879448072
+              },
+              {
+                "id": "ENCHANTED_COAL",
+                "before": 13,
+                "after": 9,
+                "pct": -22.230003112356055
+              }
+            ],
+            "cutoff": 20756,
+            "releaseWindow": {
+              "before": 6,
+              "after": 0,
+              "pct": null
+            }
+          },
+          "cutoff": 20756
+        },
+        {
+          "id": "TARANTULA_WEB",
+          "name": "Tarantula Web",
+          "entry": 918.5,
+          "immediate": 867.1,
+          "tax": 10.83875,
+          "spread": 5.596080566140449,
+          "breakEven": 930.126582278481,
+          "loss": 62.238749999999975,
+          "target": 948.5,
+          "rise": 9.387613885364999,
+          "discount": 16.701897673153166,
+          "avg": {
+            "offer": 1102.6661764705882,
+            "bid": 1005.9514705882348,
+            "median": 1089.8,
+            "days": 68
+          },
+          "evidence": {
+            "hits": 1,
+            "misses": 0,
+            "incomplete": 1,
+            "episodes": [
+              [
+                20717,
+                17.487871245891885,
+                6.2971842481126306,
+                "hit"
+              ],
+              [
+                20749,
+                15.845938471834021,
+                9.021373548877065,
+                "open"
+              ]
+            ]
+          },
+          "reasons": [
+            "Too few comparable recoveries with follow-up"
+          ],
+          "score": 0.3333333333333333,
+          "upside": null,
+          "buyVolume": 2183901,
+          "sellVolume": 43903118
+        },
+        {
+          "id": "SORROW",
+          "name": "Sorrow",
+          "entry": 168596.1,
+          "immediate": 159383.7,
+          "tax": 1992.29625,
+          "spread": 5.4641833352016995,
+          "breakEven": 170730.22784810126,
+          "loss": 11204.696249999994,
+          "target": 182475.1,
+          "rise": 14.487930698057582,
+          "discount": 33.91897263767824,
+          "avg": {
+            "offer": 255135.409859155,
+            "bid": 235660.84225352114,
+            "median": 254403.3,
+            "days": 71
+          },
+          "evidence": {
+            "hits": 0,
+            "misses": 0,
+            "incomplete": 0
+          },
+          "reasons": [
+            "Too few comparable recoveries with follow-up"
+          ],
+          "score": 0,
+          "upside": null,
+          "buyVolume": 93267,
+          "sellVolume": 76010
+        }
+      ]
+    }
+  }
+}

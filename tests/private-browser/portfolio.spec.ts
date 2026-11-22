@@ -264,7 +264,7 @@ test("notification controls persist, respect revisions and stay retired after ho
             ? { stringValue: value }
             : typeof value === "boolean"
               ? { booleanValue: value }
-              : { integerValue: String(value) },
+              : Number.isInteger(value) ? { integerValue: String(value) } : { doubleValue: value },
       ]),
     );
     const result = await page.request.patch(url, {
@@ -283,18 +283,35 @@ test("notification controls persist, respect revisions and stay retired after ho
   const card = page.getByRole("rowgroup", { name: "Booster Cookie holding" });
   const form = page.getByRole("form", { name: "Holding notification" });
   await card.getByRole("button", { name: "Set notification" }).click();
+  await expect(form.getByLabel("Price rises to (coins)")).toBeFocused();
+  await form.getByLabel("Price rises to (coins)").fill("1,525,198.27");
+  await form.getByRole("button", { name: "Save and enable" }).click();
+  await expect(card).toContainText("Enabled · ↑ 1,525,198.27 coins");
+  await page.getByRole("link", { name: "Settings", exact: true }).click();
+  const fixedCard = page.getByRole("article", {name:"Booster Cookie notification"});
+  await expect(fixedCard.locator(".upward .notification-trigger-price")).toHaveText("1,525,198.27 coins");
+  await expect(fixedCard.locator(".notification-baseline")).toHaveCount(0);
+  await page.reload();
+  await fixedCard.getByRole("button", {name:"Edit notification"}).click();
+  await expect(form.getByLabel("Price rises to (coins)")).toHaveValue("1525198.27");
+  await form.getByLabel("Target type").selectOption("acquisition");
+  await expect(form.getByLabel("Price rises by (%)")).toHaveValue("");
+  await form.getByRole("button", {name:"Cancel"}).click();
+  await page.getByRole("link", {name:"Portfolio", exact:true}).click();
+  await card.getByRole("button", {name:"Edit notification"}).click();
+  await form.getByLabel("Target type").selectOption("acquisition");
   await form.getByLabel("Price rises by (%)").fill("30");
   await expect(form.locator("#notification-up-target")).toHaveText("Sell price: 15,860,000 coins");
   await form.getByLabel("Price falls by (%)").fill("5");
   await expect(form.locator("#notification-down-target")).toHaveText("Sell price: 11,590,000 coins");
-  await form.getByLabel("Compare with").selectOption("sample");
+  await form.getByLabel("Target type").selectOption("sample");
   await expect(form.locator("#notification-up-target")).toHaveText("Est. sell price: 18,200,000 coins");
   await expect(form.locator("#notification-down-target")).toHaveText("Est. sell price: 13,300,000 coins");
   await form.getByLabel("Price rises by (%)").fill("invalid");
   await expect(form.locator("#notification-up-target")).toHaveCount(0);
   await form.getByLabel("Price rises by (%)").fill("");
   await expect(form.locator("#notification-up-target")).toHaveCount(0);
-  await form.getByLabel("Compare with").selectOption("acquisition");
+  await form.getByLabel("Target type").selectOption("acquisition");
   await form.getByLabel("Price rises by (%)").fill("10");
   await form.getByLabel("Price falls by (%)").fill("5");
   await form.getByRole("button", { name: "Save and enable" }).click();
@@ -356,11 +373,11 @@ test("notification controls persist, respect revisions and stay retired after ho
   await expect(alert.locator(".downward .notification-trigger-price")).toHaveText("9,500,000 coins");
   await page.getByRole("button", { name: "Delete notification" }).click();
   await expect(
-    page.getByText("No holding notifications yet.", { exact: false }),
+    page.getByText("No alerts yet", { exact: false }),
   ).toBeVisible();
   await page.getByRole("link", { name: "Portfolio", exact: true }).click();
   await card.getByRole("button", { name: "Set notification" }).click();
-  await form.getByLabel("Compare with").selectOption("sample");
+  await form.getByLabel("Target type").selectOption("sample");
   await form.getByLabel("Price rises by (%)").fill("14");
   await form.getByLabel("Price falls by (%)").fill("");
   await form.getByRole("button", { name: "Save and enable" }).click();
@@ -383,6 +400,7 @@ test("notification controls persist, respect revisions and stay retired after ho
     card.getByRole("button", { name: "Set notification" }),
   ).toBeVisible();
   expect(operations).toEqual([
+    "save",
     "save",
     "pause",
     "resume",
@@ -432,7 +450,7 @@ test("portfolio CRUD, cost calculation, purchases, unavailable prices, identity 
   const id = `journey-${info.project.name}-${Date.now()}`;
   await signIn(page, id);
   await expect(
-    page.getByRole("heading", { name: "Your portfolio starts here" }),
+    page.getByRole("heading", { name: "No portfolio yet" }),
   ).toBeVisible();
   await seedPrices(page);
   await create(page, "Long term");
@@ -544,7 +562,7 @@ test("portfolio CRUD, cost calculation, purchases, unavailable prices, identity 
   await page.getByRole("button", { name: "Delete portfolio" }).click();
   await page.getByRole("button", { name: "Confirm delete" }).click();
   await expect(
-    page.getByRole("heading", { name: "Your portfolio starts here" }),
+    page.getByRole("heading", { name: "No portfolio yet" }),
   ).toBeVisible();
   await create(page, "Replacement portfolio");
 });
@@ -581,7 +599,7 @@ test("Bazaar holdings share one portfolio and notification baseline form stays u
   const scrollBeforeNotification = Number(await notifyButton.getAttribute("data-scroll-before-open"));
   const notification = page.getByRole("form", { name: "Holding notification" });
   await expect(page.getByRole("dialog", { name: /Notify me about/ })).toBeInViewport({ ratio: 1 });
-  await expect(notification.getByLabel("Compare with")).toBeFocused();
+  await expect(notification.getByLabel("Price rises to (coins)")).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(notification).toHaveCount(0);
   await expect(notifyButton).toBeFocused();
@@ -589,9 +607,10 @@ test("Bazaar holdings share one portfolio and notification baseline form stays u
   await notifyButton.click();
   await notification.getByRole("button", { name: "Save and enable" }).click();
   await expect(notification.getByRole("alert")).toBeVisible();
+  await notification.getByLabel("Target type").selectOption("acquisition");
   await notification.getByLabel("Price rises by (%)").fill("10");
   await notification.getByLabel("Price falls by (%)").fill("5");
-  await notification.getByLabel("Compare with").selectOption("sample");
+  await notification.getByLabel("Target type").selectOption("sample");
   await expect(notification).toContainText("Locks in a fresh market price");
   await expect(notification.locator("#notification-up-target")).toHaveText("Sell price unavailable");
   await noOverflow(page);
@@ -616,7 +635,7 @@ test("Bazaar holdings share one portfolio and notification baseline form stays u
     page.getByRole("heading", { name: "Legacy price alerts" }),
   ).toHaveCount(0);
   await expect(
-    page.getByText("No holding notifications yet.", { exact: false }),
+    page.getByText("No alerts yet", { exact: false }),
   ).toBeVisible();
   await page.getByRole("link", { name: "Portfolio", exact: true }).click();
   await expect(

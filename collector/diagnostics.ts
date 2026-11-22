@@ -28,14 +28,15 @@ export function isFirestoreWriteThrottle(error: unknown) {
     !/quota/i.test(e.message);
 }
 
-/** An unavailable Firestore operation ends this invocation without replaying a
- * possibly committed write. Keep every reservation; the next scheduled request
- * must read and pass durable admission again. Unrelated 5xx/auth/quota failures
- * and explicit budget stops do not qualify. */
+/** Unresolved Firestore failures defer the invocation and retain its reservation.
+ * Inline Bazaar publications can first reconcile against their control revision. */
 export function isTransientFirestoreFailure(error: unknown) {
+  return isFirestoreWriteThrottle(error) || isFirestoreUnavailable(error);
+}
+
+export function isFirestoreUnavailable(error: unknown) {
   const e = error as { code?: unknown; service?: unknown } | null;
-  return isFirestoreWriteThrottle(error) ||
-    (e?.service === 'firestore' && (e.code === 503 || e.code === 14));
+  return e?.service === 'firestore' && (e.code === 503 || e.code === 14);
 }
 
 /** A request timeout says nothing about whether a write committed. End this

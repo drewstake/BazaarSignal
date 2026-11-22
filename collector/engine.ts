@@ -2,10 +2,8 @@ import { createHash } from "node:crypto";
 import { normalizeBazaar } from "../shared/companion/bazaar";
 import type { BazaarItem, FeeContext } from "../shared/companion/types";
 import { feeContextFromElection } from "./fee-context";
-type Catalog = Record<
-  string,
-  { name: string; tier?: string; category?: string }
->;
+import { updateCatalog, type Catalog, type NpcChanges } from "./npc-prices";
+import { historyDay } from "../shared/daily-price-history";
 import { isFresh } from "../shared/market";
 import type { CacheStore } from "./cache-store";
 import {
@@ -18,7 +16,7 @@ import {
 import { backoff, defaultPolicy, type MarketPolicy } from "./policy";
 import { TrialStopped } from "./trial";
 import { SnapshotReadCache } from "./snapshot-read-cache";
-import { errorDiagnostic, type DiagnosticReporter } from './diagnostics';
+import { errorDiagnostic, isTransientFirestoreFailure, type DiagnosticReporter } from './diagnostics';
 export interface Snapshot<T> {
   version: string;
   upstreamAt: number;
@@ -132,19 +130,14 @@ export class MarketCollector {
         metadataVersion = "",
         contentVersion: string | undefined;
       let priorBazaar: Snapshot<BazaarData> | null | undefined;
+      let priorCatalog: Snapshot<Catalog> | null | undefined;
       if (key === "catalog") {
         const raw = await fetchJson("resources/skyblock/items");
         if (!Array.isArray(raw.items))
           throw new Error("Item catalog unavailable");
-        data = Object.fromEntries(
-          raw.items
-            .filter((i: any) => typeof i.id === "string")
-            .sort((a: any, b: any) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
-            .map((i: any) => [
-              i.id,
-              { name: i.name, tier: i.tier, category: i.category },
-            ]),
-        );
+        priorCatalog = await this.read<Catalog>("catalog");
+        if (!raw.items.length && Object.keys(priorCatalog?.data ?? {}).length) throw new Error("Empty item catalog");
+        data = updateCatalog(raw.items, priorCatalog?.data ?? {}, historyDay(started));
         contentVersion = createHash("sha256")
           .update(JSON.stringify(data))
           .digest("hex");
@@ -248,7 +241,7 @@ export class MarketCollector {
           ? { version: old.snapshotVersion, observedAt: old.observedAt }
           : priorBazaar !== undefined
             ? priorBazaar
-            : await this.read<unknown>(key);
+            : priorCatalog !== undefined ? priorCatalog : await this.read<unknown>(key);
       const unchanged = previous?.version === snapshot.version;
       await this.coordinator.change((c) => {
         this.coordinator.assert(c);
@@ -293,12 +286,19 @@ export class MarketCollector {
       this.measure(`${key}RefreshesFailed`);
       await this.coordinator.change((c) => {
         this.coordinator.assert(c);
+        // A publication may have committed even if its acknowledgement and
+        // verification read failed. Keep the job that was published with it.
+        const current = c.jobs[key];
+        if (current?.snapshotVersion !== old.snapshotVersion || current?.lastCheckedAt !== old.lastCheckedAt)
+          return { result: undefined };
         const failures = old.failures + 1;
         c.jobs[key] = {
           ...old,
           pages,
           failures,
-          error: message(e),
+          error: isTransientFirestoreFailure(e)
+            ? 'The latest market update was delayed. Collection will retry automatically.'
+            : message(e),
           lastAttemptDurationMs: this.now() - started,
           nextAt: Math.max(
             this.now() + backoff(failures, this.random),
@@ -349,6 +349,12 @@ export class MarketCollector {
         header: c.header,
       },
     };
+  }
+  async npcPriceChanges(): Promise<NpcChanges> {
+    const snapshot = await this.read<Catalog>("catalog");
+    if (!snapshot) throw Error("Waiting for the item catalog.");
+    return Object.fromEntries(Object.entries(snapshot.data)
+      .flatMap(([id, item]) => item.npcChange ? [[id, item.npcChange]] : []));
   }
   async bazaar() {
     const control = await this.coordinator.state();

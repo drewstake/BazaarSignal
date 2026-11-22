@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import type { HoldingNotification } from "../../shared/companion/notifications";
 import type { Portfolio } from "../../shared/companion/portfolio";
-import { exact, ItemArt, SkyIcon } from "./components";
+import { exact, formatCoinTarget, ItemArt, SkyIcon } from "./components";
 import "./night-market-notifications.css";
 
 type NotificationsProps = {
@@ -54,7 +54,7 @@ export default function NightMarketNotifications({
 
   return (
     <section className="night-notifications" aria-label="Holding notifications">
-      <div className="notification-overview">
+      {(loading || alerts.length > 0) && <div className="notification-overview">
         <div className="notification-overview-item">
           <div className="notification-overview-icon">
             <SkyIcon name="alert-bell" size={30} />
@@ -93,16 +93,10 @@ export default function NightMarketNotifications({
                   ? "Paused"
                   : "Fresh data required"}
             </strong>
-            <span>
-              {fixture
-                ? "Alerts are not sent"
-                : paused
-                  ? "Your alerts stay saved"
-                  : "Alerts wait for eligible prices"}
-            </span>
+            {fixture && <span>Email delivery suspended</span>}
           </div>
         </div>
-      </div>
+      </div>}
 
       {!loading &&
         (alerts.length === 0 ? (
@@ -110,8 +104,8 @@ export default function NightMarketNotifications({
             <div className="notification-empty-icon">
               <SkyIcon name="alert-bell" size={68} />
             </div>
-            <h2>No holding notifications yet.</h2>
-            <p>Choose a holding and set your price thresholds.</p>
+            <h3>No alerts yet</h3>
+            <p>Choose a holding in your portfolio to set a price alert.</p>
             <a className="notification-primary-link" href="#view=portfolios">
               Go to portfolio <ChevronRight size={16} aria-hidden="true" />
             </a>
@@ -119,7 +113,6 @@ export default function NightMarketNotifications({
         ) : (
           <>
             <div className="notification-list-heading">
-              <h2>Your alerts</h2>
               <a href="#view=portfolios">
                 Add an alert <ArrowUpRight size={15} aria-hidden="true" />
               </a>
@@ -146,17 +139,19 @@ export default function NightMarketNotifications({
                     : portfolio
                       ? baselines[notification.id]
                       : null;
-                const priceAvailable =
+                const fixed = notification.baseline === "fixed";
+                const hasBaseline =
                   typeof baseline === "number" &&
                   Number.isFinite(baseline) &&
                   baseline > 0;
-                const baselinePrice = priceAvailable
+                const priceAvailable = fixed || hasBaseline;
+                const baselinePrice = hasBaseline
                   ? `${exact(baseline)} coins`
                   : baseline === undefined
                     ? "Loading price…"
                     : "Price unavailable";
                 const triggerPrice = (threshold: number, direction: 1 | -1) =>
-                  priceAvailable
+                  fixed ? formatCoinTarget(threshold) : hasBaseline
                     ? exact(baseline * (1 + (direction * threshold) / 100))
                     : baselinePrice;
                 return (
@@ -234,26 +229,26 @@ export default function NightMarketNotifications({
                                     </>
                                   )}
                                 </strong>
-                                <span className="notification-threshold-percent">
+                                {!fixed && <span className="notification-threshold-percent">
                                   <Arrow size={18} aria-hidden="true" />
                                   <span>
                                     {upward ? "+" : "−"}
                                     {exact(threshold)}%
                                   </span>
-                                </span>
+                                </span>}
                               </div>
                             </div>
                           );
                         })}
                       </div>
-                      <div className="notification-baseline">
+                      {!fixed && <div className="notification-baseline">
                         <span>
                           {notification.baseline === "acquisition"
                             ? "Average buy price"
                             : "Price when enabled"}
                         </span>{" "}
                         <b>{baselinePrice}</b>
-                      </div>
+                      </div>}
                     </div>
                     <div className="notification-card-footer">
                       <span>Per item · before fees</span>

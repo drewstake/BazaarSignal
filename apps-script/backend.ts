@@ -1,5 +1,5 @@
 import { createAlert, deliver, disableAlert, enqueueTestTarget, fingerprint, parseMarket, poll, publicState, retryDelay } from './core';
-import type { Mail, Market, RecordAlert, State } from './core';
+import type { Mail, Market, RecordAlert, SetDeliveryStage, State } from './core';
 import type { PriceAlertInput } from '../shared/model';
 import { confirmation, updatePriceAlertTarget } from '../shared/price-alert';
 import { ADMIN_UID, fetchJson, firestore, readDoc, loadUser, persistUser, linkWrite, loadControl, saveControl, activeUsers, needsWork, checkAdmission, jsonWrite } from './store';
@@ -71,7 +71,7 @@ function market():Market {
   const raw=sharedMarket('raw-bazaar');
   return parseMarket(raw,Date.now(),raw.names ?? {});
 }
-function send(mail:Mail,alert:RecordAlert,state:State,p:any) {
+function send(mail:Mail,alert:RecordAlert,state:State,p:any,setStage:SetDeliveryStage) {
   const w=alert.workflow;
   let subject:string,body:string;
   if (mail.kind==='confirmation') {
@@ -89,13 +89,15 @@ function send(mail:Mail,alert:RecordAlert,state:State,p:any) {
   body+='\n\nChecks run approximately every five minutes and can miss brief price movements. MailApp acceptance does not guarantee inbox delivery.';
   if (alert.test) {subject=`[TEST] ${subject}`;body='Authorized BazaarSignal delivery test.\n\n'+body;}
   // No Gmail password, OAuth token, or recipient supplied by the browser.
+  setStage('Eligibility check');
   if(!EMAIL_DELIVERY_ENABLED)throw new Error('Email delivery remains paused');
+  setStage('MailApp.sendEmail');
   MailApp.sendEmail({to:alert.recipient,subject,body,name:'BazaarSignal'});
 }
 function deliverRecord(record:UserRecord,p:any,started:number,test=false) {
   const prefix=`sent:${record.state.ownerUid}:`;
   deliver(record.state,{now:()=>Date.now(),quota:()=>Math.min(MailApp.getRemainingDailyQuota(),record.state.monitor.quota ?? Infinity),
-    save:()=>persistUser(record),send:(mail,alert)=>send(mail,alert,record.state,p),
+    save:()=>persistUser(record),send:(mail,alert,setStage)=>send(mail,alert,record.state,p,setStage),
     receipt:id=>Number(props().getProperty(prefix+id)) || (record.state.ownerUid===ADMIN_UID?Number(props().getProperty(`sent:${id}`)):0) || null,
     remember:(id,at)=>props().setProperty(prefix+id,String(at)),
     forget:id=>props().deleteProperty(prefix+id),budgetExpired:()=>Date.now()-started>45000},test);

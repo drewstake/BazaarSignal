@@ -140,6 +140,7 @@ export default function BazaarItemPage({ itemId }: { itemId: string }) {
             {detail.localSnapshot && (
               <span>Local snapshot · Collection paused</span>
             )}
+            <span>Coins per item · Before fees</span>
           </div>
           {detail.error && (
             <p className="bazaar-search-error">{detail.error}</p>

@@ -71,9 +71,15 @@ describe('MailApp queue',()=>{
     f.io.quota=()=>100;f.io.now=()=>now+3600001;deliver(state,f.io);expect(state.mail[0].status).toBe('sent');
   });
   it('retries failures with bounded backoff and a five-attempt terminal state',()=>{
-    const state=fixture();let time=now;const f=ioFor(state,{now:()=>time,send:vi.fn(()=>{throw new Error('network')})});
+    const state=fixture();let time=now;
+    const f=ioFor(state,{now:()=>time,send:(_mail,_alert,setStage)=>{
+      setStage('MailApp.sendEmail');
+      throw Object.assign(Error('rejected private@example.test'),{code:'secret-token'});
+    }});
+    const send=vi.spyOn(f.io,'send');
     for(let i=1;i<=5;i++){deliver(state,f.io);expect(state.mail[0].attempts).toBe(i);time=state.mail[0].nextAttempt;}
-    expect(state.mail[0].status).toBe('failed');deliver(state,f.io);expect(f.io.send).toHaveBeenCalledTimes(5);
+    expect(state.mail[0]).toMatchObject({status:'failed',error:'MailApp.sendEmail failed (UNKNOWN_ERROR).'});
+    deliver(state,f.io);expect(send).toHaveBeenCalledTimes(5);
   });
   it('recovers an independent sent receipt after a Firestore failure',()=>{
     const state=fixture(),f=ioFor(state);const save=f.io.save;let n=0;

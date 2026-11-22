@@ -7,6 +7,11 @@ import { brotliCompressSync, brotliDecompressSync, constants } from 'node:zlib';
 export const inlineSnapshotLimits: Readonly<Record<string, number>> = {
   bazaar: 896 * 1024, catalog: 128 * 1024, election: 16 * 1024,
 };
+// Continuous collectors reserve these additional documents separately.
+const encodedLimits: Readonly<Record<string, number>> = {
+  ...inlineSnapshotLimits,
+  "trend-sample": 120 * 1024, trending: 96 * 1024,
+};
 export const INLINE_RAW_LIMIT = 12 * 1024 ** 2;
 export const INLINE_DOCUMENT_OVERHEAD = 8192;
 export const INLINE_STORAGE_RESERVATION = 1152 * 1024;
@@ -15,7 +20,7 @@ const prefix = INLINE_SNAPSHOT_PREFIX;
 const digest = (value: Buffer) => createHash('sha256').update(value).digest('hex');
 
 export function encodeInlineSnapshot(key: string, value: string): string {
-  const limit = inlineSnapshotLimits[key];
+  const limit = encodedLimits[key];
   if (!limit || Buffer.byteLength(value) > INLINE_RAW_LIMIT)
     throw new Error('Snapshot exceeds the reviewed inline bound');
   const compressed = brotliCompressSync(value, { params: {
@@ -33,7 +38,7 @@ export function decodeInlineSnapshot(key: string, value: string): string {
     if (value.startsWith('market-br-')) throw new Error('Unknown inline snapshot format');
     return value;
   }
-  const limit = inlineSnapshotLimits[key];
+  const limit = encodedLimits[key];
   if (!limit || Buffer.byteLength(value) > limit) throw new Error('Invalid inline snapshot size');
   const match = /^([a-f0-9]{64}):([A-Za-z0-9+/]+={0,2})$/.exec(value.slice(prefix.length));
   if (!match) throw new Error('Invalid inline snapshot encoding');

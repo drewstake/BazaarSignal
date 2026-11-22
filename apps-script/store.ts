@@ -1,12 +1,21 @@
-import { emptyState, publicState } from './core';
+import { emptyState, publicState, safeProviderCode } from './core';
 import type { State } from './core';
 declare const UrlFetchApp:any, ScriptApp:any, CacheService:any;
 export const DOCUMENT='projects/bazaarsignal/databases/(default)/documents';
 const ROOT=`https://firestore.googleapis.com/v1/${DOCUMENT}`;
 export const ADMIN_UID='SPP408J6vxUDjtSMHn1E2LhrOum2';
+function httpError(message:string, response:any) {
+  let code: string | undefined;
+  try {
+    const provider = JSON.parse(response.getContentText()).error;
+    const reason = provider?.details?.find((d:any) => d?.['@type'] === 'type.googleapis.com/google.rpc.ErrorInfo')?.reason;
+    code = safeProviderCode(reason) ?? safeProviderCode(provider?.status);
+  } catch { /* Keep the HTTP status even if the provider returned HTML. */ }
+  return Object.assign(new Error(message), {status:response.getResponseCode(), code});
+}
 export function fetchJson(url:string,options:any={}) {
   const r=UrlFetchApp.fetch(url,{...options,muteHttpExceptions:true});
-  if(r.getResponseCode()<200 || r.getResponseCode()>=300) throw new Error('Upstream service unavailable.');
+  if(r.getResponseCode()<200 || r.getResponseCode()>=300) throw httpError('Upstream service unavailable.',r);
   return JSON.parse(r.getContentText());
 }
 export function firestore(path:string,method='get',payload?:unknown) {
@@ -16,7 +25,7 @@ export function firestore(path:string,method='get',payload?:unknown) {
 export function readDoc(path:string) {
   const r=UrlFetchApp.fetch(`${ROOT}/${path}`,{headers:{Authorization:`Bearer ${ScriptApp.getOAuthToken()}`},muteHttpExceptions:true});
   if(r.getResponseCode()===404)return null;
-  if(r.getResponseCode()!==200)throw new Error('Alert storage unavailable.');
+  if(r.getResponseCode()!==200)throw httpError('Alert storage unavailable.',r);
   return JSON.parse(r.getContentText());
 }
 export function jsonWrite(path:string,value:unknown,version:string|null,fields:any={}) {

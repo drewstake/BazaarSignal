@@ -303,6 +303,11 @@ describe("percentage notifications", () => {
       { baseline: "sample", up: null, down: null },
       { baseline: "acquisition", up: 0, down: 10 },
       { baseline: "sample", up: null, down: 100 },
+      { baseline: "fixed", up: null, down: null },
+      { baseline: "fixed", up: 0, down: null },
+      { baseline: "fixed", up: null, down: -1 },
+      { baseline: "fixed", up: Infinity, down: null },
+      { baseline: "fixed", up: "1.5M", down: null },
     ])
       expect(() => validateNotification(input as any)).toThrow();
     expect(runPortfolioNotifications(now)).toEqual({ paused: true });

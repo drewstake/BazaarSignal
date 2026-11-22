@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { User } from "firebase/auth";
-import { Activity, ArrowUpRight, ShieldCheck, Users } from "lucide-react";
+import { Activity, ArrowUpRight, Users } from "lucide-react";
 import { auth } from "../data";
 import { formatEstDate, formatEstDateTime, formatEstTime } from "../time";
 import { loadAdminSnapshot, loadAdminHistory } from "./admin-snapshot";
@@ -116,13 +116,11 @@ export default function AdminDashboard({ user }: { user: User }) {
     <section className="admin-page" aria-labelledby="admin-title">
       <div className="admin-heading">
         <div>
-          <div className="admin-eyebrow">
-            <ShieldCheck size={14} /> OWNER WORKSPACE
-          </div>
           <h1 id="admin-title">Admin</h1>
-          <p>Operations, billing, and audience.</p>
         </div>
-        <span className="admin-measured">Updates daily · {updateTime}</span>
+        <span className="admin-measured">
+          {data ? <>Daily snapshot · Report checked {date(data.checkedAt)} · Next update {date(data.nextRefreshAt)}</> : <>Updates daily · {updateTime}</>}
+        </span>
       </div>
       {error && (
         <p role="alert" className="error">
@@ -136,11 +134,6 @@ export default function AdminDashboard({ user }: { user: User }) {
       )}
       {data && (
         <>
-          <p className="admin-measured">
-            Daily snapshot · Report checked {date(data.checkedAt)} · Next
-            scheduled update {date(data.nextRefreshAt)}. Opening this page does
-            not collect new measurements.
-          </p>
           {now >= data.nextRefreshAt + 60000 && <p role="status" className="admin-attention">Daily report overdue. The timestamps below show the last successful measurements.</p>}
           {historicalPilot && <p>
             The current release has no automatic budget cutoff or expiration.
@@ -492,11 +485,9 @@ export default function AdminDashboard({ user }: { user: User }) {
               if (e.currentTarget.open) void readHistory();
             }}
           >
-            <summary>Resource usage · {history ? new Intl.DateTimeFormat('en-US', {month:'long',year:'numeric',timeZone:'America/Los_Angeles'}).format(history.generatedAt) : 'updates daily'}</summary>
+            <summary>Resource usage</summary>
             <p>
-              Automatically measured daily. Monthly counters reset with the Pacific calendar;
-              daily counters and storage capacity use the periods shown below.
-              These measurements describe usage, not Google charges or spending limits.
+              Monthly usage resets on the Pacific calendar. Each resource lists its measurement period.
             </p>
             {historyBusy && <p role="status">Loading resource report…</p>}
             {historyError && <p role="alert">{historyError} Close and reopen this section after one minute to retry.</p>}

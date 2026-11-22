@@ -2,9 +2,10 @@ import { randomUUID } from "node:crypto";
 import type { Firestore, DocumentSnapshot } from "firebase-admin/firestore";
 import type { CacheStore } from "./cache-store";
 import { decodeInlineSnapshot, encodeInlineSnapshot, inlineSnapshotLimits } from './inline-snapshot';
-import { errorDiagnostic, type DiagnosticReporter } from './diagnostics';
+import { errorDiagnostic, isFirestoreUnavailable, type DiagnosticReporter } from './diagnostics';
 import { PAID_BUDGET_KEY, PAID_RECEIPT_LIMIT, isPaidReceiptKey } from './paid-ledger-storage';
 import { CONTINUOUS_LEDGER_KEY } from '../shared/continuous-market';
+import { trendPublication } from './trending';
 
 export interface GoogleStoreRetries {
   wait?: (ms: number) => Promise<unknown>;
@@ -42,6 +43,7 @@ export class GoogleCacheStore implements CacheStore {
     readonly readCacheMs = 0,
     readonly inlineSmallSnapshots = false,
     private retries: GoogleStoreRetries = {},
+    private recordTrends = false,
   ) {}
   private ref(key: string) {
     if (!/^[a-z-]+$/.test(key)) throw new Error("Invalid cache key");
@@ -71,7 +73,7 @@ export class GoogleCacheStore implements CacheStore {
       }
       const value = data?.blob
         ? await this.blobs.get(data.blob)
-        : (typeof data?.value === 'string' && snapshotKeys.has(key)
+        : (typeof data?.value === 'string' && (snapshotKeys.has(key) || key === 'trending')
           ? decodeInlineSnapshot(key, data.value) : (data?.value ?? null));
       // Snapshot JSON is decoded/cached by MarketCollector; avoid a second large cache.
       if (this.readCacheMs && !snapshotKeys.has(key))
@@ -88,14 +90,26 @@ export class GoogleCacheStore implements CacheStore {
     value: string,
     payload?: { key: string; value: string },
   ) {
+    // The inline book and its new control revision are written in one batch.
+    // That revision includes the lease owner and published snapshot identity.
+    const fencedBook = this.inlineSmallSnapshots && key === 'control' &&
+      payload?.key === 'bazaar' && expected !== null && expected !== value;
+    let uncertainBook = false;
     for (let attempt = 0; ; attempt++) {
       this.retries.assertOpen?.();
-      try { return await this.commitOnce(key, expected, value, payload); }
-      catch (error) {
+      let committed: boolean;
+      try {
+        committed = await this.commitOnce(key, expected, value, payload);
+      } catch (error) {
         const { code, message } = error as { code?: number; message?: string };
-        // Only explicit resource rejections are retried. Never replay an
-        // ambiguous timeout/5xx, or keep hammering an exhausted quota.
-        const retryable = (code === 8 || code === 429) && !/quota/i.test(message ?? '');
+        const unavailable = fencedBook && isFirestoreUnavailable(error);
+        if (unavailable) {
+          uncertainBook = true;
+          const durable = await this.read(key);
+          if (durable === value) return true;
+          if (durable !== expected) return false;
+        }
+        const retryable = unavailable || ((code === 8 || code === 429) && !/quota/i.test(message ?? ''));
         const retry = retryable && attempt < 2;
         const delayMs = retry ? Math.floor(1000 * 2 ** attempt * (1 + (this.retries.random ?? Math.random)())) : 0;
         this.retries.report?.({ event: retry ? 'firestore_retry' : 'firestore_operation_failed',
@@ -103,9 +117,11 @@ export class GoogleCacheStore implements CacheStore {
           at: Date.now(), ...(retry ? { delayMs } : {}), ...errorDiagnostic(error) });
         if (!retry) throw error;
         await (this.retries.wait ?? (ms => new Promise(resolve => setTimeout(resolve, ms))))(delayMs);
-        // commitOnce clears its read version/cache even on failure. A new read
-        // rechecks expected state and the lease before another atomic publish.
+        continue;
       }
+      // A delayed original commit may have won the CAS during backoff.
+      if (!committed && uncertainBook) return (await this.read(key)) === value;
+      return committed;
     }
   }
   private async commitOnce(
@@ -144,6 +160,12 @@ export class GoogleCacheStore implements CacheStore {
           // Oversize fails closed, preserving the last snapshot. Never fall back
           // to an unreserved Storage upload. Control and payload share one CAS.
           const encoded = encodeInlineSnapshot(payload.key, payload.value);
+          if (this.recordTrends && payload.key === 'bazaar') {
+            const ref = (id: string) => this.db.collection(this.collection).doc(id);
+            const updates = await trendPublication(JSON.parse(payload.value), async keys =>
+              (await this.db.getAll(...keys.map(ref))).map(doc => doc.data()?.value));
+            for (const update of updates) batch.set(ref(update.key), { value: update.value });
+          }
           if (lease.until <= await this.time()) return false;
           batch.set(this.ref(payload.key), { value: encoded, publishedAt: current.readTime });
         } else {

@@ -3,11 +3,66 @@ import { errorDiagnostic, isTransientFirestoreFailure } from '../collector/diagn
 import { createPaidRuntime, PAID_BUDGET_KEY } from '../collector/paid-budget';
 import { trialGoogleStore } from '../collector/trial-google';
 import { paidRuntimeFixture, snapshotFixture, fixtureTime, fixtureEnd } from './support/paid-runtime-fixture';
+import { emptyJob } from '../collector/coordinator';
 
 afterEach(() => vi.useRealTimers());
 
 const unavailable = () => Response.json({ error: { status: 'UNAVAILABLE',
   message: 'The service is temporarily unavailable. Please retry with exponential backoff.' } }, { status: 503 });
+
+it.each([
+  ['before commit', 2],
+  ['after commit', 1],
+  ['late commit', 2],
+  ['failed verification', 1],
+  ['persistent outage', 3],
+] as const)('handles a Firestore 503 during scheduled Bazaar publication (%s)', async (scenario, expectedAttempts) => {
+    const previousAt = fixtureTime - 900000;
+    const f = paidRuntimeFixture(snapshotFixture('previous', previousAt, 1), false, true);
+    for (const job of ['catalog', 'election']) f.control.jobs[job] = { ...emptyJob(), nextAt: fixtureTime + 900000 };
+    f.f.seed('control', JSON.stringify(f.control));
+    let publications = 0, failVerification = false;
+    let delayedCommit: (() => Promise<Response>) | undefined;
+    const transport: typeof fetch = async (url, init) => {
+      const body = JSON.parse(String(init?.body));
+      if (failVerification && body.documents?.some((name: string) => name.endsWith('/control'))) {
+        failVerification = false;
+        return unavailable();
+      }
+      if (body.writes?.some((w: any) => w.update.name.endsWith('/bazaar'))) {
+        publications++;
+        if (scenario === 'persistent outage') return unavailable();
+        if (publications === 1) {
+          if (scenario === 'late commit') delayedCommit = () => f.f.network(url, init);
+          if (scenario === 'after commit' || scenario === 'failed verification') await f.f.network(url, init);
+          failVerification = scenario === 'failed verification';
+          return unavailable();
+        }
+        if (delayedCommit) await delayedCommit();
+      }
+      return f.f.network(url, init);
+    };
+    const upstream = vi.fn(async () => Response.json({ success: true, lastUpdated: fixtureTime,
+      products: { ITEM_0: { buy_summary: [{ amount: 8, orders: 2, pricePerUnit: 123 }],
+        sell_summary: [{ amount: 3, orders: 1, pricePerUnit: 110 }] } } }));
+    const shutdown = vi.fn(async () => {});
+    const runtime = createPaidRuntime({ continuous: true, expiresAt: 0, now: () => fixtureTime, network: upstream,
+      store: session => trialGoogleStore({ ...f.f.config, network: transport, inlineSmallSnapshots: true, recordTrends: true }, session),
+      shutdown });
+
+    await runtime.collect('scheduled-slot');
+    const prices = await f.request('/api/companion/portfolio-prices?assets=bz_ITEM_0', 'GET', runtime);
+    expect(prices.status).toBe(200);
+    const missed = scenario === 'persistent outage';
+    expect(publications).toBe(expectedAttempts);
+    expect(f.f.counts.casConflicts ?? 0).toBe(scenario === 'late commit' ? 1 : 0);
+    expect(prices.body.bazaar[0].upstreamAt).toBe(missed ? previousAt : fixtureTime);
+    expect(prices.body.bazaar[0].asks[0].pricePerUnit).toBe(missed ? 110 : 123);
+    expect(prices.body.error).toBe(missed ? 'The latest market update was delayed. Collection will retry automatically.' : null);
+    expect(JSON.parse(f.f.read('control')!).jobs.bazaar.upstreamAt).toBe(prices.body.bazaar[0].upstreamAt);
+    expect(upstream).toHaveBeenCalledTimes(1);
+    expect(shutdown).not.toHaveBeenCalled();
+  }, 15000);
 
 it('only treats identified Firestore unavailability as temporary', () => {
   expect(isTransientFirestoreFailure({ service: 'firestore', code: 503 })).toBe(true);

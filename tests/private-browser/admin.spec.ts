@@ -25,9 +25,8 @@ async function signIn(page: Page, email: string) {
     );
   }, email);
 }
-const report = () => {
-  const now = Date.now(),
-    r = emptyAdmin(now);
+const report = (now = Date.now()) => {
+  const r = emptyAdmin(now);
   r.pilot = {
     measuredAt: now,
     startsAt: now - 3600000,
@@ -137,11 +136,8 @@ test("owner-only Admin, legacy Usage redirect, private response lifecycle and mo
     page.getByRole("button", { name: "Refresh", exact: true }),
   ).toHaveCount(0);
   await expect(
-    page.getByText("Updates daily · 7:10 AM EST", { exact: true }),
-  ).toBeVisible();
-  await expect(
     page.getByText(/^Daily snapshot · Report checked/),
-  ).toContainText(/EST · Next scheduled update .* EST\./);
+  ).toContainText(/EST · Next update .* EST/);
   expect(marketCalls).toEqual([]);
   if (info.project.name === "mobile")
     await page.setViewportSize({ width: 320, height: 850 });
@@ -168,18 +164,21 @@ test("owner-only Admin, legacy Usage redirect, private response lifecycle and mo
   await expect(page.locator(".admin-page")).toHaveCount(0);
 });
 
-test("daily snapshot has no manual refresh or background scans and retains measured status until overdue", async ({
+test("Admin reuses the daily report until due and shows overdue measurements after reading it again", async ({
   page,
 }) => {
-  const snapshot = report();
+  // Start after the 07:10 EST update so the 12h and 26h checks straddle it.
+  const start = Date.parse("2026-11-17T12:30:00Z");
+  const snapshot = report(start);
   snapshot.pilot!.expiresAt += 7 * 86400000;
   snapshot.scheduler!.expiresAt = snapshot.pilot!.expiresAt;
   snapshot.failures = [
     "Paid budget and prices: refresh unavailable; any displayed measurement retains its original time.",
   ];
   let calls = 0;
-  await page.clock.install();
+  await page.clock.install({time: start});
   await page.route("**/macros/s/portfolio-emulator/exec", (route) => {
+    expect(route.request().postDataJSON().action).toBe("admin-report");
     calls++;
     return route.fulfill({ json: { ok: true, data: snapshot } });
   });
@@ -204,14 +203,12 @@ test("daily snapshot has no manual refresh or background scans and retains measu
   await expect(
     page.getByText("Active paid pilot", { exact: true }),
   ).toBeVisible();
+  expect(calls).toBe(initialCalls);
   await page.clock.fastForward(14 * 3600000);
   await expect(
     page.getByText("Verification due", { exact: true }),
   ).toBeVisible();
-  expect(calls).toBe(initialCalls);
-  await expect(
-    page.getByText("Verification due", { exact: true }),
-  ).toBeVisible();
+  await expect.poll(() => calls).toBe(initialCalls + 1);
   await page
     .getByText("Operating measurements & schedule", { exact: true })
     .click();
@@ -221,7 +218,7 @@ test("daily snapshot has no manual refresh or background scans and retains measu
   await expect(
     page.locator(".admin-cards").first().locator("article").first(),
   ).toContainText("Unavailable");
-  expect(calls).toBe(initialCalls);
+  expect(calls).toBe(initialCalls + 1);
   await page.clock.fastForward(8 * 86400000);
   await expect(page.getByText("Expired", { exact: true })).toBeVisible();
 });
@@ -274,11 +271,11 @@ test('failed Admin history can recover on reopening after the cooldown without b
       return route.fulfill({ json: { ok: true, data: report() } });
     historyCalls++;
     return route.fulfill({ json: historyCalls === 1 ? { ok: false, error: 'History temporarily unavailable.' } :
-      { ok: true, data: { generatedAt: Date.now(), collection: { state: 'PAUSED', measuredAt: Date.now() }, rows: [] } } });
+      { ok: true, data: { generatedAt: Date.now(), nextMeasurementAt: Date.now() + 86400000, rows: [] } } });
   });
   await page.goto('/#view=admin');
   await signIn(page, 'drewstake3@gmail.com');
-  const summary = page.getByText('Historical free-tier report · October 2026', { exact: true });
+  const summary = page.locator('.admin-history summary', { hasText: 'Resource usage' });
   await summary.click();
   await expect(page.getByRole('alert')).toContainText('History temporarily unavailable.');
   await summary.click(); await summary.click();
@@ -288,6 +285,6 @@ test('failed Admin history can recover on reopening after the cooldown without b
   await page.clock.fastForward(61000);
   expect(historyCalls).toBe(1);
   await summary.click();
-  await expect(page.locator('.admin-history')).toContainText('Collection was paused');
+  await expect(page.locator('.admin-history')).toContainText('Report measured');
   expect(historyCalls).toBe(2);
 });

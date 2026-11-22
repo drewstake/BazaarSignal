@@ -2,6 +2,21 @@ import { afterEach, expect, it, vi } from "vitest";
 // Exercise the reusable scheduler under an explicitly enabled test release.
 vi.mock('../shared/companion/portfolio-policy',()=>({PORTFOLIO_COLLECTION_ENABLED:true}));
 afterEach(()=>{vi.unstubAllGlobals();vi.unstubAllEnvs();vi.restoreAllMocks();vi.resetModules();});
+it.each([["trending", undefined, 2], ["flips", 3, 4]] as const)("replaces old %s results even within the current polling slot", async (path, old, version) => {
+  vi.stubEnv("VITE_MARKET_UPDATES_PAUSED", "false");
+  vi.stubGlobal("caches", undefined);
+  const fetcher = vi.fn()
+    .mockResolvedValueOnce(Response.json({board: {version: old, items: 2207}}))
+    .mockResolvedValueOnce(Response.json({board: {version, items: 2207}}));
+  vi.stubGlobal("fetch", fetcher);
+  const {cachedMarketRequest} = await import("../src/companion/request-cache");
+  const url = "https://cache.example/api/companion/" + path;
+  await cachedMarketRequest(url);
+  await expect(cachedMarketRequest(url)).resolves.toMatchObject({board: {version}});
+  expect(fetcher.mock.calls[1][1].cache).toBe("reload");
+  await cachedMarketRequest(url);
+  expect(fetcher).toHaveBeenCalledTimes(2);
+});
 it('retains saved prices through a budget deferral, avoids repeat reads and checks again after reset',async()=>{
   vi.stubEnv('VITE_MARKET_UPDATES_PAUSED','false');vi.stubEnv('VITE_MARKET_OPERATING_MODE','free-tier');vi.stubGlobal('caches',undefined);
   let now=Date.parse('2026-10-03T02:00:00Z');vi.spyOn(Date,'now').mockImplementation(()=>now);

@@ -531,7 +531,6 @@ export default function UsageDashboard({ user }: { user: User | null }) {
       <div className="usage-heading">
         <div>
           <h1 id="usage-title">Usage &amp; Costs</h1>
-          <p>Usage, allowances, and collection status.</p>
         </div>
         <div className="usage-heading-actions">
           <button

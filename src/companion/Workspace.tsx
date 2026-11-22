@@ -5,7 +5,7 @@ import type { User } from "firebase/auth";
 import { Bell, Pencil, Plus, Trash2 } from "lucide-react";
 import { auth } from "../data";
 import { localWorkspace } from "../local-workspace";
-import { exact, percent, ItemArt, SkyIcon } from "./components";
+import { exact, formatCoinTarget, percent, ItemArt, SkyIcon } from "./components";
 import { fixtureMode } from "./api";
 import { portfolioMarket, reconcilePortfolioPrices, visiblePortfolioPresence } from "./portfolio-market";
 import { pollingDirective, visiblePoll } from "./polling";
@@ -51,6 +51,17 @@ const AdminDashboard = lazy(() => import("./AdminDashboard"));
 
 import type { portfolioRoute } from "./PortfolioApp";
 type View = ReturnType<typeof portfolioRoute>["view"];
+function notificationSummary(notification: HoldingNotification, holding: Holding) {
+  const fixed = notification.baseline === "fixed";
+  const format = (target: number) => fixed ? `${formatCoinTarget(target)} coins` : `${target}%`;
+  const targets = [
+    notification.up !== null && `↑ ${format(notification.up)}`,
+    notification.down !== null && `↓ ${format(notification.down)}`,
+  ].filter(Boolean).join(" ");
+  const status = notification.enabled ? "Enabled" : "Paused";
+  return fixed ? `${status} · ${targets}` : `${status} · ${targets} · baseline ${exact(notificationBaseline(notification, holding))}`;
+}
+
 function navigate(view: View, portfolioId?: string) {
   location.hash = new URLSearchParams({
     view,
@@ -140,7 +151,7 @@ export default function Workspace({
     let alive = true;
     setLoading(true);
     setError("");
-    if (route.view === "admin" || route.view === "item") {
+    if (route.view === "admin" || route.view === "item" || route.view === "trending") {
       setLoading(false);
       return;
     }
@@ -343,7 +354,7 @@ export default function Workspace({
     );
   // Keep session reads mounted across item navigation without private reads,
   // portfolio polling or presence work on the public item page.
-  if (route.view === "item") return null;
+  if (route.view === "item" || route.view === "trending") return null;
   if (route.view === "admin")
     return ownerCandidate(user) ? (
       <Suspense fallback={<p>Loading Admin…</p>}>
@@ -363,11 +374,11 @@ export default function Workspace({
           : "settings-workspace"
       }
     >
-      <div className="page-title">
-        <div>
+      {(route.view === "settings" || !selected) && (
+        <div className="page-title">
           <h1>{route.view === "portfolios" ? "Portfolio" : "Settings"}</h1>
         </div>
-      </div>
+      )}
       {error && (
         <div className="error" role="alert">
           {error}{" "}
@@ -588,11 +599,8 @@ export default function Workspace({
           {!loading && !error && !portfolios.length && !portfolioEditor && (
             <section className="panel empty">
               <SkyIcon name="watchlist-chest" size={72} />
-              <h2>Your portfolio starts here</h2>
-              <p>
-                Add only the items you own, with your actual quantities and
-                costs. Your account has one portfolio for all your holdings.
-              </p>
+              <h2>No portfolio yet</h2>
+              <p>Record your holdings and purchase prices in one private portfolio.</p>
               <button
                 className="primary"
                 disabled={busy}
@@ -620,7 +628,7 @@ export default function Workspace({
                 ) : (
                   <>
                     <div className="portfolio-heading">
-                      <h2>{selected.name}</h2>
+                      <h1>{selected.name}</h1>
                       <div className="actions">
                         <button
                           className="portfolio-icon-button"
@@ -823,10 +831,7 @@ export default function Workspace({
                     ) : !holdings.length ? (
                       <section className="panel empty holdings-empty">
                         <SkyIcon name="bazaar-crate" size={48} />
-                        <div>
-                          <h3>No holdings yet</h3>
-                          <p>Add a Bazaar item.</p>
-                        </div>
+                        <h3>No holdings yet</h3>
                       </section>
                     ) : (
                       <div
@@ -976,7 +981,7 @@ export default function Workspace({
                                         {h.kind !== "bazaar"
                                           ? "Monitoring unavailable for this saved asset"
                                           : notification
-                                            ? `${notification.enabled ? "Enabled" : "Paused"} · ${notification.up === null ? "" : `↑ ${notification.up}% `}${notification.down === null ? "" : `↓ ${notification.down}% `} · baseline ${exact(notificationBaseline(notification, h))}`
+                                            ? notificationSummary(notification, h)
                                             : "Notifications off"}
                                       </span>
                                     </div>

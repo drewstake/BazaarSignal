@@ -1,4 +1,5 @@
 import { isFresh } from "../market";
+import { positive } from "../workflow";
 import {
   validPortfolioHolding,
   type Holding,
@@ -6,7 +7,8 @@ import {
 } from "./portfolio";
 
 export interface NotificationInput {
-  baseline: "acquisition" | "sample";
+  // Fixed targets use coins per item. Acquisition and sample targets use percentages.
+  baseline: "fixed" | "acquisition" | "sample";
   up: number | null;
   down: number | null;
 }
@@ -34,16 +36,23 @@ export interface CrossingState {
   prime: boolean;
   sequence: number;
 }
-export interface Crossing {
-  id: string;
+export type CrossingQuote = {
   direction: "up" | "down";
-  percent: number;
   price: number;
-  baseline: number;
   sampledAt: number;
   source: string;
-}
+} & (
+  | { targetPrice: number; baseline?: never; percent?: never }
+  | { targetPrice?: never; baseline: number; percent: number }
+);
+export type Crossing = CrossingQuote & { id: string };
 export function validateNotification(input: NotificationInput) {
+  if (input?.baseline === "fixed") {
+    if (input.up === null && input.down === null) throw new Error("Enter at least one target price in coins.");
+    if (input.up !== null) positive(input.up, "Upper target price");
+    if (input.down !== null) positive(input.down, "Lower target price");
+    return;
+  }
   const threshold = (v: unknown, max: number) =>
     typeof v === "number" && Number.isFinite(v) && v >= 0.01 && v <= max;
   if (
@@ -86,6 +95,7 @@ export function notificationBaseline(
   notification: HoldingNotification,
   holding: Holding,
 ) {
+  if (notification.baseline === "fixed") return null;
   return notification.baseline === "acquisition"
     ? holding.costBasis / holding.quantity
     : notification.capturedPrice;
@@ -127,7 +137,7 @@ export function evaluateNotification(
       reason: "valuation source changed; edit and enable again",
     };
   const baseline = notificationBaseline(notification, holding);
-  if (baseline === null || !Number.isFinite(baseline) || baseline <= 0)
+  if (notification.baseline !== "fixed" && (baseline === null || !Number.isFinite(baseline) || baseline <= 0))
     return {
       state: { ...state, prime: true },
       events,
@@ -140,9 +150,10 @@ export function evaluateNotification(
       state.holdingRevision !== holding.revision);
   if (!changed && value.sampledAt! <= state.lastSample)
     return { state, events, reason: "sample already evaluated" };
-  const percent = ((value.referencePrice! - baseline) / baseline) * 100;
-  const above = notification.up !== null && percent >= notification.up,
-    below = notification.down !== null && percent <= -notification.down;
+  const price = value.referencePrice!;
+  const relative = baseline === null ? null : { baseline, percent: ((price - baseline) / baseline) * 100 };
+  const above = notification.up !== null && (relative ? relative.percent >= notification.up : price >= notification.up),
+    below = notification.down !== null && (relative ? relative.percent <= -notification.down : price <= notification.down);
   const prime = state.prime || changed;
   if (!prime)
     for (const direction of ["up", "down"] as const) {
@@ -153,9 +164,8 @@ export function evaluateNotification(
         events.push({
           id: `${notification.id}:${notification.revision}:${state.sequence}`,
           direction,
-          percent,
-          price: value.referencePrice!,
-          baseline,
+          ...(relative ?? { targetPrice: notification[direction]! }),
+          price,
           sampledAt: value.sampledAt!,
           source: value.source,
         });

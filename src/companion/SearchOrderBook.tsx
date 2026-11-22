@@ -23,7 +23,6 @@ export default function SearchOrderBook({
     <div className="bazaar-search-book">
       <div className="bazaar-search-book-heading">
         <h2>Order book</h2>
-        <p className="bazaar-search-caption">Coins per item · Before fees</p>
       </div>
       <div className="bazaar-search-book-columns">
         <BookSide source={asks} side="buy" maxVolume={maxVolume} />

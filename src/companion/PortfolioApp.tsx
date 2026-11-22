@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import type { User } from "firebase/auth";
-import { BriefcaseBusiness, LogOut, Settings, ShieldCheck } from "lucide-react";
+import { BriefcaseBusiness, LogOut, Settings, ShieldCheck, TrendingUp } from "lucide-react";
 import { auth, login, logout, watchAuth } from "../data";
 import { signInErrorMessage } from "../sign-in-error";
 import { requestBackend } from "../backend";
@@ -9,11 +9,12 @@ import { ownerCandidate } from "./usage-access";
 import NightMarketLanding from "./NightMarketLanding";
 import BazaarSearch from "./BazaarSearch";
 import BazaarItemPage from "./BazaarItemPage";
+import TrendingPage from "./TrendingPage";
 import "./portfolio.css";
 import "./skyblock-theme.css";
 import "./night-market-workspace.css";
 const Workspace = lazy(() => import("./Workspace"));
-type View = "portfolios" | "settings" | "admin" | "item";
+type View = "portfolios" | "settings" | "admin" | "item" | "trending";
 export function portfolioRoute(hash = location.hash): {
   view: View;
   portfolioId: string | null;
@@ -25,8 +26,8 @@ export function portfolioRoute(hash = location.hash): {
     view = p.get("view");
   return {
     view:
-      view === "item"
-        ? "item"
+      view === "flips" ? "trending" : view === "item" || view === "trending"
+        ? view
         : view === "usage" || view === "admin"
           ? "admin"
           : ["notifications", "account", "settings"].includes(view ?? "")
@@ -65,7 +66,7 @@ export default function PortfolioApp() {
       setRoute(r);
       if (
         !r.disable &&
-        !["portfolios", "settings", "admin", "item"].includes(
+        !["portfolios", "settings", "admin", "item", "trending", "flips"].includes(
           new URLSearchParams(location.hash.slice(1)).get("view") ?? "",
         )
       ) {
@@ -102,18 +103,19 @@ export default function PortfolioApp() {
   }
   // Keep a visited workspace mounted for session-cache reuse, but a direct
   // public item visit does not download private workspace/Firestore code.
+  const publicMarketView = route.view === "item" || route.view === "trending";
   if (!user) workspaceOwner.current = null;
-  else if (route.view !== "item") workspaceOwner.current = user.uid;
+  else if (!publicMarketView) workspaceOwner.current = user.uid;
   // A null currentUser during Firebase startup does not mean signed out.
   // Wait for the existing auth observer without starting another request.
-  if (!authReady && !route.disable && route.view !== "item") {
+  if (!authReady && !route.disable && !publicMarketView) {
     return (
       <main className="auth-loading" aria-busy="true">
         <p role="status">Loading BazaarSignal…</p>
       </main>
     );
   }
-  if (!user && !route.disable && route.view !== "item") {
+  if (!user && !route.disable && !publicMarketView) {
     return (
       <NightMarketLanding
         view={route.view}
@@ -124,7 +126,7 @@ export default function PortfolioApp() {
     );
   }
   return (
-    <div className={`portfolio-app night-workspace${route.view === "item" && !route.disable ? " item-view" : ""}`}>
+    <div className={`portfolio-app night-workspace${publicMarketView && !route.disable ? " item-view" : ""}`}>
       <a
         className="skip-link"
         href="#main-content"
@@ -146,6 +148,7 @@ export default function PortfolioApp() {
             {(
               [
                 ["portfolios", "Portfolio", BriefcaseBusiness],
+                ["trending", "Trending", TrendingUp],
                 ["settings", "Settings", Settings],
                 ...(ownerCandidate(user)
                   ? [["admin", "Admin", ShieldCheck]]
@@ -213,6 +216,7 @@ export default function PortfolioApp() {
             ) : (
               <>
                 {route.view === "item" && <BazaarItemPage key={route.itemId} itemId={route.itemId} />}
+                {route.view === "trending" && <TrendingPage />}
                 {user && workspaceOwner.current === user.uid && (
                   <Suspense fallback={<p role="status">Loading workspace…</p>}>
                     <Workspace key={user.uid + ":" + epoch} user={user} route={route} />

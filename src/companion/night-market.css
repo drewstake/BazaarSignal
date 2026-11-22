@@ -143,13 +143,6 @@
   top: 17.97%;
   width: 38%;
 }
-.nm-eyebrow {
-  margin: 0 0 0.52cqw;
-  color: #a0b5d8;
-  font-size: 0.912cqw;
-  font-weight: 700;
-  letter-spacing: 0.16cqw;
-}
 .nm-hero h1 {
   margin: 0;
   font:
@@ -159,20 +152,29 @@
   color: #fff9e5;
   text-shadow: 0 3px 0 #03122388;
 }
-.nm-headline-line,
 .nm-headline-accent {
   display: block;
-}
-.nm-headline-accent {
   color: var(--nm-mint);
   margin-top: 0.4cqw;
+}
+.nm-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 .nm-description {
   margin: 1.45cqw 0 1.75cqw;
   font-size: 1.43cqw;
   line-height: 1.4;
   color: var(--nm-muted);
-  white-space: nowrap;
+  max-width: 28em;
+  text-wrap: pretty;
 }
 .night-market .nm-sign-in {
   position: relative;
@@ -341,19 +343,13 @@
 }
 .nm-preview-item-copy {
   min-width: 0;
-  font-size: 0.78cqw;
+  font-size: clamp(12px, .94cqw, 16px);
   line-height: 1.35;
   font-weight: 600;
   color: #bdd1e9;
 }
 .nm-preview-item-copy > span {
   display: block;
-}
-.nm-preview-item-copy small {
-  display: block;
-  margin-top: 0.3cqw;
-  font-size: 0.65cqw;
-  color: #7992b1;
 }
 .nm-preview-trend {
   display: block;
@@ -368,92 +364,6 @@
   color: #deebff;
   background: #0a2133;
   font-size: 14px;
-}
-.nm-features {
-  position: absolute;
-  bottom: 5%;
-  left: 17.057%;
-  right: 17.057%;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1.43cqw;
-}
-.nm-feature {
-  position: relative;
-  display: grid;
-  grid-template-columns: 3.65cqw minmax(0, 1fr);
-  gap: 1.95cqw;
-  align-items: start;
-  min-height: 9.635cqw;
-  padding: 2.2cqw 1.8cqw 1.7cqw;
-  background: var(--nm-edge);
-  clip-path: var(--nm-cut);
-  isolation: isolate;
-}
-.nm-feature::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset: 2px;
-  background: linear-gradient(130deg, #061524, #07121c);
-  clip-path: var(--nm-cut);
-}
-.nm-feature::after {
-  content: "";
-  position: absolute;
-  inset: 8px;
-  border: 1px solid color-mix(in srgb, var(--nm-edge) 30%, transparent);
-  clip-path: var(--nm-cut);
-  pointer-events: none;
-}
-.nm-feature-holdings {
-  --nm-edge: #45ceab;
-}
-.nm-feature-returns {
-  --nm-edge: #42a8e4;
-}
-.nm-feature-alerts {
-  --nm-edge: #dba946;
-}
-.nm-feature h2 {
-  margin: 0.45cqw 0 1.3cqw;
-  font:
-    700 1.172cqw/1.3 Arial,
-    sans-serif;
-  letter-spacing: -0.025cqw;
-  color: #f7f8ff;
-  white-space: nowrap;
-}
-.nm-feature-icon {
-  display: block;
-  width: 3.65cqw;
-  height: 3.9cqw;
-  filter: drop-shadow(
-    0 0 5px color-mix(in srgb, var(--nm-edge) 30%, transparent)
-  );
-}
-.nm-feature-lines span {
-  display: block;
-  height: 0.65cqw;
-  width: 100%;
-  max-width: 11cqw;
-  background: #2c405b;
-  border-radius: 2px;
-}
-.nm-feature-lines span + span {
-  margin-top: 0.75cqw;
-  width: 67%;
-}
-.nm-sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
 }
 @media (max-width: 900px) {
   .nm-stage {
@@ -509,11 +419,6 @@
     margin: 0;
     padding: 36px 24px 0;
   }
-  .nm-eyebrow {
-    font-size: 12px;
-    letter-spacing: 2px;
-    margin-bottom: 18px;
-  }
   .nm-hero h1 {
     font-size: clamp(46px, 8.6vw, 72px);
     letter-spacing: -1px;
@@ -562,37 +467,6 @@
       auto no-repeat;
     mask-image: linear-gradient(transparent, #000 8%, #000 86%, transparent);
   }
-  .nm-features {
-    position: relative;
-    inset: auto;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-    padding: 0 24px 32px;
-    margin-top: -8px;
-  }
-  .nm-feature {
-    grid-template-columns: 1fr;
-    gap: 10px;
-    min-height: 150px;
-    padding: 20px;
-  }
-  .nm-feature h2 {
-    font-size: 16px;
-    margin: 0 0 16px;
-    white-space: normal;
-    letter-spacing: 0;
-  }
-  .nm-feature-icon {
-    width: 56px;
-    height: 60px;
-  }
-  .nm-feature-lines span {
-    height: 8px;
-    max-width: 170px;
-  }
-  .nm-feature-lines span + span {
-    margin-top: 10px;
-  }
 }
 @media (max-width: 540px) {
   .nm-header {
@@ -622,20 +496,6 @@
   .nm-hero {
     padding: 32px 22px 0;
   }
-  .nm-features {
-    grid-template-columns: 1fr;
-    padding: 0 22px 30px;
-  }
-  .nm-feature {
-    grid-template-columns: 56px minmax(0, 1fr);
-    gap: 24px;
-    align-items: center;
-    min-height: 125px;
-    padding: 22px 26px;
-  }
-  .nm-feature h2 {
-    font-size: 18px;
-  }
 }
 
 @media (max-width: 900px) {
@@ -658,7 +518,7 @@
     height: 32px;
   }
   .nm-preview-header h2 {
-    font-size: 23px;
+    font-size: 20px;
   }
   .night-market .nm-preview-close {
     width: 44px;
@@ -680,10 +540,6 @@
     height: 36px;
   }
   .nm-preview-item-copy {
-    font-size: 11px;
-  }
-  .nm-preview-item-copy small {
-    font-size: 10px;
-    margin-top: 4px;
+    font-size: 13px;
   }
 }

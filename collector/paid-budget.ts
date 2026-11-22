@@ -11,6 +11,7 @@ import { type PaidBilling, type GoogleSpend, validPaidBilling, validGoogleSpend 
 import { errorDiagnostic, isTransientMarketFailure, type DiagnosticReporter } from './diagnostics';
 import { LedgerWriteQueue } from './ledger-write-queue';
 import { historyDay, validHistoryItem } from '../shared/daily-price-history';
+import { flipBoard, type FlipBaselines } from './flips';
 import { PAID_PILOT_INTERVAL } from '../shared/paid-pilot';
 import { CONTINUOUS_LEDGER_KEY, CONTINUOUS_MARKET_ID } from '../shared/continuous-market';
 import { PAID_BUDGET_KEY, PAID_ADMISSION_LIMIT, paidReceiptKey, type PaidReceipt } from './paid-ledger-storage';
@@ -126,6 +127,18 @@ export class PaidLedger {
       const count = s.admissionCount ?? Object.keys(s.admissions).length;
       if (!this.continuous && count >= PAID_ADMISSION_LIMIT) throw new TrialStopped('Paid request limit reached');
       const envelope = paidEnvelope(kind);
+      if (this.continuous && kind === 'history') {
+        // Include the saved control and item catalog used to date NPC price changes.
+        envelope.firestoreReads += 36;
+        envelope.firestoreWrites += 2;
+        envelope.firestoreStorageBytes += 2 * 900 * 1024;
+      }
+      if (this.continuous && kind === 'collector') {
+        // Three baseline reads and two atomic writes per publication attempt.
+        envelope.firestoreReads += 9;
+        envelope.firestoreWrites += 6;
+        envelope.firestoreStorageBytes += 3 * 240 * 1024;
+      }
       // Ledger + receipt publish atomically at admission and finish. Retain room
       // for four CAS attempts and the adapter's two explicit resource retries.
       this.reserve(s, {...envelope, firestoreReads: envelope.firestoreReads + 40, firestoreWrites: envelope.firestoreWrites + 48});
@@ -217,7 +230,8 @@ export function createPaidRuntime(config: {
   report?: (data: Record<string, unknown>) => void;
   ledgerWriteIntervalMs?: number;
   billingFeed?: (billing: PaidBilling, save: (costs: GoogleSpend[]) => Promise<void>, now: number) => Promise<void>;
-  history?: { capture: (session: TrialSession) => Promise<unknown>; item: (session: TrialSession, item: string) => Promise<unknown> };
+  history?: { capture: (session: TrialSession, collector: MarketCollector) => Promise<unknown>; item: (session: TrialSession, item: string) => Promise<unknown>;
+    flipAverages?: (session: TrialSession, at: number) => Promise<FlipBaselines> };
 }) {
   const now = config.now ?? Date.now;
   // One bounded immutable-payload cache per warm runtime. Stores, sessions,
@@ -266,9 +280,9 @@ export function createPaidRuntime(config: {
     collectDaily: () => {
       const at = now(), day = historyDay(at);
       const phase = at - (day * 86_400_000 + 5 * 3_600_000) >= 86_340_000 ? 'close' : 'provisional';
-      return run('history',`daily-history:${day}:${phase}`,async session => {
+      return run('history',`daily-history:${day}:${phase}`,async (session, collector) => {
         if (!config.history) throw Error('Cloud daily archive is not configured');
-        const capture = await config.history.capture(session);
+        const capture = await config.history.capture(session, collector);
         config.report?.({event:'daily_history_saved',at:now(),capture});
       });
     },
@@ -285,6 +299,7 @@ export function createPaidRuntime(config: {
       // Reject requests with no admissible market work before touching the
       // durable allowance. Valid reads still retain admission and expiry gates.
       const routes = ['/api/price-history', '/api/companion/presence', '/api/companion/bazaar',
+        ...(config.continuous ? ['/api/companion/trending', '/api/companion/flips'] : []),
         '/api/companion/portfolio-prices', '/api/companion/raw-bazaar', '/api/companion/book',
         '/api/market', '/api/companion/snapshot', '/api/companion/status'];
       if (retiredMarketRoute(path)) { reject(410, 'Auction House support has been removed.'); return; }
@@ -347,10 +362,20 @@ export function createPaidRuntime(config: {
             session.take({egressBytes:size},false);
             reply = () => {
               if (compressed) response.setHeader('Content-Encoding','gzip');
-              response.setHeader('Cache-Control','private, no-store');
+              const publicBoard = path === '/api/companion/trending' || path === '/api/companion/flips';
+              if (publicBoard) response.setHeader('Vary','Origin, Accept-Encoding');
+              response.setHeader('Cache-Control',publicBoard && status === 200
+                ? 'public, max-age=60' : 'private, no-store');
               response.setHeader('Content-Length',bytes.length);
               response.writeHead(status).end(bytes);
             };
+          }, async lot => {
+            if (!config.history?.flipAverages) throw Error("Flip averages are unavailable.");
+            const market = await collector.bazaar();
+            const at = market.items[0]?.upstreamAt;
+            if (!at) throw Error("Waiting for current market prices.");
+            const averages = await config.history.flipAverages(session, at);
+            return {board: flipBoard(market.items, at, averages, await collector.npcPriceChanges(), lot, now(), !!market.error || market.status.stale), error: market.error};
           })(req,res);
         });
         reply?.();

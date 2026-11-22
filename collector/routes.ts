@@ -1,3 +1,4 @@
+import { flipLot, flipLots } from "../shared/flips";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { createHash } from "node:crypto";
 import { MarketCollector, message } from "./engine";
@@ -14,7 +15,7 @@ export const respondMarket: MarketResponder = async (req,res,status,body) => {
   }
   res.writeHead(status).end(json);
 };
-export function marketHandler(collector: MarketCollector, respond: MarketResponder = respondMarket) {
+export function marketHandler(collector: MarketCollector, respond: MarketResponder = respondMarket, flips?: (lot: number) => Promise<unknown>) {
   return async (
     req: IncomingMessage,
     res: ServerResponse,
@@ -66,6 +67,14 @@ export function marketHandler(collector: MarketCollector, respond: MarketRespond
       }
       if (url.pathname === "/api/companion/bazaar")
         body = await collector.bazaar();
+      else if (url.pathname === "/api/companion/flips" && flips) {
+        const lot = url.search ? Number(url.searchParams.get("lot")) : flipLot;
+        if (!flipLots.includes(lot) || [...url.searchParams].length > 1) { await respond(req,res,400,{error:"Unsupported flip lot."}); return; }
+        body = await flips(lot);
+      } else if (url.pathname === "/api/companion/trending") {
+        if (url.search) { await respond(req,res,400,{error:"Trending takes no parameters."}); return; }
+        body = { board: JSON.parse(await collector.store.read("trending") ?? "null") };
+      }
       else if (url.pathname === '/api/companion/portfolio-prices') {
         const assets=[...new Set((url.searchParams.get('assets')??'').split(',').filter(Boolean))].sort();
         if(assets.length>100||assets.some(id=>!/^v1_[a-f0-9]{64}$|^bz_[A-Za-z0-9_:-]{1,100}$/.test(id)))throw new Error('Invalid asset keys.');

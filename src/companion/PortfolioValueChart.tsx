@@ -304,7 +304,7 @@ export default function PortfolioValueChart({
           </p>
         </div>
       )}
-      <div className="value-chart-footnote">
+      {points.length > 0 && <div className="value-chart-footnote">
         <span>
           <i aria-hidden="true" />{" "}
           {points.length === 1
@@ -316,7 +316,7 @@ export default function PortfolioValueChart({
             ? "History on this device · up to 90 days"
             : "History available for this tab only"}
         </span>
-      </div>
+      </div>}
     </section>
   );
 }

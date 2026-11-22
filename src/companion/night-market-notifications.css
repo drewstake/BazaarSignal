@@ -95,7 +95,7 @@
     0 0 36px #56f4b70a;
   border-radius: 5px;
 }
-.night-workspace .notification-empty h2 {
+.night-workspace .notification-empty h3 {
   font: 700 28px/1.15 var(--display);
   margin: 0 0 10px;
 }
@@ -124,13 +124,9 @@
 .night-workspace .notification-list-heading {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 15px;
   margin-bottom: 16px;
-}
-.night-workspace .notification-list-heading h2 {
-  font: 700 25px/1.2 var(--display);
-  margin: 0;
 }
 .night-workspace .notification-list-heading a {
   display: inline-flex;
@@ -441,7 +437,7 @@
   .night-workspace .notification-empty {
     padding: 36px 16px;
   }
-  .night-workspace .notification-empty h2 {
+  .night-workspace .notification-empty h3 {
     font-size: 25px;
   }
 }
