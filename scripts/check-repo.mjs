@@ -34,10 +34,10 @@ for (const file of docs) {
 
 // Literal references plus the actual dynamic icon/item families used by React.
 const assets = new Set(['/favicon.svg']);
-for (const file of files('src')) {
+for (const file of [...files('src'), ...files('apps-script')]) {
   if (!/\.(css|tsx?|json)$/.test(file)) continue;
   const text = readFileSync(file, 'utf8');
-  for (const match of text.matchAll(/\/((?:assets|art)\/[\w./-]+\.(?:png|webp|svg|ttf))/g))
+  for (const match of text.matchAll(/\/((?:assets|art)\/[\w./-]+\.(?:jpg|png|webp|svg|ttf))/g))
     assets.add('/' + match[1]);
 }
 const components = readFileSync('src/companion/components.tsx', 'utf8');
@@ -64,7 +64,8 @@ requireFile(resolve('public/assets/night-market/OFL.txt'), 'font license');
 const publicFiles = files('public');
 for (const file of publicFiles) {
   const path = relative('public', file).replaceAll('\\', '/');
-  if (!/\.(png|webp|svg|ttf)$/.test(path) && path !== 'assets/night-market/OFL.txt')
+  const referencedJpeg = path.endsWith('.jpg') && assets.has('/' + path);
+  if (!/\.(png|webp|svg|ttf)$/.test(path) && !referencedJpeg && path !== 'assets/night-market/OFL.txt')
     errors.push(`Non-runtime public file: ${path}`);
   if (/^assets\/(night-market\/.*\.png|sky-island-v1\/[^/]+)$/.test(path))
     errors.push(`Source artwork in public: ${path}`);
